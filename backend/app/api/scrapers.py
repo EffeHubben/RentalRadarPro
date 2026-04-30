@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.database.db import get_database_session
 from app.models.listing import Listing
+from app.scrapers.base import detect_availability_status
+from app.services.duplicates import assign_duplicate_metadata, refresh_duplicate_group
 from app.scrapers.generic_sources import SourceBlockedError
 from app.services.listing_quality import ListingQualityInput, build_listing_quality
 from app.services.location import (
@@ -87,6 +89,24 @@ def update_existing_listing(
 
     for field_name, field_value in listing_metadata.items():
         setattr(existing_listing, field_name, field_value)
+
+    apply_availability_fallback(existing_listing)
+    assign_duplicate_metadata(existing_listing)
+
+
+def apply_availability_fallback(listing: Listing) -> None:
+    if listing.availability_status not in (None, "", "unknown"):
+        return
+
+    availability_status, is_available = detect_availability_status(
+        " ".join([listing.title or "", listing.description or ""])
+    )
+
+    if availability_status == "unknown":
+        return
+
+    listing.availability_status = availability_status
+    listing.is_available = is_available
 
 
 def build_location_metadata(database: Session, scraped_listing, city: str) -> dict:
@@ -220,6 +240,7 @@ def run_scrapers(
             ).first()
 
             if existing_listing:
+                previous_duplicate_group_id = existing_listing.duplicate_group_id
                 updated_count += 1
                 source_summary["updated_count"] += 1
                 update_existing_listing(
@@ -229,6 +250,8 @@ def run_scrapers(
                     city=city,
                     now=now,
                 )
+                refresh_duplicate_group(database, previous_duplicate_group_id)
+                refresh_duplicate_group(database, existing_listing.duplicate_group_id)
                 database.commit()
                 continue
 
@@ -261,8 +284,12 @@ def run_scrapers(
             )
 
             database.add(listing)
+            apply_availability_fallback(listing)
+            assign_duplicate_metadata(listing)
             database.commit()
             database.refresh(listing)
+            refresh_duplicate_group(database, listing.duplicate_group_id)
+            database.commit()
 
             created_count += 1
             source_summary["created_count"] += 1

@@ -1,12 +1,19 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 PropertyType = Literal["studio", "apartment", "room", "house", "parking", "unknown"]
-AvailabilityStatus = Literal["available", "under_option", "rented", "unknown"]
+AvailabilityStatus = Literal["available", "under_option", "reserved", "rented", "unknown"]
 LocationPrecision = Literal["exact_address", "street", "postcode", "city", "unknown"]
+
+
+class DuplicateSource(BaseModel):
+    id: int
+    source: str
+    url: str
+    title: str
 
 
 class ListingBase(BaseModel):
@@ -40,6 +47,10 @@ class ListingBase(BaseModel):
     longitude: float | None = None
     location_precision: LocationPrecision = "unknown"
     location_confidence: float = 0.0
+    duplicate_key: str | None = None
+    canonical_key: str | None = None
+    duplicate_group_id: str | None = None
+    source_count: int = 1
     is_active: bool = True
 
 
@@ -52,5 +63,6 @@ class ListingResponse(ListingBase):
     created_at: datetime
     updated_at: datetime
     last_seen_at: datetime | None = None
+    duplicate_sources: list[DuplicateSource] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

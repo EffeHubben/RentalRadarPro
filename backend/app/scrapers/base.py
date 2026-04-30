@@ -25,8 +25,6 @@ UNAVAILABLE_PHRASES = [
     "verhuurd onder voorbehoud",
     "verhuurd",
     "niet beschikbaar",
-    "gereserveerd",
-    "reserved",
     "rented",
     "unavailable",
 ]
@@ -34,16 +32,22 @@ UNDER_OPTION_PHRASES = [
     "onder optie",
     "under option",
 ]
+RESERVED_PHRASES = [
+    "gereserveerd",
+    "reserved",
+]
 AVAILABLE_PHRASES = [
     "beschikbaar vanaf",
+    "beschikbaar",
     "direct inschrijven",
     "direct beschikbaar",
     "te huur",
+    "available",
     "available from",
 ]
 
 
-def detect_availability_status(text: str) -> tuple[str, bool | None]:
+def detect_availability(text: str) -> tuple[str, bool | None]:
     normalized_text = (text or "").lower()
     def phrase_positions(phrases: list[str]) -> list[int]:
         positions = []
@@ -58,21 +62,29 @@ def detect_availability_status(text: str) -> tuple[str, bool | None]:
         return positions
 
     under_option_positions = phrase_positions(UNDER_OPTION_PHRASES)
+    reserved_positions = phrase_positions(RESERVED_PHRASES)
     unavailable_positions = phrase_positions(UNAVAILABLE_PHRASES)
     available_positions = phrase_positions(AVAILABLE_PHRASES)
-
-    if under_option_positions:
-        return "under_option", False
 
     if unavailable_positions and (
         not available_positions or min(unavailable_positions) < min(available_positions)
     ):
         return "rented", False
 
+    if under_option_positions:
+        return "under_option", False
+
+    if reserved_positions:
+        return "reserved", False
+
     if available_positions:
         return "available", True
 
     return "unknown", None
+
+
+def detect_availability_status(text: str) -> tuple[str, bool | None]:
+    return detect_availability(text)
 
 
 def extract_price_from_text(text: str) -> int | None:

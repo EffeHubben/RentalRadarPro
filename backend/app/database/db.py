@@ -38,6 +38,10 @@ LISTING_COLUMN_MIGRATIONS = {
     "longitude": "ALTER TABLE listings ADD COLUMN longitude FLOAT",
     "location_precision": "ALTER TABLE listings ADD COLUMN location_precision VARCHAR(30) DEFAULT 'unknown'",
     "location_confidence": "ALTER TABLE listings ADD COLUMN location_confidence FLOAT DEFAULT 0",
+    "duplicate_key": "ALTER TABLE listings ADD COLUMN duplicate_key VARCHAR(255)",
+    "canonical_key": "ALTER TABLE listings ADD COLUMN canonical_key VARCHAR(255)",
+    "duplicate_group_id": "ALTER TABLE listings ADD COLUMN duplicate_group_id VARCHAR(255)",
+    "source_count": "ALTER TABLE listings ADD COLUMN source_count INTEGER DEFAULT 1",
 }
 
 GEOCODE_CACHE_COLUMN_MIGRATIONS = {
@@ -72,6 +76,15 @@ def migrate_listing_table() -> None:
                 UPDATE listings
                 SET is_woningruil = 0
                 WHERE is_woningruil IS NULL
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                UPDATE listings
+                SET source_count = 1
+                WHERE source_count IS NULL OR source_count < 1
                 """
             )
         )
@@ -142,6 +155,8 @@ def create_database_tables() -> None:
     migrate_listing_table()
     migrate_geocode_cache_table()
     backfill_existing_listing_locations()
+    backfill_existing_listing_availability()
+    backfill_existing_listing_duplicates()
 
 
 def backfill_existing_listing_locations(limit: int = 500) -> None:
@@ -196,6 +211,54 @@ def backfill_existing_listing_locations(limit: int = 500) -> None:
                         listing.location_confidence or 0.0,
                         parts.location_confidence,
                     )
+
+        database.commit()
+    finally:
+        database.close()
+
+
+def backfill_existing_listing_duplicates(limit: int = 2000) -> None:
+    from app.models.listing import Listing
+    from app.services.duplicates import refresh_duplicate_groups
+
+    database = SessionLocal()
+
+    try:
+        listings = database.query(Listing).limit(limit).all()
+        refresh_duplicate_groups(database, listings)
+        database.commit()
+    finally:
+        database.close()
+
+
+def backfill_existing_listing_availability(limit: int = 2000) -> None:
+    from app.models.listing import Listing
+    from app.scrapers.base import detect_availability_status
+
+    database = SessionLocal()
+
+    try:
+        listings = (
+            database.query(Listing)
+            .filter(
+                (Listing.availability_status.is_(None))
+                | (Listing.availability_status == "")
+                | (Listing.availability_status == "unknown")
+            )
+            .limit(limit)
+            .all()
+        )
+
+        for listing in listings:
+            availability_status, is_available = detect_availability_status(
+                " ".join([listing.title or "", listing.description or ""])
+            )
+
+            if availability_status == "unknown":
+                continue
+
+            listing.availability_status = availability_status
+            listing.is_available = is_available
 
         database.commit()
     finally:

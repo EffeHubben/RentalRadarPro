@@ -44,9 +44,13 @@ export function cleanTitle(value: string) {
     /\bmeer op onze site\b/gi,
     /\bte huur:\s*/gi,
     /\bnieuw!\s*/gi,
+    /\bnieuw\s*:\s*/gi,
     /\bvraag een bezichtiging aan via de link onderaan deze advertentie!?\b/gi,
+    /\bgevonden voor\s*€\s*[0-9][0-9.,]*\b/gi,
     /\bappartement gevonden in [^,.]+,\s*nu beschikbaar voor.*$/gi,
     /\bstudio gevonden in [^,.]+,\s*nu beschikbaar voor.*$/gi,
+    /\b(?:marktplaats|funda|ikwilhuren|mvgm)\s*[-|:]\s*/gi,
+    /\b(?:breda|tilburg|eindhoven|rotterdam|amsterdam)\s*[-|:]\s*(?:breda|tilburg|eindhoven|rotterdam|amsterdam)\b/gi,
   ];
   const denoised = noisyPatterns.reduce(
     (title, pattern) => title.replace(pattern, "").trim().replace(/^[,.:|\-\s]+|[,.:|\-\s]+$/g, ""),
@@ -82,6 +86,8 @@ export function createSummary(listing: Listing, maxLength = 155) {
     .replace(title, "")
     .replace(/meer op onze site/gi, "")
     .replace(/vraag een bezichtiging aan via de link onderaan deze advertentie!?/gi, "")
+    .replace(/gevonden voor\s*€\s*[0-9][0-9.,]*/gi, "")
+    .replace(/\bnieuw!\s*/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 

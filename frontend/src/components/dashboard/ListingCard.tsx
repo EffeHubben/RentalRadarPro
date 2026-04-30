@@ -180,7 +180,10 @@ export function ListingCard({
   const copy = i18n[language].listing;
   const confidence = listing.confidence_score ?? 0.45;
   const lowConfidence = confidence < 0.45;
-  const unavailable = listing.availability_status === "rented" || listing.availability_status === "under_option";
+  const unavailable =
+    listing.availability_status === "rented" ||
+    listing.availability_status === "under_option" ||
+    listing.availability_status === "reserved";
   const strongMatch = confidence >= 0.75 && !unavailable;
   const [hasLoadedRealImage, setHasLoadedRealImage] = useState(false);
 
@@ -208,6 +211,9 @@ export function ListingCard({
           {strongMatch ? <Badge accent>{copy.strongMatch}</Badge> : null}
           {unavailable ? (
             <Badge muted>{copy.availability[listing.availability_status]}</Badge>
+          ) : null}
+          {(listing.source_count ?? 1) > 1 || listing.duplicate_sources.length > 1 ? (
+            <Badge>{copy.alsoOnOtherSources}</Badge>
           ) : null}
           {listing.is_woningruil ? <Badge muted>{copy.houseSwap}</Badge> : null}
         </div>

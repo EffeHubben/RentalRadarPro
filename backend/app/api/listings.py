@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database.db import get_database_session
 from app.models.listing import Listing
+from app.services.duplicates import duplicate_sources_for_listings
 from app.schemas.listing import ListingCreate, ListingResponse
 
 
@@ -231,6 +232,11 @@ def get_listings(
             if requested_property_types
             else case((Listing.property_type != "unknown", 0), else_=1)
         )
+        availability_rank = case(
+            (Listing.availability_status == "available", 0),
+            (or_(Listing.availability_status.is_(None), Listing.availability_status == "unknown"), 1),
+            else_=2,
+        )
         preference_ranks = []
 
         if private_kitchen is True:
@@ -249,13 +255,16 @@ def get_listings(
 
         query = query.order_by(
             case((Listing.is_active.is_(True), 0), else_=1),
-            case((Listing.availability_status.in_(["rented", "under_option"]), 1), else_=0),
+            availability_rank,
             case((Listing.image_url.is_(None), 1), (Listing.image_url == "", 1), else_=0),
+            case((Listing.is_woningruil.is_(True), 1), else_=0),
+            case((Listing.property_type == "parking", 1), else_=0),
+            location_rank,
             case((Listing.confidence_score.is_(None), 1), else_=0),
             Listing.confidence_score.desc(),
             selected_property_rank,
             *preference_ranks,
-            location_rank,
+            case((Listing.price.is_(None), 1), else_=0),
             case(
                 (Listing.property_type.in_(["studio", "apartment", "house"]), 0),
                 (Listing.property_type == "room", 1),
@@ -267,6 +276,17 @@ def get_listings(
         )
 
     listings = query.offset(offset).limit(limit).all()
+    duplicate_sources_by_group = duplicate_sources_for_listings(database, listings)
+
+    for listing in listings:
+        listing.duplicate_sources = duplicate_sources_by_group.get(
+            listing.duplicate_group_id or "",
+            [],
+        )
+        if listing.duplicate_sources:
+            listing.source_count = max(listing.source_count or 1, len({
+                source["source"] for source in listing.duplicate_sources
+            }))
 
     return listings
 

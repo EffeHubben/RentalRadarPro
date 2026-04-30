@@ -113,9 +113,15 @@ export function ListingModal({
                       </span>
                     ) : null}
                     {listing.availability_status === "rented" ||
-                    listing.availability_status === "under_option" ? (
+                    listing.availability_status === "under_option" ||
+                    listing.availability_status === "reserved" ? (
                       <span className="rounded-full border border-danger/28 bg-danger/10 px-3 py-1 text-xs font-semibold text-danger">
                         {listingCopy.availability[listing.availability_status]}
+                      </span>
+                    ) : null}
+                    {(listing.source_count ?? 1) > 1 || listing.duplicate_sources.length > 1 ? (
+                      <span className="rounded-full border border-cyan-100/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">
+                        {listingCopy.alsoOnOtherSources}
                       </span>
                     ) : null}
                   </div>
@@ -241,6 +247,28 @@ export function ListingModal({
                       </div>
                     </div>
                   </Section>
+
+                  {listing.duplicate_sources.length > 1 ? (
+                    <Section title={copy.alsoFoundOn}>
+                      <div className="space-y-2">
+                        {listing.duplicate_sources.map((source) => (
+                          <a
+                            key={`${source.id}-${source.url}`}
+                            href={source.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={() => onToast(listingCopy.openingAd, "info")}
+                            className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2 text-sm text-white/64 transition hover:border-cyan-100/30 hover:bg-white/[0.07] hover:text-white"
+                          >
+                            <span className="min-w-0 truncate font-semibold">{source.source}</span>
+                            <span className="shrink-0 rounded-lg border border-cyan-100/25 bg-cyan-300/10 px-2 py-1 text-[11px] font-semibold text-cyan-100">
+                              {listingCopy.openAd}
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    </Section>
+                  ) : null}
                 </aside>
 
                 <div className="pb-4 lg:col-span-2">

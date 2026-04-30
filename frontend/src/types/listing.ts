@@ -27,6 +27,11 @@ export type Listing = {
   longitude: number | null;
   location_precision: LocationPrecision;
   location_confidence: number;
+  duplicate_key: string | null;
+  canonical_key: string | null;
+  duplicate_group_id: string | null;
+  source_count: number;
+  duplicate_sources: DuplicateSource[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -44,8 +49,16 @@ export type PropertyType =
 export type AvailabilityStatus =
   | "available"
   | "under_option"
+  | "reserved"
   | "rented"
   | "unknown";
+
+export type DuplicateSource = {
+  id: number;
+  source: string;
+  url: string;
+  title: string;
+};
 
 export type LocationPrecision =
   | "exact_address"

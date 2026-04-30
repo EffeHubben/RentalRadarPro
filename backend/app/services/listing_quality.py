@@ -137,8 +137,6 @@ RENTED_SIGNALS = [
     "verhuurd onder voorbehoud",
     "verhuurd",
     "niet beschikbaar",
-    "gereserveerd",
-    "reserved",
     "rented",
     "unavailable",
 ]
@@ -146,20 +144,29 @@ UNDER_OPTION_SIGNALS = [
     "onder optie",
     "under option",
 ]
+RESERVED_SIGNALS = [
+    "gereserveerd",
+    "reserved",
+]
 AVAILABLE_SIGNALS = [
     "beschikbaar vanaf",
+    "beschikbaar",
     "direct inschrijven",
     "direct beschikbaar",
     "te huur",
+    "available",
     "available from",
 ]
 MESSY_TITLE_PATTERNS = [
     r"\bmeer op onze site\b",
     r"\bte huur:\s*",
     r"\bnieuw!\s*",
+    r"\bnieuw\s*:\s*",
     r"\bvraag een bezichtiging aan via de link onderaan deze advertentie!?\b",
+    r"\bgevonden voor\s*€\s*[0-9][0-9.,]*\b",
     r"\bappartement gevonden in [^,.]+,\s*nu beschikbaar voor.*$",
     r"\bstudio gevonden in [^,.]+,\s*nu beschikbaar voor.*$",
+    r"\b(?:marktplaats|funda|ikwilhuren|mvgm)\s*[-|:]\s*",
 ]
 
 
@@ -321,7 +328,7 @@ def calculate_confidence_score(
         score -= 0.08
     if is_woningruil:
         score -= 0.12
-    if availability_status in {"rented", "under_option"}:
+    if availability_status in {"rented", "under_option", "reserved"}:
         score -= 0.2
     if property_type == "parking":
         score -= 0.08
@@ -356,16 +363,20 @@ def build_listing_quality(data: ListingQualityInput) -> dict:
     shared_laundry = True if includes_any(combined_text, SHARED_LAUNDRY_KEYWORDS) else None
     is_woningruil = includes_any(combined_text, WONINGRUIL_KEYWORDS)
     under_option_positions = phrase_positions(combined_text, UNDER_OPTION_SIGNALS)
+    reserved_positions = phrase_positions(combined_text, RESERVED_SIGNALS)
     rented_positions = phrase_positions(combined_text, RENTED_SIGNALS)
     available_positions = phrase_positions(combined_text, AVAILABLE_SIGNALS)
 
-    if under_option_positions:
-        availability_status = "under_option"
-        is_available = False
-    elif rented_positions and (
+    if rented_positions and (
         not available_positions or min(rented_positions) < min(available_positions)
     ):
         availability_status = "rented"
+        is_available = False
+    elif under_option_positions:
+        availability_status = "under_option"
+        is_available = False
+    elif reserved_positions:
+        availability_status = "reserved"
         is_available = False
     elif available_positions:
         availability_status = "available"

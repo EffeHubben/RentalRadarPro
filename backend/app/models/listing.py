@@ -41,6 +41,11 @@ class Listing(Base):
     location_precision = Column(String(30), nullable=False, default="unknown")
     location_confidence = Column(Float, nullable=False, default=0.0)
 
+    duplicate_key = Column(String(255), nullable=True, index=True)
+    canonical_key = Column(String(255), nullable=True, index=True)
+    duplicate_group_id = Column(String(255), nullable=True, index=True)
+    source_count = Column(Integer, nullable=False, default=1)
+
     is_active = Column(Boolean, default=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
