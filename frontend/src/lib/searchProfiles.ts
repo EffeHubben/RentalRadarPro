@@ -1,0 +1,111 @@
+import type {
+  ListingFilters,
+  SearchProfile,
+  SearchProfileFilters,
+} from "@/types/listing";
+import { createInitialFilters } from "@/components/dashboard/helpers";
+
+export const searchProfilesStorageKey = "rental-radar-search-profiles-v1";
+
+export function loadSearchProfiles(): SearchProfile[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(searchProfilesStorageKey);
+
+    if (!rawValue) {
+      return [];
+    }
+
+    const parsedValue = JSON.parse(rawValue) as SearchProfile[];
+    return Array.isArray(parsedValue) ? parsedValue : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveSearchProfiles(profiles: SearchProfile[]) {
+  window.localStorage.setItem(searchProfilesStorageKey, JSON.stringify(profiles));
+}
+
+export function createProfileId() {
+  return `profile:${Date.now()}:${Math.random().toString(36).slice(2, 9)}`;
+}
+
+export function profileFiltersFromListingFilters(
+  filters: ListingFilters,
+): SearchProfileFilters {
+  return {
+    city: filters.city,
+    source: filters.source,
+    min_price: filters.minPrice,
+    max_price: filters.maxPrice,
+    no_max_price: filters.noMaxPrice,
+    include_unknown_price: filters.includeUnknownPrice,
+    min_area_m2: filters.minAreaM2,
+    max_area_m2: filters.maxAreaM2,
+    min_rooms: filters.minRooms,
+    property_type: filters.propertyType,
+    private_kitchen: filters.privateKitchen,
+    private_bathroom: filters.privateBathroom,
+    private_toilet: filters.privateToilet,
+    allow_shared: filters.allowShared,
+    allow_shared_laundry: filters.allowSharedLaundry,
+    has_image: filters.hasImage,
+    seen_recently_days: filters.seenRecentlyDays,
+    min_confidence_score: filters.minConfidenceScore,
+    exclude_woningruil: filters.excludeWoningruil,
+    exclude_parking: filters.excludeParking,
+    hide_rented: filters.hideRented,
+    only_independent: filters.onlyIndependent,
+    search: filters.search,
+    sort: filters.sort,
+  };
+}
+
+export function listingFiltersFromProfile(
+  profileFilters: SearchProfileFilters,
+  currentFilters: ListingFilters,
+): ListingFilters {
+  const defaults = createInitialFilters();
+
+  return {
+    ...defaults,
+    status: currentFilters.status,
+    showHiddenListings: currentFilters.showHiddenListings,
+    city: profileFilters.city,
+    source: profileFilters.source,
+    minPrice: profileFilters.min_price,
+    maxPrice: profileFilters.max_price,
+    noMaxPrice: profileFilters.no_max_price,
+    includeUnknownPrice: profileFilters.include_unknown_price,
+    minAreaM2: profileFilters.min_area_m2,
+    maxAreaM2: profileFilters.max_area_m2,
+    minRooms: profileFilters.min_rooms,
+    propertyType: profileFilters.property_type,
+    privateKitchen: profileFilters.private_kitchen,
+    privateBathroom: profileFilters.private_bathroom,
+    privateToilet: profileFilters.private_toilet,
+    allowShared: profileFilters.allow_shared,
+    allowSharedLaundry: profileFilters.allow_shared_laundry,
+    hasImage: profileFilters.has_image,
+    seenRecentlyDays: profileFilters.seen_recently_days,
+    minConfidenceScore: profileFilters.min_confidence_score,
+    excludeWoningruil: profileFilters.exclude_woningruil,
+    excludeParking: profileFilters.exclude_parking,
+    hideRented: profileFilters.hide_rented ?? true,
+    onlyIndependent: profileFilters.only_independent,
+    search: profileFilters.search,
+    sort: profileFilters.sort,
+    offset: 0,
+  };
+}
+
+export function profileFiltersEqual(
+  left: SearchProfileFilters,
+  right: SearchProfileFilters,
+) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}

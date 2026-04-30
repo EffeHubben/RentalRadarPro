@@ -1,0 +1,207 @@
+export type Listing = {
+  id: number;
+  title: string;
+  source: string;
+  url: string;
+  city: string | null;
+  price: number | null;
+  area_m2: number | null;
+  rooms: number | null;
+  property_type: PropertyType;
+  private_kitchen: boolean | null;
+  private_bathroom: boolean | null;
+  private_toilet: boolean | null;
+  shared_laundry: boolean | null;
+  is_shared: boolean | null;
+  is_woningruil: boolean;
+  availability_status: AvailabilityStatus;
+  is_available: boolean | null;
+  confidence_score: number | null;
+  image_url: string | null;
+  description: string | null;
+  address_text: string | null;
+  street_name: string | null;
+  house_number: string | null;
+  postal_code: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  location_precision: LocationPrecision;
+  location_confidence: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  last_seen_at: string | null;
+};
+
+export type PropertyType =
+  | "studio"
+  | "apartment"
+  | "room"
+  | "house"
+  | "parking"
+  | "unknown";
+
+export type AvailabilityStatus =
+  | "available"
+  | "under_option"
+  | "rented"
+  | "unknown";
+
+export type LocationPrecision =
+  | "exact_address"
+  | "street"
+  | "postcode"
+  | "city"
+  | "unknown";
+
+export type ListingSort =
+  | "best_match"
+  | "newest"
+  | "cheapest"
+  | "most_expensive"
+  | "largest"
+  | "smallest";
+
+export type ListingStatus =
+  | "new"
+  | "interested"
+  | "applied"
+  | "viewing_planned"
+  | "rejected"
+  | "hidden";
+
+export type LocalListingWorkflow = {
+  status: ListingStatus;
+  note?: string;
+  updatedAt: string;
+};
+
+export type LocalListingWorkflowState = Record<string, LocalListingWorkflow>;
+
+export type SearchProfileFilters = {
+  city: string;
+  source: string;
+  min_price: string;
+  max_price: string;
+  no_max_price: boolean;
+  include_unknown_price: boolean;
+  min_area_m2: string;
+  max_area_m2: string;
+  min_rooms: string;
+  property_type: PropertyType | "";
+  private_kitchen: boolean | null;
+  private_bathroom: boolean | null;
+  private_toilet: boolean | null;
+  allow_shared: boolean;
+  allow_shared_laundry: boolean;
+  has_image: boolean;
+  seen_recently_days: "" | "0" | "3" | "7" | "14";
+  min_confidence_score: string;
+  exclude_woningruil: boolean;
+  exclude_parking: boolean;
+  hide_rented: boolean;
+  only_independent: boolean;
+  search: string;
+  sort: ListingSort;
+};
+
+export type SearchProfile = {
+  id: string;
+  name: string;
+  filters: SearchProfileFilters;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ListingFilters = {
+  city: string;
+  source: string;
+  minPrice: string;
+  maxPrice: string;
+  noMaxPrice: boolean;
+  includeUnknownPrice: boolean;
+  minAreaM2: string;
+  maxAreaM2: string;
+  minRooms: string;
+  propertyType: PropertyType | "";
+  propertyTypes: PropertyType[];
+  privateKitchen: boolean | null;
+  privateBathroom: boolean | null;
+  privateToilet: boolean | null;
+  allowShared: boolean;
+  allowSharedLaundry: boolean;
+  hasImage: boolean;
+  seenRecentlyDays: "" | "0" | "3" | "7" | "14";
+  minConfidenceScore: string;
+  excludeWoningruil: boolean;
+  excludeParking: boolean;
+  hideRented: boolean;
+  onlyIndependent: boolean;
+  status: ListingStatus | "";
+  showHiddenListings: boolean;
+  search: string;
+  sort: ListingSort;
+  limit: number;
+  offset: number;
+};
+
+export type ScraperResult = {
+  status: string;
+  city: string;
+  sources: Array<{
+    source_id?: string;
+    source: string;
+    status?: "success" | "no_results" | "blocked" | "failed";
+    scraped_count: number;
+    created_count: number;
+    updated_count: number;
+    skipped_count: number;
+    duplicate_count?: number;
+    error?: string | null;
+    duration_ms?: number | null;
+    manual_search_url?: string | null;
+  }>;
+  scraped_count: number;
+  created_count: number;
+  updated_count: number;
+  duplicate_count: number;
+  skipped_count: number;
+  created_listings: Array<{
+    id: number;
+    title: string;
+    source?: string;
+    price: number | null;
+    area_m2: number | null;
+    rooms: number | null;
+    image_url: string | null;
+    url: string;
+  }>;
+};
+
+export type SourceInfo = {
+  source_id: string;
+  display_name: string;
+  enabled: boolean;
+  supports_city_search: boolean;
+  base_url: string;
+  notes: string;
+  manual_search_url_template?: string | null;
+  manual_search_url?: string | null;
+  default_enabled_for_auto_scan: boolean;
+  supports_automatic_scraping: boolean;
+  status_note_nl?: string | null;
+  status_note_en?: string | null;
+  last_run?: {
+    source_id?: string;
+    source: string;
+    status: "success" | "no_results" | "blocked" | "failed";
+    scraped_count: number;
+    created_count: number;
+    updated_count: number;
+    skipped_count: number;
+    duplicate_count?: number;
+    error?: string | null;
+    duration_ms?: number | null;
+    manual_search_url?: string | null;
+  } | null;
+};
