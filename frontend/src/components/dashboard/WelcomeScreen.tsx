@@ -154,7 +154,7 @@ export function WelcomeScreen({
   return (
     <motion.section
       key="onboarding"
-      initial={{ opacity: 0 }}
+      initial={false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 0.985, filter: "blur(10px)" }}
       transition={{ duration: 0.42, ease: "easeOut" }}
@@ -176,7 +176,7 @@ export function WelcomeScreen({
         <div className="grid gap-6 lg:grid-cols-[1fr_30rem] lg:items-stretch">
           <motion.div
             className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(8,13,24,0.76)_48%,rgba(5,8,14,0.88))] p-6 shadow-cinematic backdrop-blur-2xl sm:p-8"
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: "spring", damping: 24, stiffness: 150 }}
           >
@@ -210,7 +210,7 @@ export function WelcomeScreen({
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
-                initial={{ opacity: 0, x: 28, filter: "blur(8px)" }}
+                initial={false}
                 animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                 exit={{ opacity: 0, x: -22, filter: "blur(8px)" }}
                 transition={{ duration: 0.32, ease: "easeOut" }}
@@ -455,7 +455,7 @@ export function WelcomeScreen({
           </motion.div>
 
           <motion.aside
-            initial={{ opacity: 0, y: 24, scale: 0.985 }}
+            initial={false}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ type: "spring", damping: 26, stiffness: 170, delay: 0.1 }}
             className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-slate-950/58 p-6 shadow-cinematic backdrop-blur-2xl"
