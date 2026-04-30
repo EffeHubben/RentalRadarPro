@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AccountButton } from "@/components/auth/AccountButton";
 import { ActiveFilters } from "@/components/dashboard/ActiveFilters";
 import { CinematicBackground } from "@/components/dashboard/CinematicBackground";
@@ -58,6 +58,33 @@ function AnimatedValue({ value }: { value: string | number }) {
   );
 }
 
+function ErrorPanel({
+  message,
+  help,
+}: {
+  message: string;
+  help: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="cinematic-panel mb-5 rounded-[1.5rem] border border-danger/30 bg-[linear-gradient(135deg,rgba(248,113,113,0.16),rgba(8,13,24,0.78)_46%,rgba(8,13,24,0.92))] p-4 text-sm shadow-cinematic backdrop-blur-2xl sm:p-5"
+      role="status"
+    >
+      <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-danger/30 bg-danger/12 text-base font-semibold text-danger shadow-[0_0_38px_rgba(248,113,113,0.16)]">
+          !
+        </div>
+        <div className="min-w-0">
+          <div className="font-semibold text-white">{message}</div>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-white/58">{help}</p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function DashboardPage() {
   const [filters, setFilters] = useState<ListingFilters>(() => createInitialFilters());
   const [language, setLanguage] = useState<Language>("nl");
@@ -78,6 +105,7 @@ export default function DashboardPage() {
   const [profileName, setProfileName] = useState("");
   const toastId = useRef(0);
   const copy = i18n[language];
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     const storedLanguage = window.localStorage.getItem("rental-radar-language");
@@ -485,7 +513,7 @@ export default function DashboardPage() {
 
   return (
     <main className="relative isolate min-h-screen overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8">
-      {searchStarted ? <CinematicBackground fixed intensity="dashboard" className="opacity-75" /> : null}
+      {searchStarted ? <CinematicBackground fixed intensity="dashboard" /> : null}
       <ToastStack toasts={toasts} />
 
       <AnimatePresence mode="wait">
@@ -510,9 +538,17 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 18, scale: 0.985 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", damping: 26, stiffness: 190 }}
-          className="mb-6 overflow-hidden rounded-[1.75rem] border border-white/12 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.15),transparent_24rem),radial-gradient(circle_at_88%_20%,rgba(244,63,94,0.10),transparent_22rem),linear-gradient(135deg,rgba(255,255,255,0.10),rgba(8,13,24,0.86)_45%,rgba(13,148,136,0.08))] p-5 shadow-cinematic backdrop-blur-2xl sm:p-8"
+          className="cinematic-panel mb-6 rounded-[1.75rem] border border-white/12 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.18),transparent_24rem),radial-gradient(circle_at_88%_20%,rgba(244,63,94,0.12),transparent_22rem),linear-gradient(135deg,rgba(255,255,255,0.12),rgba(8,13,24,0.78)_45%,rgba(13,148,136,0.12))] p-5 shadow-cinematic backdrop-blur-2xl sm:p-8"
         >
-          <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+          <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-300/12 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-32 left-1/3 h-64 w-96 rounded-full bg-teal-300/10 blur-3xl" />
+          <motion.div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/70 to-transparent"
+            animate={shouldReduceMotion ? undefined : { opacity: [0.35, 0.9, 0.35] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 flex flex-wrap items-center gap-3">
                 <div className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-100/80">
@@ -523,7 +559,7 @@ export default function DashboardPage() {
                   <AccountButton language={language} />
                 </div>
               </div>
-              <h1 className="max-w-4xl text-4xl font-semibold leading-tight text-white sm:text-6xl">
+              <h1 className="max-w-4xl text-4xl font-semibold leading-tight tracking-[-0.01em] text-white drop-shadow-[0_18px_55px_rgba(8,47,73,0.45)] sm:text-6xl">
                 {copy.dashboard.title}
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-white/56 sm:text-base">
@@ -569,7 +605,7 @@ export default function DashboardPage() {
                 <AccountButton language={language} />
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
+                <div className="rounded-2xl border border-white/12 bg-white/[0.065] p-4 shadow-[0_18px_48px_rgba(2,6,23,0.22)] backdrop-blur-xl">
                   <div className="text-xs uppercase tracking-[0.16em] text-white/38">
                     {copy.dashboard.results}
                   </div>
@@ -577,7 +613,7 @@ export default function DashboardPage() {
                     <AnimatedValue value={visibleListings.length} />
                   </div>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
+                <div className="rounded-2xl border border-white/12 bg-white/[0.065] p-4 shadow-[0_18px_48px_rgba(2,6,23,0.22)] backdrop-blur-xl">
                   <div className="text-xs uppercase tracking-[0.16em] text-white/38">
                     {copy.dashboard.private}
                   </div>
@@ -585,7 +621,7 @@ export default function DashboardPage() {
                     <AnimatedValue value={stats.privateCount} />
                   </div>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
+                <div className="rounded-2xl border border-white/12 bg-white/[0.065] p-4 shadow-[0_18px_48px_rgba(2,6,23,0.22)] backdrop-blur-xl">
                   <div className="text-xs uppercase tracking-[0.16em] text-white/38">
                     {copy.dashboard.lowestRent}
                   </div>
@@ -607,7 +643,7 @@ export default function DashboardPage() {
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 grid gap-2 rounded-[1.25rem] border border-white/10 bg-white/[0.035] p-3 shadow-premium backdrop-blur-xl sm:grid-cols-5"
+          className="mb-6 grid gap-2 rounded-[1.25rem] border border-white/12 bg-white/[0.055] p-3 shadow-cinematic backdrop-blur-2xl sm:grid-cols-5"
         >
           {[
             { label: copy.workflow.stats.visible, value: visibleListings.length },
@@ -616,7 +652,7 @@ export default function DashboardPage() {
             { label: copy.workflow.stats.viewing, value: stats.statusCounts.viewing_planned },
             { label: copy.workflow.stats.hidden, value: stats.statusCounts.hidden },
           ].map((item) => (
-            <div key={item.label} className="rounded-xl border border-white/10 bg-black/18 px-3 py-2">
+            <div key={item.label} className="rounded-xl border border-white/10 bg-slate-950/26 px-3 py-2">
               <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
                 {item.label}
               </div>
@@ -636,14 +672,14 @@ export default function DashboardPage() {
                 offset: 0,
               }))
             }
-            className="rounded-xl border border-white/10 bg-black/18 px-3 py-2 text-left text-xs font-semibold text-white/62 transition hover:border-brass/35 hover:text-white sm:col-span-5"
+            className="rounded-xl border border-white/10 bg-slate-950/26 px-3 py-2 text-left text-xs font-semibold text-white/62 transition hover:border-cyan-100/35 hover:text-white sm:col-span-5"
           >
             {copy.workflow.viewHidden}
           </motion.button>
         </motion.section>
 
         <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
-          <aside className="sticky top-5 hidden max-h-[calc(100vh-2.5rem)] overflow-y-auto rounded-[1.5rem] border border-white/10 bg-[#10131a]/88 p-5 shadow-premium backdrop-blur-xl lg:block">
+          <aside className="sticky top-5 hidden max-h-[calc(100vh-2.5rem)] overflow-y-auto rounded-[1.5rem] border border-white/12 bg-[#07111f]/78 p-5 shadow-cinematic backdrop-blur-2xl lg:block">
             <FilterPanel
               filters={filters}
               sources={sources}
@@ -671,7 +707,7 @@ export default function DashboardPage() {
           </aside>
 
           <section className="min-w-0">
-            <div className="mb-5 rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4 shadow-premium backdrop-blur-xl">
+            <div className="mb-5 rounded-[1.5rem] border border-white/12 bg-white/[0.055] p-4 shadow-cinematic backdrop-blur-2xl">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="text-sm font-semibold text-white">
@@ -703,7 +739,7 @@ export default function DashboardPage() {
             <motion.section
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-5 rounded-[1.5rem] border border-white/10 bg-white/[0.035] p-4 shadow-premium"
+              className="mb-5 rounded-[1.5rem] border border-white/12 bg-white/[0.055] p-4 shadow-cinematic backdrop-blur-2xl"
             >
               <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/38">
                 {copy.scraper.sourceOverview}
@@ -734,13 +770,7 @@ export default function DashboardPage() {
             </motion.section>
 
             {error ? (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-5 rounded-[1.5rem] border border-danger/35 bg-danger/10 p-4 text-sm text-danger shadow-premium"
-              >
-                {error}
-              </motion.div>
+              <ErrorPanel message={error} help={copy.toast.backendOfflineHelp} />
             ) : null}
 
             {loading ? (

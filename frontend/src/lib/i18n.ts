@@ -423,6 +423,8 @@ export const i18n = {
     },
     toast: {
       fetchError: "Kan de advertenties niet ophalen",
+      backendOfflineHelp:
+        "Controleer of de backend draait en bereikbaar is. Je filters en lokale voortgang blijven bewaard.",
       scrapeStart: "Nieuwe advertenties ophalen gestart",
       scrapeSuccess: "Nieuwe advertenties zijn bijgewerkt",
       scrapeError: "Ophalen van advertenties mislukt",
@@ -852,6 +854,8 @@ export const i18n = {
     },
     toast: {
       fetchError: "Could not fetch listings",
+      backendOfflineHelp:
+        "Check whether the backend is running and reachable. Your filters and local progress are still preserved.",
       scrapeStart: "Started fetching new listings",
       scrapeSuccess: "New listings have been updated",
       scrapeError: "Fetching listings failed",

@@ -22,6 +22,10 @@ body {
   overflow-x: hidden;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 button,
 input,
 select {
@@ -51,6 +55,36 @@ img {
 
 .cinematic-aurora {
   will-change: transform, opacity;
+}
+
+.cinematic-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.cinematic-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.12), transparent 34%),
+    radial-gradient(circle at 18% 0%, rgba(125, 211, 252, 0.16), transparent 22rem),
+    radial-gradient(circle at 92% 12%, rgba(244, 63, 94, 0.10), transparent 20rem);
+  opacity: 0.9;
+}
+
+.cinematic-panel::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent 72%);
 }
 
 @media (prefers-reduced-motion: reduce) {
