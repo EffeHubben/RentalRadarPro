@@ -25,6 +25,26 @@ function boolLabel(value: boolean | null, language: Language) {
   return "";
 }
 
+function sortLabel(sort: ListingFilters["sort"], language: Language) {
+  const copy = i18n[language].filters;
+
+  switch (sort) {
+    case "newest":
+      return copy.newest;
+    case "cheapest":
+      return copy.cheapest;
+    case "most_expensive":
+      return copy.mostExpensive;
+    case "largest":
+      return copy.largest;
+    case "smallest":
+      return copy.smallest;
+    case "best_match":
+    default:
+      return copy.bestMatch;
+  }
+}
+
 export function getActiveFilters(filters: ListingFilters, language: Language): FilterPill[] {
   const copy = i18n[language].activeFilters;
   const pills: FilterPill[] = [];
@@ -150,6 +170,19 @@ export function getActiveFilters(filters: ListingFilters, language: Language): F
       label: copy.showHiddenListings,
       resetValue: false,
     });
+  } else {
+    pills.push({
+      key: "showHiddenListings",
+      label: copy.hiddenExcluded,
+      resetValue: true,
+    });
+  }
+  if (filters.sort !== "best_match") {
+    pills.push({
+      key: "sort",
+      label: `${copy.sort}: ${sortLabel(filters.sort, language)}`,
+      resetValue: "best_match",
+    });
   }
 
   return pills;
@@ -188,7 +221,7 @@ export function ActiveFilters({
                     offset: 0,
                   })
                 }
-                className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-medium text-white/72 transition hover:border-brass/40 hover:text-white"
+                className="rounded-full border border-white/12 bg-white/[0.065] px-3 py-2 text-xs font-medium text-white/72 shadow-[0_10px_28px_rgba(2,6,23,0.18)] transition hover:border-cyan-100/36 hover:bg-white/[0.09] hover:text-white"
               >
                 {filter.label} <span className="ml-1 text-white/35">x</span>
               </motion.button>

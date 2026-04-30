@@ -14,7 +14,7 @@ import { EmptyState, SkeletonGrid } from "@/components/dashboard/States";
 import { Toast, ToastStack } from "@/components/dashboard/ToastStack";
 import { WelcomeScreen } from "@/components/dashboard/WelcomeScreen";
 import { createInitialFilters, formatPrice } from "@/components/dashboard/helpers";
-import { fetchListings, fetchSources, runScraper } from "@/lib/api";
+import { buildListingQueryParams, fetchListings, fetchSources, runScraper } from "@/lib/api";
 import { i18n, type Language } from "@/lib/i18n";
 import {
   listingWorkflowKey,
@@ -82,6 +82,50 @@ function ErrorPanel({
         </div>
       </div>
     </motion.div>
+  );
+}
+
+function FilterDebugPanel({
+  filters,
+  serverCount,
+  visibleCount,
+}: {
+  filters: ListingFilters;
+  serverCount: number;
+  visibleCount: number;
+}) {
+  if (process.env.NODE_ENV !== "development") {
+    return null;
+  }
+
+  const queryParams = buildListingQueryParams(filters).toString();
+
+  return (
+    <details className="mt-5 rounded-2xl border border-cyan-100/20 bg-slate-950/70 p-4 text-xs text-white/60 shadow-cinematic backdrop-blur-2xl">
+      <summary className="cursor-pointer select-none font-semibold text-cyan-100/80">
+        Dev filter debug
+      </summary>
+      <div className="mt-4 space-y-3">
+        <div>
+          <div className="mb-1 font-semibold text-white/70">API query params</div>
+          <pre className="overflow-x-auto rounded-xl border border-white/10 bg-black/30 p-3">
+            {queryParams || "(none)"}
+          </pre>
+        </div>
+        <div>
+          <div className="mb-1 font-semibold text-white/70">Counts</div>
+          <pre className="overflow-x-auto rounded-xl border border-white/10 bg-black/30 p-3">
+            {JSON.stringify({ serverCount, visibleCount }, null, 2)}
+          </pre>
+        </div>
+        <div>
+          <div className="mb-1 font-semibold text-white/70">Frontend filter state</div>
+          <pre className="max-h-80 overflow-auto rounded-xl border border-white/10 bg-black/30 p-3">
+            {JSON.stringify(filters, null, 2)}
+          </pre>
+        </div>
+      </div>
+    </details>
   );
 }
 
@@ -728,6 +772,11 @@ export default function DashboardPage() {
                 </button>
               </div>
               <ActiveFilters filters={filters} onChange={setFilters} language={language} />
+              <FilterDebugPanel
+                filters={filters}
+                serverCount={listings.length}
+                visibleCount={visibleListings.length}
+              />
             </div>
 
             <ScraperProgress

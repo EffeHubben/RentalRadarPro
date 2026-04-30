@@ -219,11 +219,43 @@ def get_listings(
     elif sort == "newest":
         query = query.order_by(Listing.last_seen_at.desc(), Listing.created_at.desc())
     else:
+        location_rank = case(
+            (Listing.location_precision == "exact_address", 0),
+            (Listing.location_precision == "street", 1),
+            (Listing.location_precision == "postcode", 2),
+            (Listing.location_precision == "city", 3),
+            else_=4,
+        )
+        selected_property_rank = (
+            case((Listing.property_type.in_(requested_property_types), 0), else_=1)
+            if requested_property_types
+            else case((Listing.property_type != "unknown", 0), else_=1)
+        )
+        preference_ranks = []
+
+        if private_kitchen is True:
+            preference_ranks.append(case((Listing.private_kitchen.is_(True), 0), else_=1))
+
+        if private_bathroom is True:
+            preference_ranks.append(case((Listing.private_bathroom.is_(True), 0), else_=1))
+
+        if private_toilet is True:
+            preference_ranks.append(case((Listing.private_toilet.is_(True), 0), else_=1))
+
+        if allow_shared is False or only_independent:
+            preference_ranks.append(
+                case((Listing.is_shared.is_(False), 0), (Listing.is_shared.is_(None), 1), else_=2)
+            )
+
         query = query.order_by(
             case((Listing.is_active.is_(True), 0), else_=1),
             case((Listing.availability_status.in_(["rented", "under_option"]), 1), else_=0),
             case((Listing.image_url.is_(None), 1), (Listing.image_url == "", 1), else_=0),
+            case((Listing.confidence_score.is_(None), 1), else_=0),
             Listing.confidence_score.desc(),
+            selected_property_rank,
+            *preference_ranks,
+            location_rank,
             case(
                 (Listing.property_type.in_(["studio", "apartment", "house"]), 0),
                 (Listing.property_type == "room", 1),

@@ -27,7 +27,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 function inputClass() {
-  return "h-11 w-full rounded-lg border border-white/10 bg-white/[0.045] px-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-brass/70 focus:bg-white/[0.07] focus:ring-2 focus:ring-brass/20";
+  return "h-11 w-full rounded-xl border border-white/10 bg-white/[0.055] px-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-cyan-200/55 focus:bg-white/[0.08] focus:ring-2 focus:ring-cyan-300/15";
 }
 
 function Section({
@@ -42,7 +42,7 @@ function Section({
   return (
     <motion.section
       variants={sectionVariants}
-      className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+      className="rounded-2xl border border-white/12 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl"
     >
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-white">{title}</h3>
@@ -69,12 +69,12 @@ function Toggle({
       type="button"
       whileTap={{ scale: 0.98 }}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/18 px-3 py-3 text-left text-sm text-white/72 transition hover:border-white/20 hover:bg-white/[0.055]"
+      className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-slate-950/28 px-3 py-3 text-left text-sm text-white/72 transition hover:border-cyan-100/24 hover:bg-white/[0.06]"
     >
       <span>{label}</span>
       <span
         className={`relative h-6 w-11 rounded-full border transition ${
-          checked ? "border-mint/50 bg-mint/75" : "border-white/10 bg-black/35"
+          checked ? "border-cyan-100/50 bg-cyan-200/85" : "border-white/10 bg-black/35"
         }`}
       >
         <motion.span
@@ -105,7 +105,7 @@ function SourceScanToggle({
       type="button"
       whileTap={{ scale: 0.98 }}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-start justify-between gap-3 rounded-xl border border-white/10 bg-black/18 px-3 py-3 text-left transition hover:border-white/20 hover:bg-white/[0.055]"
+      className="flex w-full items-start justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/28 px-3 py-3 text-left transition hover:border-cyan-100/24 hover:bg-white/[0.06]"
     >
       <span className="min-w-0">
         <span className="block text-sm font-semibold text-white/78">
@@ -118,7 +118,7 @@ function SourceScanToggle({
       </span>
       <span
         className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition ${
-          checked ? "border-mint/50 bg-mint/75" : "border-white/10 bg-black/35"
+          checked ? "border-cyan-100/50 bg-cyan-200/85" : "border-white/10 bg-black/35"
         }`}
       >
         <motion.span
@@ -183,14 +183,14 @@ function StatusChips({
             onClick={() => onChange(option.value)}
             className={`relative rounded-full border px-3 py-2 text-xs font-semibold transition ${
               active
-                ? "border-brass/45 bg-brass/12 text-brass"
-                : "border-white/10 bg-black/18 text-white/55 hover:border-white/22 hover:text-white"
+                ? "border-cyan-200/45 bg-cyan-300/12 text-cyan-100"
+                : "border-white/10 bg-slate-950/28 text-white/55 hover:border-cyan-100/24 hover:text-white"
             }`}
           >
             {active ? (
               <motion.span
                 layoutId="active-status-chip"
-                className="absolute inset-0 rounded-full bg-brass/10"
+                className="absolute inset-0 rounded-full bg-cyan-300/10"
                 transition={{ type: "spring", damping: 24, stiffness: 260 }}
               />
             ) : null}
@@ -305,6 +305,19 @@ export function FilterPanel({
     onChange({ ...filters, propertyType: value, propertyTypes: [], offset: 0 });
   }
 
+  function togglePropertyType(type: PropertyType) {
+    const propertyTypes = filters.propertyTypes.includes(type)
+      ? filters.propertyTypes.filter((selectedType) => selectedType !== type)
+      : [...filters.propertyTypes, type];
+
+    onChange({
+      ...filters,
+      propertyType: "",
+      propertyTypes,
+      offset: 0,
+    });
+  }
+
   function updateScanSource(sourceId: string, checked: boolean) {
     const nextIds = checked
       ? Array.from(new Set([...selectedScanSourceIds, sourceId]))
@@ -320,20 +333,25 @@ export function FilterPanel({
       variants={{ visible: { transition: { staggerChildren: 0.045 } } }}
       className="space-y-4"
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="rounded-2xl border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(8,13,24,0.56))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-white">{copy.title}</h2>
           <p className="mt-1 text-xs leading-5 text-white/42">
             {copy.intro}
           </p>
+          <p className="mt-3 rounded-xl border border-cyan-100/15 bg-cyan-300/8 px-3 py-2 text-xs leading-5 text-cyan-50/64">
+            {copy.resultExplanation}
+          </p>
         </div>
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/58 transition hover:border-white/25 hover:text-white"
+          className="shrink-0 rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2 text-xs font-semibold text-white/66 transition hover:border-cyan-100/30 hover:text-white"
         >
           {copy.reset}
         </button>
+        </div>
       </div>
 
       <SearchProfilesPanel
@@ -371,7 +389,7 @@ export function FilterPanel({
             />
           </label>
           <CustomSelect
-            label={copy.source}
+            label={copy.sourceFilter}
             value={filters.source}
             options={sourceOptions}
             onChange={(value) => update("source", value)}
@@ -424,6 +442,33 @@ export function FilterPanel({
           options={propertyTypes}
           onChange={updatePropertyType}
         />
+        <div>
+          <FieldLabel>{copy.propertyTypesLabel}</FieldLabel>
+          <div className="flex flex-wrap gap-2">
+            {propertyTypes
+              .filter((option): option is SelectOption<PropertyType> => Boolean(option.value))
+              .map((option) => {
+                const active = filters.propertyTypes.includes(option.value);
+
+                return (
+                  <motion.button
+                    key={option.value}
+                    type="button"
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => togglePropertyType(option.value)}
+                    className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                      active
+                        ? "border-cyan-200/45 bg-cyan-300/12 text-cyan-100"
+                        : "border-white/10 bg-slate-950/28 text-white/55 hover:border-cyan-100/24 hover:text-white"
+                    }`}
+                  >
+                    {option.label}
+                  </motion.button>
+                );
+              })}
+          </div>
+          <p className="mt-2 text-xs leading-5 text-white/38">{copy.propertyTypesHelp}</p>
+        </div>
         <div className="grid grid-cols-3 gap-3">
           <label className="block">
             <FieldLabel>{copy.minArea}</FieldLabel>
@@ -550,7 +595,7 @@ export function FilterPanel({
 
       <Section title={workflowCopy.progress}>
         {hiddenCount > 0 ? (
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-brass/25 bg-brass/10 px-3 py-1 text-xs font-semibold text-brass">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-200/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">
             {workflowCopy.labels.hidden}: {hiddenCount}
           </div>
         ) : null}
@@ -560,6 +605,11 @@ export function FilterPanel({
           onChange={(value) => update("status", value)}
         />
         <p className="text-xs leading-5 text-white/42">{workflowCopy.hiddenExplanation}</p>
+        {!filters.showHiddenListings ? (
+          <p className="rounded-xl border border-white/10 bg-slate-950/28 px-3 py-2 text-xs leading-5 text-white/48">
+            {workflowCopy.hiddenExcluded}
+          </p>
+        ) : null}
         <Toggle
           label={workflowCopy.showHidden}
           checked={filters.showHiddenListings}
@@ -582,7 +632,7 @@ export function FilterPanel({
         whileTap={{ scale: 0.98 }}
         onClick={onRunScraper}
         disabled={scraperLoading || loading}
-        className="h-12 w-full rounded-2xl border border-mint/40 bg-mint px-4 text-sm font-semibold text-ink shadow-[0_16px_42px_rgba(110,231,183,0.16)] transition hover:bg-[#8af0c8] disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/10 disabled:text-white/40"
+        className="h-12 w-full rounded-2xl border border-cyan-100/45 bg-cyan-100 px-4 text-sm font-semibold text-slate-950 shadow-[0_18px_54px_rgba(34,211,238,0.18)] transition hover:bg-white disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/10 disabled:text-white/40"
       >
         {scraperLoading ? copy.runLoading : copy.run}
       </motion.button>

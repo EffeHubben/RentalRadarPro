@@ -48,6 +48,7 @@ export function profileFiltersFromListingFilters(
     max_area_m2: filters.maxAreaM2,
     min_rooms: filters.minRooms,
     property_type: filters.propertyType,
+    property_types: filters.propertyTypes,
     private_kitchen: filters.privateKitchen,
     private_bathroom: filters.privateBathroom,
     private_toilet: filters.privateToilet,
@@ -60,6 +61,8 @@ export function profileFiltersFromListingFilters(
     exclude_parking: filters.excludeParking,
     hide_rented: filters.hideRented,
     only_independent: filters.onlyIndependent,
+    status: filters.status,
+    show_hidden_listings: filters.showHiddenListings,
     search: filters.search,
     sort: filters.sort,
   };
@@ -73,8 +76,6 @@ export function listingFiltersFromProfile(
 
   return {
     ...defaults,
-    status: currentFilters.status,
-    showHiddenListings: currentFilters.showHiddenListings,
     city: profileFilters.city,
     source: profileFilters.source,
     minPrice: profileFilters.min_price,
@@ -85,6 +86,7 @@ export function listingFiltersFromProfile(
     maxAreaM2: profileFilters.max_area_m2,
     minRooms: profileFilters.min_rooms,
     propertyType: profileFilters.property_type,
+    propertyTypes: profileFilters.property_types ?? [],
     privateKitchen: profileFilters.private_kitchen,
     privateBathroom: profileFilters.private_bathroom,
     privateToilet: profileFilters.private_toilet,
@@ -97,6 +99,9 @@ export function listingFiltersFromProfile(
     excludeParking: profileFilters.exclude_parking,
     hideRented: profileFilters.hide_rented ?? true,
     onlyIndependent: profileFilters.only_independent,
+    status: profileFilters.status ?? currentFilters.status,
+    showHiddenListings:
+      profileFilters.show_hidden_listings ?? currentFilters.showHiddenListings,
     search: profileFilters.search,
     sort: profileFilters.sort,
     offset: 0,
@@ -107,5 +112,14 @@ export function profileFiltersEqual(
   left: SearchProfileFilters,
   right: SearchProfileFilters,
 ) {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return JSON.stringify(normalizeProfileFilters(left)) === JSON.stringify(normalizeProfileFilters(right));
+}
+
+function normalizeProfileFilters(filters: SearchProfileFilters): SearchProfileFilters {
+  return {
+    ...filters,
+    property_types: filters.property_types ?? [],
+    status: filters.status ?? "",
+    show_hidden_listings: filters.show_hidden_listings ?? false,
+  };
 }

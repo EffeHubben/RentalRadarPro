@@ -89,6 +89,7 @@ export type SearchProfileFilters = {
   max_area_m2: string;
   min_rooms: string;
   property_type: PropertyType | "";
+  property_types: PropertyType[];
   private_kitchen: boolean | null;
   private_bathroom: boolean | null;
   private_toilet: boolean | null;
@@ -101,6 +102,8 @@ export type SearchProfileFilters = {
   exclude_parking: boolean;
   hide_rented: boolean;
   only_independent: boolean;
+  status: ListingStatus | "";
+  show_hidden_listings: boolean;
   search: string;
   sort: ListingSort;
 };

@@ -20,7 +20,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function fetchListings(filters: ListingFilters): Promise<Listing[]> {
+export function buildListingQueryParams(filters: ListingFilters): URLSearchParams {
   const params = new URLSearchParams();
 
   if (filters.city.trim()) {
@@ -35,7 +35,7 @@ export async function fetchListings(filters: ListingFilters): Promise<Listing[]>
     params.set("min_price", filters.minPrice.trim());
   }
 
-  if (filters.maxPrice.trim()) {
+  if (filters.maxPrice.trim() && !filters.noMaxPrice) {
     params.set("max_price", filters.maxPrice.trim());
   }
 
@@ -55,9 +55,7 @@ export async function fetchListings(filters: ListingFilters): Promise<Listing[]>
   }
 
   if (filters.propertyTypes.length) {
-    for (const propertyType of filters.propertyTypes) {
-      params.append("property_type", propertyType);
-    }
+    params.set("property_types", filters.propertyTypes.join(","));
   } else if (filters.propertyType) {
     params.set("property_type", filters.propertyType);
   }
@@ -101,7 +99,13 @@ export async function fetchListings(filters: ListingFilters): Promise<Listing[]>
   params.set("limit", String(filters.limit));
   params.set("offset", String(filters.offset));
 
+  return params;
+}
+
+export async function fetchListings(filters: ListingFilters): Promise<Listing[]> {
+  const params = buildListingQueryParams(filters);
   const query = params.toString();
+
   return request<Listing[]>(`/api/listings/${query ? `?${query}` : ""}`, {
     cache: "no-store",
   });
