@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AccountButton } from "@/components/auth/AccountButton";
 import { ActiveFilters } from "@/components/dashboard/ActiveFilters";
+import { CinematicBackground } from "@/components/dashboard/CinematicBackground";
 import { FilterPanel } from "@/components/dashboard/FilterPanel";
 import { ListingCard } from "@/components/dashboard/ListingCard";
 import { ListingModal } from "@/components/dashboard/ListingModal";
@@ -483,19 +484,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8">
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 -z-10 opacity-80"
-        animate={{
-          background: [
-            "radial-gradient(circle at 12% 4%, rgba(215,168,79,0.20), transparent 28rem), radial-gradient(circle at 88% 10%, rgba(110,231,183,0.12), transparent 24rem)",
-            "radial-gradient(circle at 18% 10%, rgba(215,168,79,0.14), transparent 30rem), radial-gradient(circle at 78% 4%, rgba(110,231,183,0.18), transparent 26rem)",
-            "radial-gradient(circle at 12% 4%, rgba(215,168,79,0.20), transparent 28rem), radial-gradient(circle at 88% 10%, rgba(110,231,183,0.12), transparent 24rem)",
-          ],
-        }}
-        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-      />
+    <main className="relative isolate min-h-screen overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8">
+      {searchStarted ? <CinematicBackground fixed intensity="dashboard" className="opacity-75" /> : null}
       <ToastStack toasts={toasts} />
 
       <AnimatePresence mode="wait">
@@ -520,12 +510,12 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 18, scale: 0.985 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", damping: 26, stiffness: 190 }}
-          className="mb-6 overflow-hidden rounded-[1.75rem] border border-white/10 bg-[radial-gradient(circle_at_12%_0%,rgba(215,168,79,0.18),transparent_24rem),linear-gradient(135deg,rgba(255,255,255,0.08),rgba(17,20,27,0.88)_45%,rgba(110,231,183,0.08))] p-5 shadow-premium sm:p-8"
+          className="mb-6 overflow-hidden rounded-[1.75rem] border border-white/12 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.15),transparent_24rem),radial-gradient(circle_at_88%_20%,rgba(244,63,94,0.10),transparent_22rem),linear-gradient(135deg,rgba(255,255,255,0.10),rgba(8,13,24,0.86)_45%,rgba(13,148,136,0.08))] p-5 shadow-cinematic backdrop-blur-2xl sm:p-8"
         >
           <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 flex flex-wrap items-center gap-3">
-                <div className="text-sm font-semibold uppercase tracking-[0.28em] text-brass">
+                <div className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-100/80">
                   {copy.dashboard.eyebrow}
                 </div>
                 <LanguageToggle language={language} onChange={changeLanguage} />
@@ -541,7 +531,7 @@ export default function DashboardPage() {
               </p>
               {selectedProfile ? (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-brass/25 bg-brass/10 px-3 py-1.5 text-xs font-semibold text-brass">
+                  <span className="rounded-full border border-cyan-200/25 bg-cyan-300/10 px-3 py-1.5 text-xs font-semibold text-cyan-100">
                     {copy.searchProfiles.active}: {selectedProfile.name}
                   </span>
                   {hasUnsavedProfileChanges ? (
@@ -552,7 +542,7 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={handleUpdateProfile}
-                    className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-xs font-semibold text-white/62 transition hover:border-brass/40 hover:text-white"
+                    className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-xs font-semibold text-white/62 transition hover:border-cyan-100/40 hover:text-white"
                   >
                     {copy.searchProfiles.update}
                   </button>
@@ -561,14 +551,14 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setSearchStarted(false)}
-                className="mt-5 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-semibold text-white/62 transition hover:border-brass/40 hover:text-white"
+                className="mt-5 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-semibold text-white/62 transition hover:border-cyan-100/40 hover:text-white"
               >
                 {copy.dashboard.changeSearch}
               </button>
               <button
                 type="button"
                 onClick={restartOnboarding}
-                className="ml-2 mt-5 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-semibold text-white/62 transition hover:border-brass/40 hover:text-white"
+                className="ml-2 mt-5 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-semibold text-white/62 transition hover:border-cyan-100/40 hover:text-white"
               >
                 {copy.dashboard.restartSetup}
               </button>

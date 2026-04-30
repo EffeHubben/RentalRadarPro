@@ -20,10 +20,10 @@ export const i18n = {
       details: ["Slim gefilterd", "Rustig overzicht", "Sneller reageren"],
     },
     onboarding: {
-      title: "Laten we je zoektocht beginnen",
+      title: "Vind sneller een huurwoning die echt bij je past",
       subtitle:
-        "Stel een scherpe zoekbasis in. Daarna kun je alles verfijnen met filters, profielen en voortgang.",
-      details: ["Premium overzicht", "Lokale voortgang", "Slimme filters"],
+        "Ontdek woningen op basis van prijs, locatie, reistijd en beschikbaarheid - in een moderne, slimme zoekervaring.",
+      details: ["Prijs en locatie", "Reistijd en beschikbaarheid", "Slimme filters"],
       steps: {
         welcome: "Welkom",
         location: "Locatie",
@@ -60,7 +60,8 @@ export const i18n = {
       any: "Maakt niet uit",
       back: "Terug",
       next: "Volgende",
-      start: "Start mijn zoektocht",
+      start: "Start zoeken",
+      howItWorks: "Hoe werkt het?",
       fetchingToast: "We halen direct de nieuwste advertenties voor je op.",
     },
     dashboard: {
@@ -449,10 +450,10 @@ export const i18n = {
       details: ["Smart filters", "Calm overview", "Respond faster"],
     },
     onboarding: {
-      title: "Let's start your search",
+      title: "Find a rental home that truly fits you faster",
       subtitle:
-        "Set a strong search baseline. You can refine everything later with filters, profiles and progress.",
-      details: ["Premium overview", "Local progress", "Smart filters"],
+        "Discover homes by price, location, travel time and availability in a modern, smart search experience.",
+      details: ["Price and location", "Travel time and availability", "Smart filters"],
       steps: {
         welcome: "Welcome",
         location: "Location",
@@ -489,7 +490,8 @@ export const i18n = {
       any: "Any",
       back: "Back",
       next: "Next",
-      start: "Start my search",
+      start: "Start search",
+      howItWorks: "How it works",
       fetchingToast: "We’re fetching the latest listings for you.",
     },
     dashboard: {
