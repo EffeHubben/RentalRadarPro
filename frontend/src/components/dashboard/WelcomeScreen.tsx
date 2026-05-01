@@ -153,10 +153,10 @@ export function WelcomeScreen({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.28, ease: "easeOut" }}
-      className="relative isolate flex min-h-[calc(100vh-4rem)] items-center px-4 py-8 sm:px-6 lg:px-8"
+      className="relative isolate px-4 py-6 sm:px-6 lg:px-8"
     >
       <div className="relative mx-auto w-full max-w-5xl">
-        <div className="grid gap-6 lg:grid-cols-[1fr_30rem] lg:items-stretch">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_24rem]">
           <motion.div
             className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] p-6 shadow-premium sm:p-8"
             initial={false}
@@ -194,10 +194,10 @@ export function WelcomeScreen({
                 animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                 exit={{ opacity: 0, x: -22, filter: "blur(8px)" }}
                 transition={{ duration: 0.32, ease: "easeOut" }}
-                className="min-h-[28rem]"
+                className="min-h-[18rem]"
               >
                 {step === 0 ? (
-                  <div className="flex min-h-[28rem] flex-col justify-center">
+                  <div className="flex min-h-[18rem] flex-col justify-center">
                     <p className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-brass">
                       {copy.steps.welcome}
                     </p>
@@ -216,24 +216,6 @@ export function WelcomeScreen({
                           {detail}
                         </span>
                       ))}
-                    </div>
-                    <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-                      <motion.button
-                        type="button"
-                        whileTap={{ scale: 0.985 }}
-                        onClick={next}
-                        className="h-11 rounded-lg bg-brass px-5 text-sm font-semibold text-ink transition hover:bg-[#e3bd6a]"
-                      >
-                        {copy.start}
-                      </motion.button>
-                      <motion.button
-                        type="button"
-                        whileTap={{ scale: 0.985 }}
-                        onClick={() => setStep(1)}
-                        className="h-11 rounded-lg border border-white/12 bg-white/[0.045] px-5 text-sm font-semibold text-white/70 transition hover:border-white/24 hover:text-white"
-                      >
-                        {copy.howItWorks}
-                      </motion.button>
                     </div>
                   </div>
                 ) : null}
@@ -416,16 +398,15 @@ export function WelcomeScreen({
                 whileTap={{ scale: 0.98 }}
                 onClick={back}
                 disabled={step === 0}
-                className="h-12 rounded-2xl border border-white/10 px-5 text-sm font-semibold text-white/62 transition hover:border-cyan-100/28 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+                className="h-11 rounded-lg border border-white/10 px-5 text-sm font-semibold text-white/62 transition hover:border-white/24 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
               >
                 {copy.back}
               </motion.button>
               <motion.button
                 type="button"
-                whileHover={{ y: -2, scale: 1.01 }}
                 whileTap={{ scale: 0.985 }}
                 onClick={next}
-                className="h-12 rounded-2xl border border-cyan-100/50 bg-cyan-100 px-6 text-sm font-semibold text-slate-950 shadow-[0_22px_70px_rgba(34,211,238,0.24)] transition hover:bg-white"
+                className="h-11 rounded-lg bg-brass px-6 text-sm font-semibold text-ink transition hover:bg-[#e3bd6a]"
               >
                 {step === steps.length - 1 ? copy.start : copy.next}
               </motion.button>
@@ -436,17 +417,9 @@ export function WelcomeScreen({
             initial={false}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ type: "spring", damping: 26, stiffness: 170, delay: 0.1 }}
-            className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-slate-950/58 p-6 shadow-cinematic backdrop-blur-2xl"
+            className="relative rounded-2xl border border-white/10 bg-black/18 p-5 shadow-premium"
           >
-            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-teal-200/70 to-transparent" />
-            <div className="pointer-events-none absolute -right-28 top-20 h-64 w-64 rounded-full bg-teal-300/10 blur-3xl" />
-            <motion.div
-              aria-hidden="true"
-              className="mx-auto mt-8 h-56 w-56 rounded-full border border-cyan-100/15 bg-[radial-gradient(circle,rgba(125,211,252,0.22),rgba(45,212,191,0.10)_46%,rgba(244,63,94,0.08)_68%,transparent_72%)] shadow-[0_0_80px_rgba(34,211,238,0.12)]"
-              animate={{ rotate: 360, scale: [1, 1.04, 1] }}
-              transition={{ rotate: { duration: 24, repeat: Infinity, ease: "linear" }, scale: { duration: 6, repeat: Infinity } }}
-            />
-            <div className="mt-8 space-y-3">
+            <div className="space-y-2">
               {steps.map((label, index) => (
                 <div
                   key={label}

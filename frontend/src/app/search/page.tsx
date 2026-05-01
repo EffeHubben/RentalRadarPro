@@ -300,11 +300,12 @@ export default function DashboardPage() {
     }
 
     document.addEventListener("keydown", handleEscape);
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     return () => {
       document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
     };
   }, [selectedListing]);
 

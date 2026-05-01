@@ -52,10 +52,12 @@ export function AuthModal({
     }
 
     const previousOverflow = document.body.style.overflow;
+    const previousPaddingRight = document.body.style.paddingRight;
     document.body.style.overflow = "hidden";
 
     return () => {
       document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPaddingRight;
     };
   }, [open]);
 
@@ -104,7 +106,7 @@ export function AuthModal({
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-black/74 px-4 py-6 backdrop-blur-md sm:py-10"
+          className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/74 px-4 py-6 backdrop-blur-md sm:py-10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -115,7 +117,7 @@ export function AuthModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ type: "spring", damping: 26, stiffness: 220 }}
-            className="my-auto flex max-h-[calc(100vh-3rem)] w-full max-w-md flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#10131a] shadow-premium"
+            className="my-auto flex max-h-[calc(100dvh-3rem)] w-full max-w-md flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#10131a] shadow-premium"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="border-b border-white/10 bg-[radial-gradient(circle_at_18%_0%,rgba(215,168,79,0.16),transparent_16rem),rgba(255,255,255,0.035)] p-5">
