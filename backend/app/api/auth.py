@@ -38,8 +38,8 @@ def set_refresh_cookie(response: Response, token: str) -> None:
         value=token,
         max_age=settings.auth_refresh_token_days * 24 * 60 * 60,
         httponly=True,
-        secure=settings.auth_cookie_secure,
-        samesite="lax",
+        secure=settings.refresh_cookie_secure_enabled,
+        samesite=settings.refresh_cookie_samesite,
         path="/",
     )
 
@@ -48,8 +48,8 @@ def clear_refresh_cookie(response: Response) -> None:
     response.delete_cookie(
         key=settings.auth_refresh_cookie_name,
         httponly=True,
-        secure=settings.auth_cookie_secure,
-        samesite="lax",
+        secure=settings.refresh_cookie_secure_enabled,
+        samesite=settings.refresh_cookie_samesite,
         path="/",
     )
 

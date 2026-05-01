@@ -40,7 +40,7 @@ def create_access_token(user: User) -> str:
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
     }
-    return jwt.encode(payload, settings.auth_secret_key, algorithm=JWT_ALGORITHM)
+    return jwt.encode(payload, settings.token_secret_key, algorithm=JWT_ALGORITHM)
 
 
 def create_refresh_token() -> str:
@@ -53,7 +53,7 @@ def hash_refresh_token(token: str) -> str:
 
 def decode_access_token(token: str) -> dict:
     try:
-        payload = jwt.decode(token, settings.auth_secret_key, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, settings.token_secret_key, algorithms=[JWT_ALGORITHM])
     except jwt.InvalidTokenError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
