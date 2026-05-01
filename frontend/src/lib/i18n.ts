@@ -351,6 +351,8 @@ export const i18n = {
     scraper: {
       loadingTitle: "Nieuwe advertenties ophalen",
       loadingSubtitle: "De scraper werkt de brondata bij.",
+      autoLoadingTitle: "Automatisch vernieuwen",
+      autoLoadingSubtitle: "We vernieuwen je resultaten op de achtergrond.",
       steps: [
         "Verbinding maken",
         "Bronnen doorzoeken",
@@ -402,6 +404,14 @@ export const i18n = {
       sources: "Bronnen",
       sourceOverview: "Bronnen",
       sourceOverviewDescription: "Resultaten per bron en automatische beschikbaarheid.",
+      resultsRecent: "Resultaten zijn recent bijgewerkt.",
+      lastUpdated: "Laatst bijgewerkt",
+      freshness: {
+        recent: "Recent",
+        stale: "Vernieuwen",
+        never_scanned: "Nooit gescand",
+      },
+      autoRefreshing: "Automatisch vernieuwen",
       automaticSource: "Automatisch",
       limitedSource: "Handmatig/beperkt",
       attentionTitle: "Bronnen met aandacht",
@@ -793,6 +803,8 @@ export const i18n = {
     scraper: {
       loadingTitle: "Fetching new listings",
       loadingSubtitle: "The scraper is updating source data.",
+      autoLoadingTitle: "Auto-refreshing",
+      autoLoadingSubtitle: "We’re refreshing your results in the background.",
       steps: [
         "Connecting to backend",
         "Scanning sources",
@@ -844,6 +856,14 @@ export const i18n = {
       sources: "Sources",
       sourceOverview: "Sources",
       sourceOverviewDescription: "Results by source and automatic availability.",
+      resultsRecent: "Results were updated recently.",
+      lastUpdated: "Last updated",
+      freshness: {
+        recent: "Recent",
+        stale: "Refreshing",
+        never_scanned: "Never scanned",
+      },
+      autoRefreshing: "Auto-refreshing",
       automaticSource: "Automatic",
       limitedSource: "Manual/limited",
       attentionTitle: "Sources needing attention",

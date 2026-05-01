@@ -194,6 +194,32 @@ export type ScraperResult = {
   }>;
 };
 
+export type SourceFreshnessState = "recent" | "stale" | "never_scanned";
+
+export type SourceFreshness = {
+  source_id: string;
+  source: string;
+  status: "success" | "no_results" | "blocked" | "failed" | null;
+  scraped_count: number;
+  created_count: number;
+  updated_count: number;
+  error?: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  is_fresh: boolean;
+  state: SourceFreshnessState;
+};
+
+export type ScraperFreshness = {
+  city: string;
+  sources: SourceFreshness[];
+  newest_finished_at: string | null;
+  oldest_finished_at: string | null;
+  is_fresh: boolean;
+  stale_sources: string[];
+  freshness_window_minutes: number;
+};
+
 export type SourceInfo = {
   source_id: string;
   display_name: string;

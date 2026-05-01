@@ -16,10 +16,12 @@ export function ScraperProgress({
   loading,
   result,
   language,
+  automatic = false,
 }: {
   loading: boolean;
   result: ScraperResult | null;
   language: Language;
+  automatic?: boolean;
 }) {
   const copy = i18n[language].scraper;
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -124,7 +126,7 @@ export function ScraperProgress({
         <div className="relative mb-5 flex items-start justify-between gap-4">
           <div>
             <div className="text-sm font-semibold text-mint">
-              {copy.loadingTitle}
+              {automatic ? copy.autoLoadingTitle : copy.loadingTitle}
             </div>
             <motion.div
               key={activeMessage}
@@ -133,7 +135,11 @@ export function ScraperProgress({
               exit={{ opacity: 0, y: -6 }}
               className="mt-2 max-w-2xl text-sm leading-6 text-white/62"
             >
-              {completing ? copy.completingMessage : activeMessage}
+              {automatic && !completing
+                ? copy.autoLoadingSubtitle
+                : completing
+                  ? copy.completingMessage
+                  : activeMessage}
             </motion.div>
           </div>
           <div className="relative h-12 w-12 shrink-0">

@@ -1,4 +1,10 @@
-import type { Listing, ListingFilters, ScraperResult, SourceInfo } from "@/types/listing";
+import type {
+  Listing,
+  ListingFilters,
+  ScraperFreshness,
+  ScraperResult,
+  SourceInfo,
+} from "@/types/listing";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -115,12 +121,34 @@ export async function runScraper(city?: string, sources?: string[]): Promise<Scr
   const normalizedCity = city?.trim();
   const body = {
     ...(normalizedCity ? { city: normalizedCity } : {}),
-    ...(sources?.length ? { sources } : {}),
+    ...(sources ? { sources } : {}),
   };
 
   return request<ScraperResult>("/api/scrapers/run", {
     method: "POST",
     body: JSON.stringify(body),
+  });
+}
+
+export async function fetchScraperFreshness(
+  city?: string,
+  sources?: string[],
+): Promise<ScraperFreshness> {
+  const params = new URLSearchParams();
+  const normalizedCity = city?.trim();
+
+  if (normalizedCity) {
+    params.set("city", normalizedCity);
+  }
+
+  if (sources?.length) {
+    params.set("sources", sources.join(","));
+  }
+
+  const query = params.toString();
+
+  return request<ScraperFreshness>(`/api/scrapers/freshness${query ? `?${query}` : ""}`, {
+    cache: "no-store",
   });
 }
 

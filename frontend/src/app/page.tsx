@@ -14,7 +14,13 @@ import { EmptyState, SkeletonGrid } from "@/components/dashboard/States";
 import { Toast, ToastStack } from "@/components/dashboard/ToastStack";
 import { WelcomeScreen } from "@/components/dashboard/WelcomeScreen";
 import { createInitialFilters, formatPrice } from "@/components/dashboard/helpers";
-import { buildListingQueryParams, fetchListings, fetchSources, runScraper } from "@/lib/api";
+import {
+  buildListingQueryParams,
+  fetchListings,
+  fetchScraperFreshness,
+  fetchSources,
+  runScraper,
+} from "@/lib/api";
 import { i18n, type Language } from "@/lib/i18n";
 import {
   listingWorkflowKey,
@@ -37,6 +43,7 @@ import type {
   ListingStatus,
   LocalListingWorkflowState,
   PropertyType,
+  ScraperFreshness,
   ScraperResult,
   SearchProfile,
   SourceInfo,
@@ -129,6 +136,27 @@ function FilterDebugPanel({
   );
 }
 
+function normalizeSourceKey(sourceIds: string[]) {
+  return [...sourceIds].sort().join(",");
+}
+
+function formatUpdatedAt(value: string | null, language: Language) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat(language === "nl" ? "nl-NL" : "en-US", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
 export default function DashboardPage() {
   const [filters, setFilters] = useState<ListingFilters>(() => createInitialFilters());
   const [language, setLanguage] = useState<Language>("nl");
@@ -137,7 +165,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scraperLoading, setScraperLoading] = useState(false);
+  const [autoRefreshLoading, setAutoRefreshLoading] = useState(false);
   const [scraperResult, setScraperResult] = useState<ScraperResult | null>(null);
+  const [scraperFreshness, setScraperFreshness] = useState<ScraperFreshness | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -148,6 +178,8 @@ export default function DashboardPage() {
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [profileName, setProfileName] = useState("");
   const toastId = useRef(0);
+  const scraperRunInFlightRef = useRef(false);
+  const autoRefreshKeyRef = useRef("");
   const copy = i18n[language];
   const shouldReduceMotion = useReducedMotion();
 
@@ -229,6 +261,19 @@ export default function DashboardPage() {
       }
     },
     [copy.toast.fetchError, showToast],
+  );
+
+  const refreshScraperFreshness = useCallback(
+    async (city: string, sourceIds: string[]) => {
+      try {
+        const data = await fetchScraperFreshness(city, sourceIds);
+        setScraperFreshness(data);
+        return data;
+      } catch {
+        return null;
+      }
+    },
+    [],
   );
 
   useEffect(() => {
@@ -349,6 +394,15 @@ export default function DashboardPage() {
     () => profileFiltersFromListingFilters(filters),
     [filters],
   );
+  const newestFinishedAtLabel = formatUpdatedAt(
+    scraperFreshness?.newest_finished_at ?? null,
+    language,
+  );
+  const freshnessBySource = useMemo(() => {
+    return new Map(
+      (scraperFreshness?.sources ?? []).map((source) => [source.source_id, source]),
+    );
+  }, [scraperFreshness]);
   const hasUnsavedProfileChanges = selectedProfile
     ? !profileFiltersEqual(selectedProfile.filters, currentProfileFilters)
     : false;
@@ -468,11 +522,12 @@ export default function DashboardPage() {
     updateWorkflowState(nextState);
   }
 
-  async function runScraperForFilters(
+  const runScraperForFilters = useCallback(async (
     requestedFilters: ListingFilters,
     startMessage: string = copy.toast.scrapeStart,
-  ) {
-    if (scraperLoading) {
+    options: { automatic?: boolean } = {},
+  ) => {
+    if (scraperRunInFlightRef.current) {
       return;
     }
 
@@ -483,17 +538,25 @@ export default function DashboardPage() {
       offset: 0,
     };
 
+    scraperRunInFlightRef.current = true;
     setScraperLoading(true);
+    setAutoRefreshLoading(Boolean(options.automatic));
     setError(null);
     setScraperResult(null);
-    showToast(startMessage, "info");
+
+    if (!options.automatic) {
+      showToast(startMessage, "info");
+    }
 
     try {
       const result = await runScraper(scraperCity, selectedScanSourceIds);
       setScraperResult(result);
-      showToast(copy.toast.scrapeSuccess, "success");
+      if (!options.automatic) {
+        showToast(copy.toast.scrapeSuccess, "success");
+      }
       setFilters(nextFilters);
       await loadListings(nextFilters);
+      await refreshScraperFreshness(scraperCity, selectedScanSourceIds);
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -502,9 +565,19 @@ export default function DashboardPage() {
       setError(message);
       showToast(copy.toast.scrapeError, "error");
     } finally {
+      scraperRunInFlightRef.current = false;
       setScraperLoading(false);
+      setAutoRefreshLoading(false);
     }
-  }
+  }, [
+    copy.toast.scrapeError,
+    copy.toast.scrapeStart,
+    copy.toast.scrapeSuccess,
+    loadListings,
+    refreshScraperFreshness,
+    selectedScanSourceIds,
+    showToast,
+  ]);
 
   async function handleRunScraper() {
     await runScraperForFilters(filters);
@@ -547,13 +620,57 @@ export default function DashboardPage() {
     }));
     window.localStorage.setItem(onboardingStorageKey, "done");
     setSearchStarted(true);
-    void runScraperForFilters(nextFilters, copy.onboarding.fetchingToast);
   }
 
   function restartOnboarding() {
     window.localStorage.removeItem(onboardingStorageKey);
     setSearchStarted(false);
   }
+
+  useEffect(() => {
+    if (!searchStarted || !selectedScanSourceIds.length) {
+      return;
+    }
+
+    const scraperCity = filters.city.trim() || "Breda";
+    const sourceKey = normalizeSourceKey(selectedScanSourceIds);
+    const refreshKey = `${scraperCity.toLowerCase()}|${sourceKey}`;
+
+    if (autoRefreshKeyRef.current === refreshKey) {
+      return;
+    }
+
+    autoRefreshKeyRef.current = refreshKey;
+
+    let cancelled = false;
+
+    void refreshScraperFreshness(scraperCity, selectedScanSourceIds).then((freshness) => {
+      if (cancelled || !freshness || freshness.is_fresh || scraperRunInFlightRef.current) {
+        return;
+      }
+
+      void runScraperForFilters(
+        {
+          ...filters,
+          city: scraperCity,
+          offset: 0,
+        },
+        copy.toast.scrapeStart,
+        { automatic: true },
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    copy.toast.scrapeStart,
+    filters,
+    refreshScraperFreshness,
+    runScraperForFilters,
+    searchStarted,
+    selectedScanSourceIds,
+  ]);
 
   return (
     <main className="relative isolate min-h-screen overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8">
@@ -760,9 +877,21 @@ export default function DashboardPage() {
                       : `${visibleListings.length} ${copy.dashboard.found}`}
                   </div>
                   <p className="mt-1 text-xs text-white/42">
-                    {copy.dashboard.autoRefresh}
+                    {scraperFreshness?.is_fresh
+                      ? copy.scraper.resultsRecent
+                      : copy.dashboard.autoRefresh}
                   </p>
+                  {newestFinishedAtLabel ? (
+                    <p className="mt-1 text-xs text-white/42">
+                      {copy.scraper.lastUpdated}: {newestFinishedAtLabel}
+                    </p>
+                  ) : null}
                 </div>
+                {autoRefreshLoading ? (
+                  <span className="inline-flex h-9 items-center rounded-full border border-mint/25 bg-mint/10 px-3 text-xs font-semibold text-mint">
+                    {copy.scraper.autoRefreshing}
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => setDrawerOpen(true)}
@@ -783,6 +912,7 @@ export default function DashboardPage() {
               loading={scraperLoading}
               result={scraperResult}
               language={language}
+              automatic={autoRefreshLoading}
             />
 
             <motion.section
@@ -797,24 +927,39 @@ export default function DashboardPage() {
                 {copy.scraper.sourceOverviewDescription}
               </p>
               <div className="flex flex-wrap gap-2">
-                {sourceCounts.map((item) => (
-                  <span
-                    key={item.source_id}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/18 px-3 py-1.5 text-xs font-semibold text-white/62"
-                  >
-                    <span>{item.display_name} {item.count}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] ${
-                      item.supports_automatic_scraping
-                        ? "bg-mint/10 text-mint"
-                        : "bg-white/[0.06] text-white/42"
-                    }`}
+                {sourceCounts.map((item) => {
+                  const sourceFreshness = freshnessBySource.get(item.source_id);
+                  const freshnessState = sourceFreshness?.state ?? "never_scanned";
+
+                  return (
+                    <span
+                      key={item.source_id}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/18 px-3 py-1.5 text-xs font-semibold text-white/62"
                     >
-                      {item.supports_automatic_scraping
-                        ? copy.scraper.automaticSource
-                        : copy.scraper.limitedSource}
+                      <span>{item.display_name} {item.count}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] ${
+                        item.supports_automatic_scraping
+                          ? "bg-mint/10 text-mint"
+                          : "bg-white/[0.06] text-white/42"
+                      }`}
+                      >
+                        {item.supports_automatic_scraping
+                          ? copy.scraper.automaticSource
+                          : copy.scraper.limitedSource}
+                      </span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] ${
+                        freshnessState === "recent"
+                          ? "bg-cyan-300/10 text-cyan-100"
+                          : freshnessState === "stale"
+                            ? "bg-brass/10 text-brass"
+                            : "bg-white/[0.06] text-white/42"
+                      }`}
+                      >
+                        {copy.scraper.freshness[freshnessState]}
+                      </span>
                     </span>
-                  </span>
-                ))}
+                  );
+                })}
               </div>
             </motion.section>
 

@@ -1,13 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import perf_counter
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.database.db import get_database_session
 from app.models.listing import Listing
+from app.models.scan_history import ScanHistory
 from app.scrapers.base import detect_availability_status
 from app.services.duplicates import assign_duplicate_metadata, refresh_duplicate_group
 from app.scrapers.generic_sources import SourceBlockedError
@@ -34,9 +36,19 @@ class ScraperRunRequest(BaseModel):
     sources: list[str] | None = None
 
 
+FRESHNESS_WINDOW_MINUTES = 60
+
+
 def normalize_city(city: str | None) -> str:
     normalized_city = " ".join((city or "").split()).strip()
     return normalized_city or settings.default_city
+
+
+def serialize_datetime(value: datetime | None) -> str | None:
+    if value is None:
+        return None
+
+    return value.isoformat()
 
 
 def create_source_summary(source_id: str, source_name: str, manual_search_url: str | None) -> dict:
@@ -53,6 +65,48 @@ def create_source_summary(source_id: str, source_name: str, manual_search_url: s
         "duration_ms": None,
         "manual_search_url": manual_search_url,
     }
+
+
+def record_scan_history(
+    database: Session,
+    *,
+    city: str,
+    source_id: str,
+    status: str,
+    scraped_count: int,
+    created_count: int,
+    updated_count: int,
+    error: str | None,
+    started_at: datetime,
+    finished_at: datetime,
+) -> None:
+    database.add(
+        ScanHistory(
+            city=city,
+            source_id=source_id,
+            status=status,
+            scraped_count=scraped_count,
+            created_count=created_count,
+            updated_count=updated_count,
+            error=error,
+            started_at=started_at,
+            finished_at=finished_at,
+        )
+    )
+    database.commit()
+
+
+def latest_scan_for_source(database: Session, city: str, source_id: str) -> ScanHistory | None:
+    return (
+        database.query(ScanHistory)
+        .filter(
+            func.lower(ScanHistory.city) == city.lower(),
+            ScanHistory.source_id == source_id,
+            ScanHistory.finished_at.isnot(None),
+        )
+        .order_by(ScanHistory.finished_at.desc())
+        .first()
+    )
 
 
 def update_existing_listing(
@@ -172,11 +226,12 @@ def run_scrapers(
     seen_urls = set()
     created_listings = []
     source_summaries = []
-    selected_source_ids = request.sources if request and request.sources else None
+    selected_source_ids = request.sources if request and request.sources is not None else None
     reset_geocode_run_budget()
 
     for source in enabled_sources(selected_source_ids):
-        started_at = perf_counter()
+        perf_started_at = perf_counter()
+        scan_started_at = datetime.utcnow()
         source_summary = create_source_summary(
             source_id=source.source_id,
             source_name=source.display_name,
@@ -189,14 +244,38 @@ def run_scrapers(
         except SourceBlockedError as error:
             source_summary["status"] = "blocked"
             source_summary["error"] = str(error)
-            source_summary["duration_ms"] = round((perf_counter() - started_at) * 1000)
+            source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
             LAST_SOURCE_RUNS[source.source_id] = source_summary.copy()
+            record_scan_history(
+                database,
+                city=city,
+                source_id=source.source_id,
+                status=source_summary["status"],
+                scraped_count=source_summary["scraped_count"],
+                created_count=source_summary["created_count"],
+                updated_count=source_summary["updated_count"],
+                error=source_summary["error"],
+                started_at=scan_started_at,
+                finished_at=datetime.utcnow(),
+            )
             continue
         except Exception as error:
             source_summary["status"] = "failed"
             source_summary["error"] = str(error)
-            source_summary["duration_ms"] = round((perf_counter() - started_at) * 1000)
+            source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
             LAST_SOURCE_RUNS[source.source_id] = source_summary.copy()
+            record_scan_history(
+                database,
+                city=city,
+                source_id=source.source_id,
+                status=source_summary["status"],
+                scraped_count=source_summary["scraped_count"],
+                created_count=source_summary["created_count"],
+                updated_count=source_summary["updated_count"],
+                error=source_summary["error"],
+                started_at=scan_started_at,
+                finished_at=datetime.utcnow(),
+            )
             continue
 
         source_summary["scraped_count"] = len(scraped_listings)
@@ -306,8 +385,20 @@ def run_scrapers(
                 }
             )
 
-        source_summary["duration_ms"] = round((perf_counter() - started_at) * 1000)
+        source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
         LAST_SOURCE_RUNS[source.source_id] = source_summary.copy()
+        record_scan_history(
+            database,
+            city=city,
+            source_id=source.source_id,
+            status=source_summary["status"],
+            scraped_count=source_summary["scraped_count"],
+            created_count=source_summary["created_count"],
+            updated_count=source_summary["updated_count"],
+            error=source_summary["error"],
+            started_at=scan_started_at,
+            finished_at=datetime.utcnow(),
+        )
 
     return {
         "status": "completed",
@@ -319,4 +410,67 @@ def run_scrapers(
         "duplicate_count": duplicate_count,
         "skipped_count": skipped_count,
         "created_listings": created_listings,
+    }
+
+
+@router.get("/freshness")
+def get_scraper_freshness(
+    city: str | None = None,
+    sources: str | None = None,
+    database: Session = Depends(get_database_session),
+):
+    normalized_city = normalize_city(city)
+    selected_source_ids = [
+        source_id.strip()
+        for source_id in (sources or "").split(",")
+        if source_id.strip()
+    ] or None
+    cutoff = datetime.utcnow() - timedelta(minutes=FRESHNESS_WINDOW_MINUTES)
+    source_freshness = []
+
+    for source in enabled_sources(selected_source_ids):
+        latest_scan = latest_scan_for_source(database, normalized_city, source.source_id)
+        finished_at = latest_scan.finished_at if latest_scan else None
+        has_scan = latest_scan is not None
+        is_source_fresh = bool(has_scan and finished_at and finished_at >= cutoff)
+        state = "recent" if is_source_fresh else "stale"
+
+        if not has_scan:
+            state = "never_scanned"
+
+        source_freshness.append(
+            {
+                "source_id": source.source_id,
+                "source": source.display_name,
+                "status": latest_scan.status if latest_scan else None,
+                "scraped_count": latest_scan.scraped_count if latest_scan else 0,
+                "created_count": latest_scan.created_count if latest_scan else 0,
+                "updated_count": latest_scan.updated_count if latest_scan else 0,
+                "error": latest_scan.error if latest_scan else None,
+                "started_at": serialize_datetime(latest_scan.started_at if latest_scan else None),
+                "finished_at": serialize_datetime(finished_at),
+                "is_fresh": is_source_fresh,
+                "state": state,
+            }
+        )
+
+    finished_times = [
+        scan["finished_at"]
+        for scan in source_freshness
+        if scan["finished_at"] is not None
+    ]
+    stale_sources = [
+        scan["source_id"]
+        for scan in source_freshness
+        if not scan["is_fresh"]
+    ]
+
+    return {
+        "city": normalized_city,
+        "sources": source_freshness,
+        "newest_finished_at": max(finished_times) if finished_times else None,
+        "oldest_finished_at": min(finished_times) if finished_times else None,
+        "is_fresh": len(stale_sources) == 0 and len(source_freshness) > 0,
+        "stale_sources": stale_sources,
+        "freshness_window_minutes": FRESHNESS_WINDOW_MINUTES,
     }
