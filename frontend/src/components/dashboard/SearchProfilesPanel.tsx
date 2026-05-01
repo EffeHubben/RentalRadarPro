@@ -81,7 +81,7 @@ export function SearchProfilesPanel({
         hidden: { opacity: 0, y: 10 },
         visible: { opacity: 1, y: 0 },
       }}
-      className="rounded-2xl border border-brass/18 bg-[radial-gradient(circle_at_15%_0%,rgba(215,168,79,0.13),transparent_14rem),rgba(255,255,255,0.035)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+      className="rounded-xl border border-white/10 bg-white/[0.025] p-4"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>

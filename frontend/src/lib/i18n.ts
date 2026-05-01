@@ -7,6 +7,94 @@ export const languageLabels: Record<Language, string> = {
 
 export const i18n = {
   nl: {
+    site: {
+      nav: {
+        home: "Home",
+        about: "Over",
+        search: "Zoeken",
+        account: "Account",
+      },
+      cta: "Start zoeken",
+      contactEmail: "contact@rentalradarpro.nl",
+      footerText: "Een rustig dashboard voor je huurwoningzoektocht.",
+    },
+    home: {
+      eyebrow: "RentalRadarPro",
+      title: "Vind en organiseer huurwoningen met meer overzicht.",
+      subtitle:
+        "RentalRadarPro verzamelt huuradvertenties uit meerdere bronnen, helpt je sneller vergelijken en bewaart je voortgang op een plek.",
+      startSearch: "Start zoeken",
+      continueSearch: "Vorige zoektocht openen",
+      learnMore: "Meer over RentalRadarPro",
+      benefitsTitle: "Gebouwd voor een serieuze zoektocht",
+      benefits: [
+        "Ontdek advertenties uit meerdere bronnen zonder steeds opnieuw te zoeken.",
+        "Vergelijk woningen sneller op prijs, type, privacy en beschikbaarheid.",
+        "Bewaar je voortgang met statussen, notities en zoekprofielen.",
+      ],
+      stepsTitle: "Zo werkt het",
+      steps: [
+        {
+          title: "Kies stad en voorkeuren",
+          body: "Start met je locatie, budget en woningtype. Je kunt alles later verfijnen.",
+        },
+        {
+          title: "Bekijk passende resultaten",
+          body: "Bestaande resultaten verschijnen direct. Alleen verouderde brondata wordt vernieuwd.",
+        },
+        {
+          title: "Beheer je voortgang",
+          body: "Markeer interessante woningen, plan bezichtigingen en verberg wat niet past.",
+        },
+      ],
+      featuresTitle: "Belangrijkste functies",
+      features: [
+        "Multi-source zoeken",
+        "Slimme filters",
+        "Voortgang per woning",
+        "Opgeslagen zoekprofielen",
+      ],
+    },
+    aboutPage: {
+      title: "Over RentalRadarPro",
+      subtitle:
+        "Een praktisch zoekplatform voor mensen die hun huurwoningzoektocht overzichtelijk en sneller willen maken.",
+      whatTitle: "Wat het doet",
+      whatBody:
+        "RentalRadarPro brengt advertenties uit verschillende huursites samen in een dashboard. Je filtert op stad, budget, woningtype, voorzieningen en voortgang, zodat je sneller ziet welke woningen aandacht verdienen.",
+      audienceTitle: "Voor wie",
+      audienceBody:
+        "Voor woningzoekers die meerdere bronnen moeten volgen, snel willen reageren en hun keuzes professioneel willen organiseren.",
+      sourcesTitle: "Databronnen",
+      sourcesBody:
+        "Sommige bronnen kunnen automatisch worden gecontroleerd. Andere bronnen zijn beperkt of werken beter handmatig. RentalRadarPro respecteert die grenzen en toont waar handmatige controle nuttig is.",
+      howTitle: "Hoe het werkt",
+      how: [
+        "Stel je zoekstad en voorkeuren in.",
+        "Bekijk resultaten uit de beschikbare bronnen.",
+        "Gebruik statussen, notities en profielen om overzicht te houden.",
+      ],
+      contactTitle: "Contact",
+      contactBody: "Voor vragen of feedback kun je contact opnemen via contact@rentalradarpro.nl.",
+    },
+    accountPage: {
+      title: "Account",
+      subtitle: "Beheer je toegang en houd je lokale zoekworkflow duidelijk.",
+      signedOutTitle: "Gebruik RentalRadarPro als gast of met account",
+      signedOutBody:
+        "Gastmodus blijft beschikbaar. Je statussen, notities en zoekprofielen worden lokaal op dit apparaat bewaard. Account-synchronisatie is nog niet ingeschakeld.",
+      signIn: "Inloggen",
+      createAccount: "Account maken",
+      signedInTitle: "Accountoverzicht",
+      guestExplanation:
+        "Je bent ingelogd. Lokale zoekgegevens blijven voorlopig op dit apparaat totdat synchronisatie later wordt toegevoegd.",
+      savedSearches: "Zoekprofielen",
+      listingProgress: "Voortgang",
+      preferences: "Voorkeuren",
+      placeholder: "Lokaal bewaard op dit apparaat.",
+      email: "E-mail",
+      name: "Naam",
+    },
     welcome: {
       eyebrow: "RentalRadarPro",
       title: "Laten we je zoektocht beginnen",
@@ -66,8 +154,8 @@ export const i18n = {
     },
     dashboard: {
       eyebrow: "RentalRadarPro",
-      title: "Je matches staan klaar.",
-      subtitle: "Bekijk de beste resultaten en verfijn je zoekopdracht wanneer je wilt.",
+      title: "Zoekresultaten",
+      subtitle: "Bekijk huurwoningen, verfijn je filters en beheer je voortgang.",
       changeSearch: "Zoekopdracht wijzigen",
       results: "Resultaten",
       private: "Zelfstandig",
@@ -460,6 +548,94 @@ export const i18n = {
     },
   },
   en: {
+    site: {
+      nav: {
+        home: "Home",
+        about: "About",
+        search: "Search",
+        account: "Account",
+      },
+      cta: "Start search",
+      contactEmail: "contact@rentalradarpro.nl",
+      footerText: "A calm dashboard for your rental search.",
+    },
+    home: {
+      eyebrow: "RentalRadarPro",
+      title: "Find and manage rental listings with more clarity.",
+      subtitle:
+        "RentalRadarPro brings rental listings from multiple sources into one focused workspace, helping you compare faster and track your progress.",
+      startSearch: "Start search",
+      continueSearch: "Continue previous search",
+      learnMore: "Learn more",
+      benefitsTitle: "Built for a serious search",
+      benefits: [
+        "Discover listings from multiple sources without repeating the same search.",
+        "Compare homes faster by rent, type, privacy and availability.",
+        "Keep progress organized with statuses, notes and saved search profiles.",
+      ],
+      stepsTitle: "How it works",
+      steps: [
+        {
+          title: "Choose city and preferences",
+          body: "Start with location, budget and property type. You can refine everything later.",
+        },
+        {
+          title: "Review matching listings",
+          body: "Existing results appear immediately. Only stale source data is refreshed.",
+        },
+        {
+          title: "Track your progress",
+          body: "Mark interesting homes, plan viewings and hide listings that no longer fit.",
+        },
+      ],
+      featuresTitle: "Core features",
+      features: [
+        "Multi-source search",
+        "Smart filtering",
+        "Listing workflow",
+        "Saved searches",
+      ],
+    },
+    aboutPage: {
+      title: "About RentalRadarPro",
+      subtitle:
+        "A practical search platform for people who want a clearer, faster rental search.",
+      whatTitle: "What it does",
+      whatBody:
+        "RentalRadarPro brings listings from multiple rental websites into one dashboard. You can filter by city, budget, property type, amenities and progress, so the homes that deserve attention are easier to spot.",
+      audienceTitle: "Who it is for",
+      audienceBody:
+        "For renters who need to monitor multiple sources, respond quickly and keep their decisions organized.",
+      sourcesTitle: "Data sources",
+      sourcesBody:
+        "Some sources can be checked automatically. Others are limited or work better manually. RentalRadarPro respects those limits and shows where manual review is useful.",
+      howTitle: "How it works",
+      how: [
+        "Set your city and search preferences.",
+        "Review listings from available sources.",
+        "Use statuses, notes and profiles to stay organized.",
+      ],
+      contactTitle: "Contact",
+      contactBody: "For questions or feedback, contact contact@rentalradarpro.nl.",
+    },
+    accountPage: {
+      title: "Account",
+      subtitle: "Manage access and keep your local search workflow clear.",
+      signedOutTitle: "Use RentalRadarPro as a guest or with an account",
+      signedOutBody:
+        "Guest mode remains available. Your statuses, notes and search profiles are stored locally on this device. Account sync is not enabled yet.",
+      signIn: "Log in",
+      createAccount: "Create account",
+      signedInTitle: "Account overview",
+      guestExplanation:
+        "You are signed in. Local search data remains on this device until sync is added later.",
+      savedSearches: "Saved searches",
+      listingProgress: "Listing progress",
+      preferences: "Preferences",
+      placeholder: "Stored locally on this device.",
+      email: "Email",
+      name: "Name",
+    },
     welcome: {
       eyebrow: "RentalRadarPro",
       title: "Let's start your search",
@@ -519,8 +695,8 @@ export const i18n = {
     },
     dashboard: {
       eyebrow: "RentalRadarPro",
-      title: "Your matches are ready.",
-      subtitle: "Review the best results and refine your search whenever needed.",
+      title: "Search results",
+      subtitle: "Review rentals, refine filters and manage your progress.",
       changeSearch: "Change search",
       results: "Results",
       private: "Private",

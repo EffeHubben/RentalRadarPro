@@ -221,7 +221,7 @@ export function ActiveFilters({
                     offset: 0,
                   })
                 }
-                className="rounded-full border border-white/12 bg-white/[0.065] px-3 py-2 text-xs font-medium text-white/72 shadow-[0_10px_28px_rgba(2,6,23,0.18)] transition hover:border-cyan-100/36 hover:bg-white/[0.09] hover:text-white"
+                className="rounded-full border border-white/10 bg-black/16 px-3 py-1.5 text-xs font-medium text-white/58 transition hover:border-white/22 hover:text-white"
               >
                 {filter.label} <span className="ml-1 text-white/35">x</span>
               </motion.button>

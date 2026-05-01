@@ -78,7 +78,7 @@ export function CustomSelect<T extends string>({
             setOpen(false);
           }
         }}
-        className="flex h-11 w-full items-center justify-between rounded-lg border border-white/10 bg-white/[0.045] px-3 text-left text-sm text-white outline-none transition hover:border-white/20 hover:bg-white/[0.065] focus:border-brass/70 focus:ring-2 focus:ring-brass/20"
+        className="flex h-10 w-full items-center justify-between rounded-lg border border-white/10 bg-black/16 px-3 text-left text-sm text-white outline-none transition hover:border-white/20 hover:bg-white/[0.045] focus:border-brass/70 focus:ring-2 focus:ring-brass/20"
       >
         <span className="truncate">{activeOption?.label}</span>
         <motion.span

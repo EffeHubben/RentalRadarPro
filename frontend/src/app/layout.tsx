@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "RentalRadarPro",
-  description: "Huurwoning dashboard",
+  description: "A focused rental search platform for multi-source listings and workflow tracking.",
 };
 
 export default function RootLayout({

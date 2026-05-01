@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import type {
   ListingFilters,
@@ -27,30 +28,43 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 function inputClass() {
-  return "h-11 w-full rounded-xl border border-white/10 bg-white/[0.055] px-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-cyan-200/55 focus:bg-white/[0.08] focus:ring-2 focus:ring-cyan-300/15";
+  return "h-10 w-full rounded-lg border border-white/10 bg-black/16 px-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-brass/60 focus:bg-white/[0.055] focus:ring-2 focus:ring-brass/15";
 }
 
 function Section({
   title,
   description,
   children,
+  defaultOpen = false,
 }: {
   title: string;
   description?: string;
   children: React.ReactNode;
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+
   return (
     <motion.section
       variants={sectionVariants}
-      className="rounded-2xl border border-white/12 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl"
+      className="group border-b border-white/8 pb-3 last:border-b-0"
     >
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
-        {description ? (
-          <p className="mt-1 text-xs leading-5 text-white/42">{description}</p>
-        ) : null}
-      </div>
-      <div className="space-y-3">{children}</div>
+      <details
+        open={open}
+        onToggle={(event) => setOpen(event.currentTarget.open)}
+        className="group"
+      >
+        <summary className="flex cursor-pointer list-none items-start justify-between gap-3 py-2">
+          <span>
+            <span className="block text-sm font-semibold text-white">{title}</span>
+            {description ? (
+              <span className="mt-1 block text-xs leading-5 text-white/38">{description}</span>
+            ) : null}
+          </span>
+          <span className="mt-0.5 text-sm text-white/35 transition group-open:rotate-45">+</span>
+        </summary>
+        <div className="space-y-3 pt-3">{children}</div>
+      </details>
     </motion.section>
   );
 }
@@ -69,12 +83,12 @@ function Toggle({
       type="button"
       whileTap={{ scale: 0.98 }}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-slate-950/28 px-3 py-3 text-left text-sm text-white/72 transition hover:border-cyan-100/24 hover:bg-white/[0.06]"
+      className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-black/16 px-3 py-2.5 text-left text-sm text-white/72 transition hover:border-white/20 hover:bg-white/[0.04]"
     >
       <span>{label}</span>
       <span
         className={`relative h-6 w-11 rounded-full border transition ${
-          checked ? "border-cyan-100/50 bg-cyan-200/85" : "border-white/10 bg-black/35"
+          checked ? "border-brass/60 bg-brass" : "border-white/10 bg-black/35"
         }`}
       >
         <motion.span
@@ -105,7 +119,7 @@ function SourceScanToggle({
       type="button"
       whileTap={{ scale: 0.98 }}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-start justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/28 px-3 py-3 text-left transition hover:border-cyan-100/24 hover:bg-white/[0.06]"
+      className="flex w-full items-start justify-between gap-3 rounded-lg border border-white/10 bg-black/16 px-3 py-3 text-left transition hover:border-white/20 hover:bg-white/[0.04]"
     >
       <span className="min-w-0">
         <span className="block text-sm font-semibold text-white/78">
@@ -118,7 +132,7 @@ function SourceScanToggle({
       </span>
       <span
         className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition ${
-          checked ? "border-cyan-100/50 bg-cyan-200/85" : "border-white/10 bg-black/35"
+          checked ? "border-brass/60 bg-brass" : "border-white/10 bg-black/35"
         }`}
       >
         <motion.span
@@ -333,21 +347,18 @@ export function FilterPanel({
       variants={{ visible: { transition: { staggerChildren: 0.045 } } }}
       className="space-y-4"
     >
-      <div className="rounded-2xl border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(8,13,24,0.56))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+      <div className="border-b border-white/8 pb-4">
         <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-white">{copy.title}</h2>
           <p className="mt-1 text-xs leading-5 text-white/42">
             {copy.intro}
           </p>
-          <p className="mt-3 rounded-xl border border-cyan-100/15 bg-cyan-300/8 px-3 py-2 text-xs leading-5 text-cyan-50/64">
-            {copy.resultExplanation}
-          </p>
         </div>
         <button
           type="button"
           onClick={onReset}
-          className="shrink-0 rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2 text-xs font-semibold text-white/66 transition hover:border-cyan-100/30 hover:text-white"
+          className="shrink-0 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-semibold text-white/62 transition hover:border-white/24 hover:text-white"
         >
           {copy.reset}
         </button>
@@ -368,7 +379,7 @@ export function FilterPanel({
         onDelete={onDeleteProfile}
       />
 
-      <Section title={copy.location} description={copy.locationDescription}>
+      <Section title={copy.location} description={copy.locationDescription} defaultOpen>
         <label className="block">
           <FieldLabel>{copy.search}</FieldLabel>
           <input
@@ -397,7 +408,7 @@ export function FilterPanel({
         </div>
       </Section>
 
-      <Section title={copy.price} description={copy.priceDescription}>
+      <Section title={copy.price} description={copy.priceDescription} defaultOpen>
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <FieldLabel>{copy.minRent}</FieldLabel>
@@ -435,7 +446,7 @@ export function FilterPanel({
         />
       </Section>
 
-      <Section title={copy.propertyType} description={copy.propertyDescription}>
+      <Section title={copy.propertyType} description={copy.propertyDescription} defaultOpen>
         <CustomSelect
           label={copy.propertyTypeLabel}
           value={filters.propertyType}
@@ -632,7 +643,7 @@ export function FilterPanel({
         whileTap={{ scale: 0.98 }}
         onClick={onRunScraper}
         disabled={scraperLoading || loading}
-        className="h-12 w-full rounded-2xl border border-cyan-100/45 bg-cyan-100 px-4 text-sm font-semibold text-slate-950 shadow-[0_18px_54px_rgba(34,211,238,0.18)] transition hover:bg-white disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/10 disabled:text-white/40"
+        className="h-11 w-full rounded-lg bg-brass px-4 text-sm font-semibold text-ink transition hover:bg-[#e3bd6a] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/40"
       >
         {scraperLoading ? copy.runLoading : copy.run}
       </motion.button>

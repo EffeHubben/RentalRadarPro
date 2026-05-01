@@ -2,11 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AccountButton } from "@/components/auth/AccountButton";
 import type { ListingFilters, PropertyType } from "@/types/listing";
 import { i18n, type Language } from "@/lib/i18n";
-import { CinematicBackground } from "./CinematicBackground";
-import { LanguageToggle } from "./LanguageToggle";
 
 type OnboardingValues = Pick<
   ListingFilters,
@@ -32,7 +29,7 @@ const propertyOptions: Array<PropertyType | ""> = [
 const selectablePropertyTypes: PropertyType[] = ["studio", "apartment", "room", "house"];
 
 function inputClass() {
-  return "h-14 w-full rounded-2xl border border-white/12 bg-white/[0.065] px-4 text-base text-white outline-none shadow-inner shadow-white/[0.02] transition placeholder:text-white/30 focus:border-cyan-200/50 focus:bg-white/[0.09] focus:ring-2 focus:ring-cyan-300/15";
+  return "h-12 w-full rounded-lg border border-white/10 bg-white/[0.045] px-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-brass/60 focus:bg-white/[0.07] focus:ring-2 focus:ring-brass/15";
 }
 
 function ToggleCard({
@@ -47,13 +44,12 @@ function ToggleCard({
   return (
     <motion.button
       type="button"
-      whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
       onClick={() => onChange(!checked)}
-      className={`flex items-center justify-between rounded-2xl border p-4 text-left transition ${
+      className={`flex items-center justify-between rounded-lg border px-3 py-3 text-left transition ${
         checked
-          ? "border-cyan-200/40 bg-cyan-300/12 text-white shadow-[0_18px_60px_rgba(34,211,238,0.12)]"
-          : "border-white/10 bg-slate-950/28 text-white/68 hover:border-cyan-100/22 hover:bg-white/[0.055]"
+          ? "border-brass/45 bg-brass/10 text-white"
+          : "border-white/10 bg-black/16 text-white/68 hover:border-white/20 hover:bg-white/[0.045]"
       }`}
     >
       <span className="text-sm font-semibold">{label}</span>
@@ -75,7 +71,6 @@ export function WelcomeScreen({
   language,
   initialCity,
   initialMaxRent,
-  onLanguageChange,
   onStart,
 }: {
   language: Language;
@@ -156,33 +151,18 @@ export function WelcomeScreen({
       key="onboarding"
       initial={false}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 0.985, filter: "blur(10px)" }}
-      transition={{ duration: 0.42, ease: "easeOut" }}
-      className="relative isolate flex min-h-screen items-center overflow-hidden px-4 py-6 sm:px-6 lg:px-8"
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.28, ease: "easeOut" }}
+      className="relative isolate flex min-h-[calc(100vh-4rem)] items-center px-4 py-8 sm:px-6 lg:px-8"
     >
-      <CinematicBackground intensity="hero" />
-
-      <div className="relative mx-auto w-full max-w-6xl">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-100/80 drop-shadow-[0_0_18px_rgba(125,211,252,0.25)]">
-            RentalRadarPro
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <LanguageToggle language={language} onChange={onLanguageChange} />
-            <AccountButton language={language} />
-          </div>
-        </div>
-
+      <div className="relative mx-auto w-full max-w-5xl">
         <div className="grid gap-6 lg:grid-cols-[1fr_30rem] lg:items-stretch">
           <motion.div
-            className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(8,13,24,0.76)_48%,rgba(5,8,14,0.88))] p-6 shadow-cinematic backdrop-blur-2xl sm:p-8"
+            className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] p-6 shadow-premium sm:p-8"
             initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: "spring", damping: 24, stiffness: 150 }}
           >
-            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/70 to-transparent" />
-            <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full border border-cyan-200/15 bg-cyan-300/12 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-28 left-10 h-72 w-72 rounded-full bg-rose-500/10 blur-3xl" />
             <div className="mb-8">
               <div className="mb-4 flex gap-2">
                 {steps.map((label, index) => (
@@ -192,7 +172,7 @@ export function WelcomeScreen({
                     aria-label={label}
                     onClick={() => setStep(index)}
                     className={`h-2 rounded-full transition ${
-                      index <= step ? "bg-cyan-200 shadow-[0_0_18px_rgba(125,211,252,0.45)]" : "bg-white/12"
+                      index <= step ? "bg-brass" : "bg-white/12"
                     }`}
                     animate={{ width: index === step ? 34 : 14 }}
                   />
@@ -200,7 +180,7 @@ export function WelcomeScreen({
               </div>
               <div className="h-1 overflow-hidden rounded-full bg-white/10">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-cyan-200 via-teal-300 to-rose-300 shadow-[0_0_22px_rgba(45,212,191,0.35)]"
+                  className="h-full rounded-full bg-brass"
                   animate={{ width: `${progress}%` }}
                   transition={{ type: "spring", damping: 24, stiffness: 160 }}
                 />
@@ -218,10 +198,10 @@ export function WelcomeScreen({
               >
                 {step === 0 ? (
                   <div className="flex min-h-[28rem] flex-col justify-center">
-                    <p className="mb-4 text-sm font-semibold uppercase tracking-[0.22em] text-cyan-100/76">
+                    <p className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-brass">
                       {copy.steps.welcome}
                     </p>
-                    <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-white drop-shadow-[0_12px_45px_rgba(8,47,73,0.50)] sm:text-6xl">
+                    <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-white sm:text-5xl">
                       {copy.title}
                     </h1>
                     <p className="mt-5 max-w-2xl text-base leading-7 text-white/68">
@@ -231,7 +211,7 @@ export function WelcomeScreen({
                       {copy.details.map((detail) => (
                         <span
                           key={detail}
-                          className="rounded-full border border-white/12 bg-white/[0.075] px-4 py-2 text-sm font-medium text-white/72 shadow-[0_12px_36px_rgba(2,6,23,0.18)] backdrop-blur-xl"
+                          className="rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-medium text-white/68"
                         >
                           {detail}
                         </span>
@@ -240,19 +220,17 @@ export function WelcomeScreen({
                     <div className="mt-10 flex flex-col gap-3 sm:flex-row">
                       <motion.button
                         type="button"
-                        whileHover={{ y: -2, scale: 1.01 }}
                         whileTap={{ scale: 0.985 }}
                         onClick={next}
-                        className="h-12 rounded-2xl border border-cyan-100/45 bg-cyan-100 px-6 text-sm font-semibold text-slate-950 shadow-[0_22px_70px_rgba(34,211,238,0.24)] transition hover:bg-white"
+                        className="h-11 rounded-lg bg-brass px-5 text-sm font-semibold text-ink transition hover:bg-[#e3bd6a]"
                       >
                         {copy.start}
                       </motion.button>
                       <motion.button
                         type="button"
-                        whileHover={{ y: -2 }}
                         whileTap={{ scale: 0.985 }}
                         onClick={() => setStep(1)}
-                        className="h-12 rounded-2xl border border-white/12 bg-white/[0.065] px-6 text-sm font-semibold text-white/72 backdrop-blur-xl transition hover:border-cyan-100/35 hover:text-white"
+                        className="h-11 rounded-lg border border-white/12 bg-white/[0.045] px-5 text-sm font-semibold text-white/70 transition hover:border-white/24 hover:text-white"
                       >
                         {copy.howItWorks}
                       </motion.button>
