@@ -44,7 +44,7 @@ app.include_router(sources_router)
 @app.get("/")
 def root():
     return {
-        "message": "RentalRadarPro backend is running",
+        "message": "RentScout backend is running",
         "app_name": settings.app_name,
         "default_city": settings.default_city,
         "max_rent": settings.max_rent,

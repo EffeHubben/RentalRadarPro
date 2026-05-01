@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    app_name: str = "RentalRadarPro"
+    app_name: str = "RentScout"
     database_url: str = "sqlite:///./rental_radar_pro.db"
     max_rent: int = 1000
     default_city: str = "Breda"

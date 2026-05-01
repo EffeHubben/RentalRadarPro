@@ -14,7 +14,7 @@ from app.models.geocode import GeocodeCache, GeocodeFailure
 
 
 LOCATION_PRECISIONS = {"exact_address", "street", "postcode", "city", "unknown"}
-GEOCODE_USER_AGENT = "RentalRadarPro/0.1 local development contact@example.com"
+GEOCODE_USER_AGENT = "RentScout/0.1 local development contact@example.com"
 GEOCODE_TIMEOUT_SECONDS = 8
 GEOCODE_MIN_INTERVAL_SECONDS = 1.0
 MAX_EXTERNAL_GEOCODES_PER_RUN = 5
@@ -910,7 +910,7 @@ def backfill_listing_coordinates(database: Session, limit: int = 50) -> int:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="RentalRadarPro location diagnostics")
+    parser = argparse.ArgumentParser(description="RentScout location diagnostics")
     parser.add_argument("query", nargs="*", help="Address query to geocode")
     parser.add_argument("--backfill", action="store_true", help="Backfill existing listing coordinates")
     parser.add_argument("--limit", type=int, default=50)

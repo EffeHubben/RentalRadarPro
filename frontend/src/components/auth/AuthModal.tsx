@@ -124,7 +124,7 @@ export function AuthModal({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-xs font-semibold uppercase tracking-[0.18em] text-brass">
-                    RentalRadarPro
+                    RentScout
                   </div>
                   <h2 className="mt-2 text-2xl font-semibold text-white">
                     {mode === "login" ? copy.loginTitle : copy.registerTitle}

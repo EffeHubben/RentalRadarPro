@@ -3,7 +3,7 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RentalRadarPro",
+  title: "RentScout",
   description: "A focused rental search platform for multi-source listings and workflow tracking.",
 };
 

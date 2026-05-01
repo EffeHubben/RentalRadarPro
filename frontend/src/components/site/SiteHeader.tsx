@@ -30,9 +30,9 @@ export function SiteHeader({
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-sm font-semibold text-brass">
-            RR
+            RS
           </span>
-          <span className="text-sm font-semibold tracking-wide text-white">RentalRadarPro</span>
+          <span className="text-sm font-semibold tracking-wide text-white">RentScout</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">

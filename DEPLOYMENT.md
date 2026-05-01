@@ -1,6 +1,6 @@
-# RentalRadarPro Deployment Guide
+# RentScout Deployment Guide
 
-This project is prepared for Docker-based deployment, but it is not deployed yet. The current setup keeps SQLite support for now and stores the Docker database in a persistent volume.
+This project is prepared for Docker-based deployment. The current setup keeps SQLite support for now and stores the Docker database in a persistent volume.
 
 ## Local Docker Run
 
@@ -32,12 +32,12 @@ Backend:
 - `JWT_SECRET_KEY`: Long random secret used to sign auth tokens.
 - `REFRESH_COOKIE_SECURE`: Use `false` locally, `true` behind HTTPS in production.
 - `REFRESH_COOKIE_SAMESITE`: Use `lax` for same-site frontend/backend setups. Cross-site setups may need `none` with HTTPS.
-- `FRONTEND_ORIGIN`: Public frontend origin, for example `https://rentalradarpro.nl`.
+- `FRONTEND_ORIGIN`: Public frontend origin, for example `https://rentscout.nl`.
 - `BACKEND_CORS_ORIGINS`: Comma-separated allowed frontend origins.
 
 Frontend:
 
-- `NEXT_PUBLIC_API_BASE_URL`: Public backend API URL, for example `https://api.rentalradarpro.nl`.
+- `NEXT_PUBLIC_API_BASE_URL`: Public backend API URL, for example `https://api.rentscout.nl`.
 
 Use `backend/.env.example` and `frontend/.env.local.example` as safe templates. Never commit real `.env` files.
 
@@ -47,14 +47,25 @@ Use `backend/.env.example` and `frontend/.env.local.example` as safe templates. 
 2. Create a non-root deployment user and clone the repository.
 3. Copy the example env files to real env files or set variables through your host/deployment tool.
 4. Replace every placeholder secret before building.
-5. Set production URLs:
+5. Set production URLs. For an IP-based VPS deployment:
 
 ```bash
-FRONTEND_ORIGIN=https://rentalradarpro.nl
-BACKEND_CORS_ORIGINS=https://rentalradarpro.nl
-NEXT_PUBLIC_API_BASE_URL=https://api.rentalradarpro.nl
+FRONTEND_ORIGIN=http://YOUR_SERVER_IP:3000
+BACKEND_CORS_ORIGINS=http://YOUR_SERVER_IP:3000
+NEXT_PUBLIC_API_BASE_URL=http://YOUR_SERVER_IP:8000
+REFRESH_COOKIE_SECURE=false
+```
+
+For a future HTTPS domain deployment:
+
+```bash
+FRONTEND_ORIGIN=https://rentscout.nl
+BACKEND_CORS_ORIGINS=https://rentscout.nl
+NEXT_PUBLIC_API_BASE_URL=https://api.rentscout.nl
 REFRESH_COOKIE_SECURE=true
 ```
+
+`docker-compose.yml` reads these values from the shell or a local Compose `.env` file and falls back to localhost defaults for local Docker runs. Do not commit real VPS environment files.
 
 6. Build and start:
 
@@ -68,17 +79,17 @@ docker compose up -d --build
 
 Recommended domain layout:
 
-- `rentalradarpro.nl` routes to the frontend container on port `3000`.
-- `api.rentalradarpro.nl` routes to the backend container on port `8000`.
+- `rentscout.nl` routes to the frontend container on port `3000`.
+- `api.rentscout.nl` routes to the backend container on port `8000`.
 
 Caddy example:
 
 ```caddy
-rentalradarpro.nl {
+rentscout.nl {
     reverse_proxy 127.0.0.1:3000
 }
 
-api.rentalradarpro.nl {
+api.rentscout.nl {
     reverse_proxy 127.0.0.1:8000
 }
 ```
@@ -99,7 +110,7 @@ To copy an existing local database into the Docker volume:
 
 ```bash
 docker compose up -d backend
-docker cp backend/rental_radar_pro.db rentalradarpro-backend-1:/data/rental_radar_pro.db
+docker cp backend/rental_radar_pro.db "$(docker compose ps -q backend)":/data/rental_radar_pro.db
 docker compose restart backend
 ```
 

@@ -3,12 +3,12 @@ services:
     build:
       context: ./backend
     environment:
-      DATABASE_URL: sqlite:////data/rental_radar_pro.db
-      JWT_SECRET_KEY: change-this-before-production
-      REFRESH_COOKIE_SECURE: "false"
-      REFRESH_COOKIE_SAMESITE: lax
-      FRONTEND_ORIGIN: http://localhost:3000
-      BACKEND_CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////data/rental_radar_pro.db}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-before-production}
+      REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-false}
+      REFRESH_COOKIE_SAMESITE: ${REFRESH_COOKIE_SAMESITE:-lax}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     ports:
       - "8000:8000"
     volumes:
@@ -18,9 +18,9 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
     ports:
       - "3000:3000"
     depends_on:
@@ -34,8 +34,8 @@ volumes:
 #   postgres:
 #     image: postgres:16-alpine
 #     environment:
-#       POSTGRES_DB: rentalradarpro
-#       POSTGRES_USER: rentalradarpro
+#       POSTGRES_DB: rentscout
+#       POSTGRES_USER: rentscout
 #       POSTGRES_PASSWORD: change-this-before-use
 #     volumes:
 #       - postgres_data:/var/lib/postgresql/data

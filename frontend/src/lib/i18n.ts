@@ -15,17 +15,17 @@ export const i18n = {
         account: "Account",
       },
       cta: "Start zoeken",
-      contactEmail: "contact@rentalradarpro.nl",
+      contactEmail: "contact@rentscout.nl",
       footerText: "Een rustig dashboard voor je huurwoningzoektocht.",
     },
     home: {
-      eyebrow: "RentalRadarPro",
+      eyebrow: "RentScout",
       title: "Vind en organiseer huurwoningen met meer overzicht.",
       subtitle:
-        "RentalRadarPro verzamelt huuradvertenties uit meerdere bronnen, helpt je sneller vergelijken en bewaart je voortgang op een plek.",
+        "RentScout verzamelt huuradvertenties uit meerdere bronnen, helpt je sneller vergelijken en bewaart je voortgang op een plek.",
       startSearch: "Start zoeken",
       continueSearch: "Vorige zoektocht openen",
-      learnMore: "Meer over RentalRadarPro",
+      learnMore: "Meer over RentScout",
       benefitsTitle: "Gebouwd voor een serieuze zoektocht",
       benefits: [
         "Ontdek advertenties uit meerdere bronnen zonder steeds opnieuw te zoeken.",
@@ -56,18 +56,18 @@ export const i18n = {
       ],
     },
     aboutPage: {
-      title: "Over RentalRadarPro",
+      title: "Over RentScout",
       subtitle:
         "Een praktisch zoekplatform voor mensen die hun huurwoningzoektocht overzichtelijk en sneller willen maken.",
       whatTitle: "Wat het doet",
       whatBody:
-        "RentalRadarPro brengt advertenties uit verschillende huursites samen in een dashboard. Je filtert op stad, budget, woningtype, voorzieningen en voortgang, zodat je sneller ziet welke woningen aandacht verdienen.",
+        "RentScout brengt advertenties uit verschillende huursites samen in een dashboard. Je filtert op stad, budget, woningtype, voorzieningen en voortgang, zodat je sneller ziet welke woningen aandacht verdienen.",
       audienceTitle: "Voor wie",
       audienceBody:
         "Voor woningzoekers die meerdere bronnen moeten volgen, snel willen reageren en hun keuzes professioneel willen organiseren.",
       sourcesTitle: "Databronnen",
       sourcesBody:
-        "Sommige bronnen kunnen automatisch worden gecontroleerd. Andere bronnen zijn beperkt of werken beter handmatig. RentalRadarPro respecteert die grenzen en toont waar handmatige controle nuttig is.",
+        "Sommige bronnen kunnen automatisch worden gecontroleerd. Andere bronnen zijn beperkt of werken beter handmatig. RentScout respecteert die grenzen en toont waar handmatige controle nuttig is.",
       howTitle: "Hoe het werkt",
       how: [
         "Stel je zoekstad en voorkeuren in.",
@@ -75,12 +75,12 @@ export const i18n = {
         "Gebruik statussen, notities en profielen om overzicht te houden.",
       ],
       contactTitle: "Contact",
-      contactBody: "Voor vragen of feedback kun je contact opnemen via contact@rentalradarpro.nl.",
+      contactBody: "Voor vragen of feedback kun je contact opnemen via contact@rentscout.nl.",
     },
     accountPage: {
       title: "Account",
       subtitle: "Beheer je toegang en houd je lokale zoekworkflow duidelijk.",
-      signedOutTitle: "Gebruik RentalRadarPro als gast of met account",
+      signedOutTitle: "Gebruik RentScout als gast of met account",
       signedOutBody:
         "Gastmodus blijft beschikbaar. Je statussen, notities en zoekprofielen worden lokaal op dit apparaat bewaard. Account-synchronisatie is nog niet ingeschakeld.",
       signIn: "Inloggen",
@@ -96,7 +96,7 @@ export const i18n = {
       name: "Naam",
     },
     welcome: {
-      eyebrow: "RentalRadarPro",
+      eyebrow: "RentScout",
       title: "Laten we je zoektocht beginnen",
       subtitle:
         "Vind sneller een huurwoning die past bij jouw budget, locatie en woonwensen.",
@@ -153,7 +153,7 @@ export const i18n = {
       fetchingToast: "We halen direct de nieuwste advertenties voor je op.",
     },
     dashboard: {
-      eyebrow: "RentalRadarPro",
+      eyebrow: "RentScout",
       title: "Zoekresultaten",
       subtitle: "Bekijk huurwoningen, verfijn je filters en beheer je voortgang.",
       changeSearch: "Zoekopdracht wijzigen",
@@ -556,14 +556,14 @@ export const i18n = {
         account: "Account",
       },
       cta: "Start search",
-      contactEmail: "contact@rentalradarpro.nl",
+      contactEmail: "contact@rentscout.nl",
       footerText: "A calm dashboard for your rental search.",
     },
     home: {
-      eyebrow: "RentalRadarPro",
+      eyebrow: "RentScout",
       title: "Find and manage rental listings with more clarity.",
       subtitle:
-        "RentalRadarPro brings rental listings from multiple sources into one focused workspace, helping you compare faster and track your progress.",
+        "RentScout brings rental listings from multiple sources into one focused workspace, helping you compare faster and track your progress.",
       startSearch: "Start search",
       continueSearch: "Continue previous search",
       learnMore: "Learn more",
@@ -597,18 +597,18 @@ export const i18n = {
       ],
     },
     aboutPage: {
-      title: "About RentalRadarPro",
+      title: "About RentScout",
       subtitle:
         "A practical search platform for people who want a clearer, faster rental search.",
       whatTitle: "What it does",
       whatBody:
-        "RentalRadarPro brings listings from multiple rental websites into one dashboard. You can filter by city, budget, property type, amenities and progress, so the homes that deserve attention are easier to spot.",
+        "RentScout brings listings from multiple rental websites into one dashboard. You can filter by city, budget, property type, amenities and progress, so the homes that deserve attention are easier to spot.",
       audienceTitle: "Who it is for",
       audienceBody:
         "For renters who need to monitor multiple sources, respond quickly and keep their decisions organized.",
       sourcesTitle: "Data sources",
       sourcesBody:
-        "Some sources can be checked automatically. Others are limited or work better manually. RentalRadarPro respects those limits and shows where manual review is useful.",
+        "Some sources can be checked automatically. Others are limited or work better manually. RentScout respects those limits and shows where manual review is useful.",
       howTitle: "How it works",
       how: [
         "Set your city and search preferences.",
@@ -616,12 +616,12 @@ export const i18n = {
         "Use statuses, notes and profiles to stay organized.",
       ],
       contactTitle: "Contact",
-      contactBody: "For questions or feedback, contact contact@rentalradarpro.nl.",
+      contactBody: "For questions or feedback, contact contact@rentscout.nl.",
     },
     accountPage: {
       title: "Account",
       subtitle: "Manage access and keep your local search workflow clear.",
-      signedOutTitle: "Use RentalRadarPro as a guest or with an account",
+      signedOutTitle: "Use RentScout as a guest or with an account",
       signedOutBody:
         "Guest mode remains available. Your statuses, notes and search profiles are stored locally on this device. Account sync is not enabled yet.",
       signIn: "Log in",
@@ -637,7 +637,7 @@ export const i18n = {
       name: "Name",
     },
     welcome: {
-      eyebrow: "RentalRadarPro",
+      eyebrow: "RentScout",
       title: "Let's start your search",
       subtitle:
         "Find a rental home faster that fits your budget, location and living preferences.",
@@ -694,7 +694,7 @@ export const i18n = {
       fetchingToast: "We’re fetching the latest listings for you.",
     },
     dashboard: {
-      eyebrow: "RentalRadarPro",
+      eyebrow: "RentScout",
       title: "Search results",
       subtitle: "Review rentals, refine filters and manage your progress.",
       changeSearch: "Change search",
