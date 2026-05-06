@@ -5,7 +5,7 @@ import type {
   RefreshResponse,
   RegisterPayload,
 } from "@/types/auth";
-import { buildApiUrl } from "@/lib/apiConfig";
+import { buildApiUrl, getApiErrorMessage } from "@/lib/apiConfig";
 
 async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(buildApiUrl(path), {
@@ -18,12 +18,7 @@ async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const detail =
-      body && typeof body === "object" && "detail" in body
-        ? String(body.detail)
-        : `Request failed with ${response.status}`;
-    throw new Error(detail);
+    throw new Error(await getApiErrorMessage(response));
   }
 
   return response.json() as Promise<T>;

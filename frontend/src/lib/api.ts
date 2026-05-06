@@ -5,7 +5,7 @@ import type {
   ScraperResult,
   SourceInfo,
 } from "@/types/listing";
-import { buildApiUrl } from "@/lib/apiConfig";
+import { buildApiUrl, getApiErrorMessage } from "@/lib/apiConfig";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(buildApiUrl(path), {
@@ -17,8 +17,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    const body = await response.text();
-    throw new Error(body || `Request failed with ${response.status}`);
+    throw new Error(await getApiErrorMessage(response));
   }
 
   return response.json() as Promise<T>;
