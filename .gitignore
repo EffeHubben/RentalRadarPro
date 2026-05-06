@@ -20,6 +20,7 @@ frontend/.env
 frontend/.env.*
 backend/.env
 backend/.env.*
+!.env.example
 !backend/.env.example
 !frontend/.env.local.example
 
