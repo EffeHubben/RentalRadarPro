@@ -1,6 +1,20 @@
 from pydantic_settings import BaseSettings
 
 
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://rentscout.nl",
+    "https://www.rentscout.nl",
+]
+
+
+def normalize_origin(origin: str) -> str:
+    return origin.strip().rstrip("/")
+
+
 class Settings(BaseSettings):
     app_name: str = "RentScout"
     database_url: str = "sqlite:///./rental_radar_pro.db"
@@ -15,7 +29,7 @@ class Settings(BaseSettings):
     refresh_cookie_secure: bool | None = None
     refresh_cookie_samesite: str = "lax"
     frontend_origin: str = "http://localhost:3000"
-    backend_cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"
+    backend_cors_origins: str = ",".join(DEFAULT_CORS_ORIGINS)
 
     @property
     def token_secret_key(self) -> str:
@@ -27,14 +41,17 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        origins = [
-            origin.strip()
-            for origin in self.backend_cors_origins.split(",")
-            if origin.strip()
-        ]
+        origins = []
 
-        if self.frontend_origin and self.frontend_origin not in origins:
-            origins.append(self.frontend_origin)
+        for origin in [
+            *DEFAULT_CORS_ORIGINS,
+            *self.backend_cors_origins.split(","),
+            self.frontend_origin,
+        ]:
+            normalized_origin = normalize_origin(origin)
+
+            if normalized_origin and normalized_origin not in origins:
+                origins.append(normalized_origin)
 
         return origins
 

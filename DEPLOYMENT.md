@@ -60,7 +60,7 @@ For a future HTTPS domain deployment:
 
 ```bash
 FRONTEND_ORIGIN=https://rentscout.nl
-BACKEND_CORS_ORIGINS=https://rentscout.nl
+BACKEND_CORS_ORIGINS=https://rentscout.nl,https://www.rentscout.nl
 NEXT_PUBLIC_API_URL=https://api.rentscout.nl/api
 REFRESH_COOKIE_SECURE=true
 ```
@@ -72,7 +72,7 @@ For `rentscout.nl`, the project-root `.env` on the VPS should include:
 ```bash
 NEXT_PUBLIC_API_URL=https://api.rentscout.nl/api
 FRONTEND_ORIGIN=https://rentscout.nl
-BACKEND_CORS_ORIGINS=https://rentscout.nl
+BACKEND_CORS_ORIGINS=https://rentscout.nl,https://www.rentscout.nl
 REFRESH_COOKIE_SECURE=true
 ```
 
