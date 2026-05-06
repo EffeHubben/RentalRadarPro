@@ -5,21 +5,10 @@ import type {
   RefreshResponse,
   RegisterPayload,
 } from "@/types/auth";
-
-function getApiBaseUrl() {
-  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
-    return process.env.NEXT_PUBLIC_API_BASE_URL;
-  }
-
-  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
-    return "http://localhost:8000";
-  }
-
-  return "http://127.0.0.1:8000";
-}
+import { buildApiUrl } from "@/lib/apiConfig";
 
 async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+  const response = await fetch(buildApiUrl(path), {
     ...init,
     credentials: "include",
     headers: {
@@ -41,33 +30,33 @@ async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function registerAccount(payload: RegisterPayload) {
-  return authRequest<AuthResponse>("/api/auth/register", {
+  return authRequest<AuthResponse>("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function loginAccount(payload: LoginPayload) {
-  return authRequest<AuthResponse>("/api/auth/login", {
+  return authRequest<AuthResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function logoutAccount() {
-  return authRequest<{ ok: boolean }>("/api/auth/logout", {
+  return authRequest<{ ok: boolean }>("/auth/logout", {
     method: "POST",
   });
 }
 
 export function refreshAccount() {
-  return authRequest<RefreshResponse>("/api/auth/refresh", {
+  return authRequest<RefreshResponse>("/auth/refresh", {
     method: "POST",
   });
 }
 
 export function getCurrentUser(accessToken: string) {
-  return authRequest<AuthUser>("/api/auth/me", {
+  return authRequest<AuthUser>("/auth/me", {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },

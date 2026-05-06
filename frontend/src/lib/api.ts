@@ -5,12 +5,10 @@ import type {
   ScraperResult,
   SourceInfo,
 } from "@/types/listing";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+import { buildApiUrl } from "@/lib/apiConfig";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(buildApiUrl(path), {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -112,7 +110,7 @@ export async function fetchListings(filters: ListingFilters): Promise<Listing[]>
   const params = buildListingQueryParams(filters);
   const query = params.toString();
 
-  return request<Listing[]>(`/api/listings/${query ? `?${query}` : ""}`, {
+  return request<Listing[]>(`/listings/${query ? `?${query}` : ""}`, {
     cache: "no-store",
   });
 }
@@ -124,7 +122,7 @@ export async function runScraper(city?: string, sources?: string[]): Promise<Scr
     ...(sources ? { sources } : {}),
   };
 
-  return request<ScraperResult>("/api/scrapers/run", {
+  return request<ScraperResult>("/scrapers/run", {
     method: "POST",
     body: JSON.stringify(body),
   });
@@ -147,13 +145,13 @@ export async function fetchScraperFreshness(
 
   const query = params.toString();
 
-  return request<ScraperFreshness>(`/api/scrapers/freshness${query ? `?${query}` : ""}`, {
+  return request<ScraperFreshness>(`/scrapers/freshness${query ? `?${query}` : ""}`, {
     cache: "no-store",
   });
 }
 
 export async function fetchSources(): Promise<SourceInfo[]> {
-  return request<SourceInfo[]>("/api/sources/", {
+  return request<SourceInfo[]>("/sources/", {
     cache: "no-store",
   });
 }
