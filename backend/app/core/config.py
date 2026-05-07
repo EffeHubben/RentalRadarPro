@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     backend_cors_origins: str = ",".join(DEFAULT_CORS_ORIGINS)
     listing_scan_interval_minutes: int = 5
     listing_source_timeout_seconds: int = 45
+    stripe_secret_key: str | None = None
+    stripe_webhook_secret: str | None = None
+    stripe_price_id_pro: str | None = None
+    billing_success_url: str | None = None
+    billing_cancel_url: str | None = None
 
     @property
     def token_secret_key(self) -> str:

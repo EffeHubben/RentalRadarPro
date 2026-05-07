@@ -11,3 +11,4 @@ python-multipart
 pwdlib[argon2]
 PyJWT
 email-validator
+stripe

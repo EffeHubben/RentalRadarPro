@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { createCheckoutSession, createPortalSession, fetchBillingConfig } from "@/lib/billing";
+import { hasPro } from "@/lib/subscription";
 import { i18n } from "@/lib/i18n";
 import { useLanguagePreference } from "@/lib/useLanguagePreference";
 
@@ -56,12 +58,52 @@ export default function AccountPage() {
   const authCopy = i18n[language].auth;
   const [modalMode, setModalMode] = useState<AuthMode>("login");
   const [modalOpen, setModalOpen] = useState(false);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingError, setBillingError] = useState("");
+  const [billingEnabled, setBillingEnabled] = useState(false);
 
-  const isPro = auth.user?.plan === "pro";
+  const isPro = hasPro(auth.user);
 
   function openAuth(mode: AuthMode) {
     setModalMode(mode);
     setModalOpen(true);
+  }
+
+  useEffect(() => {
+    void fetchBillingConfig()
+      .then((config) => setBillingEnabled(config.billing_enabled))
+      .catch(() => setBillingEnabled(false));
+  }, []);
+
+  async function redirectToBillingSession(mode: "checkout" | "portal") {
+    setBillingError("");
+
+    if (!auth.isAuthenticated || !auth.accessToken) {
+      openAuth("register");
+      return;
+    }
+
+    if (!billingEnabled) {
+      setBillingError(copy.billingUnavailable);
+      return;
+    }
+
+    setBillingLoading(true);
+
+    try {
+      const session =
+        mode === "checkout"
+          ? await createCheckoutSession(auth.accessToken)
+          : await createPortalSession(auth.accessToken);
+
+      window.location.assign(session.url);
+    } catch (caughtError) {
+      setBillingError(
+        caughtError instanceof Error ? caughtError.message : copy.billingGenericError,
+      );
+    } finally {
+      setBillingLoading(false);
+    }
   }
 
   return (
@@ -239,6 +281,21 @@ export default function AccountPage() {
                               </li>
                             ))}
                           </ul>
+                          <button
+                            type="button"
+                            disabled={billingLoading || !billingEnabled}
+                            onClick={() => void redirectToBillingSession("portal")}
+                            className="rs-primary-button mt-4 inline-flex h-9 w-full items-center justify-center rounded-lg px-4 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {billingEnabled
+                              ? billingLoading
+                                ? copy.billingLoading
+                                : copy.manageSubscription
+                              : copy.upgradeComingSoon}
+                          </button>
+                          {billingError ? (
+                            <p className="mt-3 text-xs leading-5 text-danger">{billingError}</p>
+                          ) : null}
                         </div>
                       ) : (
                         <div className="rounded-[1.1rem] border border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] p-5 shadow-[var(--shadow-premium)]">
@@ -263,11 +320,19 @@ export default function AccountPage() {
                           </ul>
                           <button
                             type="button"
-                            disabled
-                            className="mt-4 inline-flex h-9 w-full cursor-not-allowed items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-xs font-semibold text-[var(--color-subtle)]"
+                            disabled={billingLoading || !billingEnabled}
+                            onClick={() => void redirectToBillingSession("checkout")}
+                            className="rs-primary-button mt-4 inline-flex h-9 w-full items-center justify-center rounded-lg px-4 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {copy.upgradeComingSoon}
+                            {billingEnabled
+                              ? billingLoading
+                                ? copy.billingLoading
+                                : copy.upgradeCta
+                              : copy.upgradeComingSoon}
                           </button>
+                          {billingError ? (
+                            <p className="mt-3 text-xs leading-5 text-danger">{billingError}</p>
+                          ) : null}
                         </div>
                       )}
                     </div>
@@ -339,10 +404,10 @@ export default function AccountPage() {
                   </ul>
                   <button
                     type="button"
-                    disabled
-                    className="mt-6 inline-flex h-10 w-full cursor-not-allowed items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-sm font-semibold text-[var(--color-subtle)]"
+                    onClick={() => openAuth("register")}
+                    className="rs-primary-button mt-6 inline-flex h-10 w-full items-center justify-center rounded-lg px-4 text-sm font-semibold"
                   >
-                    {copy.upgradeComingSoon}
+                    {copy.upgradeCta}
                   </button>
                 </article>
               </Reveal>

@@ -222,6 +222,10 @@ export const i18n = {
       subscriptionActive: "Actief",
       subscriptionInactive: "Inactief",
       upgradeCta: "Upgraden naar Pro",
+      manageSubscription: "Abonnement beheren",
+      billingLoading: "Even wachten...",
+      billingGenericError: "Facturering kon niet worden gestart. Probeer het opnieuw.",
+      billingUnavailable: "Facturering is nog niet geconfigureerd.",
       upgradeTitle: "RentScout Pro",
       upgradeBody:
         "Pro geeft je volledige woningdetails, foto's, links, opgeslagen zoekprofielen, voortgang per woning en e-mailnotificaties.",
@@ -941,6 +945,10 @@ export const i18n = {
       subscriptionActive: "Active",
       subscriptionInactive: "Inactive",
       upgradeCta: "Upgrade to Pro",
+      manageSubscription: "Manage subscription",
+      billingLoading: "Working...",
+      billingGenericError: "Billing could not be started. Try again.",
+      billingUnavailable: "Billing is not configured yet.",
       upgradeTitle: "RentScout Pro",
       upgradeBody:
         "Pro gives you full listing details, photos, links, saved search profiles, listing progress and email notifications.",

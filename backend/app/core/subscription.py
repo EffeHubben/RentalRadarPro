@@ -3,8 +3,11 @@ from fastapi import HTTPException, status
 from app.models.user import User
 
 
+PRO_SUBSCRIPTION_STATUSES = {"active", "trialing"}
+
+
 def is_pro(user: User) -> bool:
-    return user.plan == "pro" and user.subscription_status == "active"
+    return user.plan == "pro" and user.subscription_status in PRO_SUBSCRIPTION_STATUSES
 
 
 def require_pro(user: User) -> None:
