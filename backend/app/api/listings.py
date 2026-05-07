@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import and_, case, or_
 from sqlalchemy.orm import Session
 
+from app.core.admin import require_admin
 from app.core.security import get_optional_user
 from app.core.subscription import is_pro
 from app.database.db import get_database_session
@@ -389,7 +390,7 @@ def get_listing_by_id(
     return listing
 
 
-@router.post("/", response_model=ListingResponse)
+@router.post("/", response_model=ListingResponse, dependencies=[Depends(require_admin)])
 def create_listing(
     listing_data: ListingCreate,
     database: Session = Depends(get_database_session),

@@ -6,6 +6,7 @@ export type AuthUser = {
   display_name: string | null;
   preferred_language: Language | null;
   is_active: boolean;
+  is_admin: boolean;
   created_at: string;
   last_login_at: string | null;
   plan: string;

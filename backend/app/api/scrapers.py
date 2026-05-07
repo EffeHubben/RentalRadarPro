@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.admin import require_admin
 from app.core.config import settings
 from app.database.db import get_database_session
 from app.models.listing import Listing
@@ -255,7 +256,7 @@ def add_location_quality_boost(listing_metadata: dict, location_metadata: dict) 
     listing_metadata["confidence_score"] = round(min(1.0, confidence_score + boost), 2)
 
 
-@router.post("/run")
+@router.post("/run", dependencies=[Depends(require_admin)])
 def run_scrapers(
     request: ScraperRunRequest | None = None,
     database: Session = Depends(get_database_session),

@@ -21,6 +21,7 @@ class AuthUserResponse(BaseModel):
     display_name: str | None
     preferred_language: str | None
     is_active: bool
+    is_admin: bool
     created_at: datetime
     last_login_at: datetime | None
     plan: str

@@ -73,6 +73,7 @@ GEOCODE_CACHE_COLUMN_MIGRATIONS = {
 }
 
 USER_COLUMN_MIGRATIONS = {
+    "is_admin": "ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0",
     "plan": "ALTER TABLE users ADD COLUMN plan VARCHAR(20) NOT NULL DEFAULT 'free'",
     "subscription_status": "ALTER TABLE users ADD COLUMN subscription_status VARCHAR(30) NOT NULL DEFAULT 'inactive'",
     "stripe_customer_id": "ALTER TABLE users ADD COLUMN stripe_customer_id VARCHAR(255)",
