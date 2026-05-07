@@ -23,6 +23,9 @@ class AuthUserResponse(BaseModel):
     is_active: bool
     created_at: datetime
     last_login_at: datetime | None
+    plan: str
+    subscription_status: str
+    subscription_current_period_end: datetime | None
 
     class Config:
         from_attributes = True

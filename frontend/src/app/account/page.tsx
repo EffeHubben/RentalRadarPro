@@ -154,6 +154,25 @@ export default function AccountPage() {
                             {auth.user?.display_name || authCopy.guestMode}
                           </div>
                         </div>
+                        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-page)] p-4">
+                          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">
+                            {copy.plan}
+                          </div>
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="font-semibold text-[var(--color-text)]">
+                              {auth.user?.plan === "pro" ? copy.planPro : copy.planFree}
+                            </span>
+                            {auth.user?.plan === "pro" ? (
+                              <span className="rounded-full bg-[var(--color-teal-soft)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-teal)]">
+                                {copy.planPro}
+                              </span>
+                            ) : (
+                              <span className="rs-chip rounded-full px-2.5 py-0.5 text-xs font-medium">
+                                {copy.planFree}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                       <button
@@ -186,6 +205,31 @@ export default function AccountPage() {
                           </motion.div>
                         ))}
                       </div>
+                      {auth.user?.plan !== "pro" ? (
+                        <div className="mt-4 rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] p-4 shadow-[var(--shadow-premium)]">
+                          <div className="text-sm font-semibold text-[var(--color-text)]">
+                            {copy.upgradeTitle}
+                          </div>
+                          <p className="mt-2 text-xs leading-5 text-[var(--color-muted)]">
+                            {copy.upgradeBody}
+                          </p>
+                          <ul className="mt-3 space-y-1.5">
+                            {copy.proFeatures.map((feat) => (
+                              <li key={feat} className="flex items-start gap-2 text-xs text-[var(--color-muted)]">
+                                <span className="shrink-0 text-[var(--color-teal)]">✓</span>
+                                {feat}
+                              </li>
+                            ))}
+                          </ul>
+                          <button
+                            type="button"
+                            disabled
+                            className="mt-4 inline-flex h-9 w-full cursor-not-allowed items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-xs font-semibold text-[var(--color-subtle)]"
+                          >
+                            {copy.upgradeComingSoon}
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 )}

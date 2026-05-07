@@ -193,12 +193,12 @@ export default function HomePage() {
                     {copy.continueSearch}
                   </Link>
                 ) : (
-                  <Link
-                    href="/about"
+                  <a
+                    href="#pricing"
                     className="inline-flex h-12 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-border-strong)]"
                   >
-                    {copy.learnMore}
-                  </Link>
+                    {copy.viewPlans}
+                  </a>
                 )}
               </motion.div>
 
@@ -276,6 +276,84 @@ export default function HomePage() {
                 </article>
               </Reveal>
             ))}
+          </div>
+        </section>
+
+        <section id="pricing" className="border-t border-[var(--color-border)] bg-[var(--color-band)]">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+            <Reveal>
+              <div className="max-w-2xl">
+                <p className="text-sm font-semibold text-[var(--color-accent-strong)]">
+                  {copy.pricingEyebrow}
+                </p>
+                <h2 className="mt-3 text-3xl font-semibold text-[var(--color-text)]">
+                  {copy.pricingTitle}
+                </h2>
+                <p className="mt-3 text-base leading-7 text-[var(--color-muted)]">
+                  {copy.pricingSubtitle}
+                </p>
+              </div>
+            </Reveal>
+
+            <div className="mt-10 grid max-w-3xl gap-6 sm:grid-cols-2">
+              <Reveal delay={0.04}>
+                <div className="flex h-full flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-[var(--color-text)]">{copy.freePlanName}</h3>
+                    <span className="rs-chip rounded-full px-3 py-1 text-xs font-semibold">{copy.freePlanName}</span>
+                  </div>
+                  <div className="mt-4">
+                    <span className="text-3xl font-bold text-[var(--color-text)]">{copy.freePlanPrice}</span>
+                    <span className="ml-2 text-sm text-[var(--color-muted)]">{copy.freePlanPriceSuffix}</span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{copy.freePlanDescription}</p>
+                  <ul className="mt-5 flex-1 space-y-2">
+                    {copy.freePlanFeatures.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2 text-sm text-[var(--color-muted)]">
+                        <span className="mt-0.5 shrink-0 text-[var(--color-teal)]">✓</span>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href="/search?setup=1"
+                    className="rs-primary-button mt-6 inline-flex h-11 items-center justify-center rounded-lg px-5 text-sm font-semibold"
+                  >
+                    {copy.freePlanCta}
+                  </Link>
+                </div>
+              </Reveal>
+
+              <Reveal delay={0.08}>
+                <div className="flex h-full flex-col rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] p-6 shadow-[var(--shadow-premium)]">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-[var(--color-text)]">{copy.proPlanName}</h3>
+                    <span className="rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--color-accent-strong)]">
+                      {copy.proPlanBadge}
+                    </span>
+                  </div>
+                  <div className="mt-4">
+                    <span className="text-xl font-semibold text-[var(--color-muted)]">{copy.proPlanBadge}</span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{copy.proPlanDescription}</p>
+                  <ul className="mt-5 flex-1 space-y-2">
+                    {copy.proPlanFeatures.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2 text-sm text-[var(--color-muted)]">
+                        <span className="mt-0.5 shrink-0 text-[var(--color-accent-strong)]">✓</span>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    disabled
+                    className="mt-6 inline-flex h-11 cursor-not-allowed items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-subtle)]"
+                  >
+                    {copy.proPlanCta}
+                  </button>
+                </div>
+              </Reveal>
+            </div>
           </div>
         </section>
 

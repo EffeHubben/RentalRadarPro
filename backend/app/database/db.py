@@ -72,6 +72,14 @@ GEOCODE_CACHE_COLUMN_MIGRATIONS = {
     "matched_label": "ALTER TABLE geocode_cache ADD COLUMN matched_label TEXT",
 }
 
+USER_COLUMN_MIGRATIONS = {
+    "plan": "ALTER TABLE users ADD COLUMN plan VARCHAR(20) NOT NULL DEFAULT 'free'",
+    "subscription_status": "ALTER TABLE users ADD COLUMN subscription_status VARCHAR(30) NOT NULL DEFAULT 'inactive'",
+    "stripe_customer_id": "ALTER TABLE users ADD COLUMN stripe_customer_id VARCHAR(255)",
+    "stripe_subscription_id": "ALTER TABLE users ADD COLUMN stripe_subscription_id VARCHAR(255)",
+    "subscription_current_period_end": "ALTER TABLE users ADD COLUMN subscription_current_period_end DATETIME",
+}
+
 
 def migrate_listing_table() -> None:
     with engine.begin() as connection:
@@ -162,6 +170,18 @@ def migrate_scan_history_table() -> None:
                 connection.execute(text(migration_sql))
 
 
+def migrate_users_table() -> None:
+    with engine.begin() as connection:
+        existing_columns = {
+            row[1]
+            for row in connection.execute(text("PRAGMA table_info(users)"))
+        }
+
+        for column_name, migration_sql in USER_COLUMN_MIGRATIONS.items():
+            if column_name not in existing_columns:
+                connection.execute(text(migration_sql))
+
+
 def migrate_geocode_cache_table() -> None:
     with engine.begin() as connection:
         existing_tables = {
@@ -227,6 +247,7 @@ def create_database_tables() -> None:
     migrate_listing_table()
     migrate_scan_history_table()
     migrate_geocode_cache_table()
+    migrate_users_table()
     backfill_existing_listing_locations()
     backfill_existing_listing_availability()
     backfill_existing_listing_duplicates()

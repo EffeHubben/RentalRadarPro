@@ -8,6 +8,9 @@ export type AuthUser = {
   is_active: boolean;
   created_at: string;
   last_login_at: string | null;
+  plan: string;
+  subscription_status: string;
+  subscription_current_period_end: string | null;
 };
 
 export type AuthResponse = {

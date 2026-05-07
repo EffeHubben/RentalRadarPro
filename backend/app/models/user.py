@@ -19,6 +19,11 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     last_login_at = Column(DateTime, nullable=True)
+    plan = Column(String(20), nullable=False, default="free", server_default="free")
+    subscription_status = Column(String(30), nullable=False, default="inactive", server_default="inactive")
+    stripe_customer_id = Column(String(255), nullable=True)
+    stripe_subscription_id = Column(String(255), nullable=True)
+    subscription_current_period_end = Column(DateTime, nullable=True)
 
     refresh_tokens = relationship(
         "RefreshToken",
