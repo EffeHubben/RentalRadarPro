@@ -1,16 +1,30 @@
+x-backend-environment: &backend-environment
+  DATABASE_URL: ${DATABASE_URL:-sqlite:////data/rental_radar_pro.db}
+  JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-before-production}
+  REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-false}
+  REFRESH_COOKIE_SAMESITE: ${REFRESH_COOKIE_SAMESITE:-lax}
+  FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
+  BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+  LISTING_SCAN_INTERVAL_MINUTES: ${LISTING_SCAN_INTERVAL_MINUTES:-5}
+  LISTING_SOURCE_TIMEOUT_SECONDS: ${LISTING_SOURCE_TIMEOUT_SECONDS:-45}
+
 services:
   backend:
     build:
       context: ./backend
-    environment:
-      DATABASE_URL: ${DATABASE_URL:-sqlite:////data/rental_radar_pro.db}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-before-production}
-      REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-false}
-      REFRESH_COOKIE_SAMESITE: ${REFRESH_COOKIE_SAMESITE:-lax}
-      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
-      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    environment: *backend-environment
     ports:
       - "8000:8000"
+    volumes:
+      - backend_data:/data
+
+  scanner:
+    build:
+      context: ./backend
+    environment: *backend-environment
+    command: ["python", "-m", "app.services.scanner", "--city", "Breda", "--continuous", "--sleep-seconds", "300"]
+    depends_on:
+      - backend
     volumes:
       - backend_data:/data
 

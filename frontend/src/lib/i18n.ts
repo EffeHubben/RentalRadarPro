@@ -17,6 +17,13 @@ export const i18n = {
       cta: "Start zoeken",
       contactEmail: "contact@rentscout.nl",
       footerText: "Een rustig dashboard voor je huurwoningzoektocht.",
+      primaryNavigation: "Primaire navigatie",
+      mobileNavigation: "Mobiele navigatie",
+      toggleNavigation: "Navigatie openen of sluiten",
+      switchToLightMode: "Schakel naar lichte modus",
+      switchToDarkMode: "Schakel naar donkere modus",
+      lightMode: "Licht",
+      darkMode: "Donker",
     },
     home: {
       eyebrow: "RentScout",
@@ -54,6 +61,88 @@ export const i18n = {
         "Voortgang per woning",
         "Opgeslagen zoekprofielen",
       ],
+      previewProfileTitle: "Zoekprofiel Breda",
+      previewProfileMeta: "Appartement · max EUR 1.300 · eigen keuken",
+      previewMatchCount: "12 matches",
+      previewSources: "Funda · Marktplaats",
+      previewSavedSearchTitle: "Bewaarde zoekopdracht",
+      previewSavedSearchMeta: "Breda · dagelijks bijgewerkt",
+      previewLiveBadge: "Live",
+      previewListings: [
+        {
+          title: "Appartement bij het station",
+          meta: "Breda · 72 m2 · 2 kamers",
+          price: "EUR 1.225",
+          label: "Sterke match",
+        },
+        {
+          title: "Studio in het centrum",
+          meta: "Tilburg · 31 m2 · eigen keuken",
+          price: "EUR 830",
+          label: "Nieuw",
+        },
+        {
+          title: "Rustige woning met balkon",
+          meta: "Eindhoven · 64 m2 · beschikbaar",
+          price: "EUR 1.150",
+          label: "Bewaard",
+        },
+      ],
+      searchSignals: [
+        { label: "Nieuwe matches", value: 12, width: "82%" },
+        { label: "Binnen budget", value: 9, width: "68%" },
+        { label: "Eigen voorzieningen", value: 6, width: "48%" },
+      ],
+      productHighlights: [
+        "Meerdere bronnen in een overzicht",
+        "Filters die ruis verminderen",
+        "Voortgang en notities per woning",
+      ],
+      journeyTitle: "Van zoeken naar overzicht.",
+      journeySteps: [
+        {
+          title: "Stel je zoekprofiel in",
+          body: "Kies stad, budget en woonwensen. RentScout bewaart je voorkeuren zodat je later rustig verder kunt.",
+        },
+        {
+          title: "Vergelijk woningen op een plek",
+          body: "Bekijk relevante woningen naast elkaar met prijs, type, bron en praktische signalen in een duidelijk overzicht.",
+        },
+        {
+          title: "Bewaar favorieten en volg voortgang",
+          body: "Markeer wat interessant is, verberg ruis en houd notities bij per woning.",
+        },
+      ],
+      practicalToolsTitle: "Praktisch gereedschap voor een betere zoektocht.",
+      practicalFeatures: [
+        {
+          title: "Meerdere bronnen",
+          body: "Bekijk huurwoningen uit verschillende kanalen zonder steeds opnieuw te zoeken.",
+        },
+        {
+          title: "Slimme filters",
+          body: "Filter op budget, woningtype, oppervlakte, privacy en beschikbaarheid.",
+        },
+        {
+          title: "Opgeslagen zoekprofielen",
+          body: "Bewaar combinaties van voorkeuren en open ze later opnieuw.",
+        },
+        {
+          title: "Voortgang per woning",
+          body: "Markeer woningen als interessant, bekeken, aangevraagd of verborgen.",
+        },
+        {
+          title: "Minder dubbele advertenties",
+          body: "Vergelijk listings rustiger wanneer dezelfde woning op meerdere plekken staat.",
+        },
+        {
+          title: "Rustiger zoeken",
+          body: "Een overzichtelijke workflow helpt je sneller beslissen zonder tab-chaos.",
+        },
+      ],
+      finalCtaTitle: "Begin met een rustiger overzicht van je huurzoektocht.",
+      finalCtaBody:
+        "Stel je voorkeuren in en open daarna een dashboard dat helpt vergelijken, bewaren en opvolgen.",
     },
     aboutPage: {
       title: "Over RentScout",
@@ -76,6 +165,11 @@ export const i18n = {
       ],
       contactTitle: "Contact",
       contactBody: "Voor vragen of feedback kun je contact opnemen via contact@rentscout.nl.",
+      startSearch: "Start zoeken",
+      workflowTitle: "Zoekworkflow",
+      workflowSubtitle: "Bronnen, filters en voortgang",
+      workflowBadge: "Rustig overzicht",
+      sequenceTitle: "Een praktische volgorde voor sneller beslissen.",
     },
     accountPage: {
       title: "Account",
@@ -94,6 +188,8 @@ export const i18n = {
       placeholder: "Lokaal bewaard op dit apparaat.",
       email: "E-mail",
       name: "Naam",
+      signedInBadge: "Ingelogd",
+      workspace: "Werkruimte",
     },
     welcome: {
       eyebrow: "RentScout",
@@ -151,6 +247,7 @@ export const i18n = {
       start: "Start zoeken",
       howItWorks: "Hoe werkt het?",
       fetchingToast: "We halen direct de nieuwste advertenties voor je op.",
+      searchSetupProgress: "Voortgang zoekinstelling",
     },
     dashboard: {
       eyebrow: "RentScout",
@@ -231,10 +328,9 @@ export const i18n = {
       allTypes: "Alle types",
       unknown: "Onbekend",
       newest: "Nieuwste eerst",
+      recentlyUpdated: "Recent bijgewerkt",
       cheapest: "Goedkoopste eerst",
       mostExpensive: "Duurste eerst",
-      largest: "Grootste eerst",
-      smallest: "Kleinste eerst",
       any: "Maakt niet uit",
       required: "Vereist",
       notPrivate: "Niet eigen",
@@ -297,8 +393,12 @@ export const i18n = {
       openingAd: "Advertentie wordt geopend",
       priceUnknown: "Prijs onbekend",
       recentlySeen: "Recent gezien",
+      firstSeen: "Online sinds",
+      lastChecked: "Laatst gecontroleerd",
+      newBadge: "Nieuw",
       alsoOnOtherSources: "Ook op andere bronnen",
       originalLanguageNote: "Advertentietekst wordt getoond in de originele taal van de bron.",
+      fullDescriptionUnavailable: "Er is nog geen volledige beschrijving beschikbaar.",
       availability: {
         available: "Beschikbaar",
         under_option: "Onder optie",
@@ -360,6 +460,7 @@ export const i18n = {
       empty: "Geen zoekprofielen opgeslagen",
       noneSelected: "Geen profiel geselecteerd",
       profileName: "Profielnaam",
+      profileNamePlaceholder: "Breda studio max 1000",
       save: "Huidige filters opslaan",
       apply: "Profiel toepassen",
       update: "Profiel bijwerken",
@@ -393,8 +494,6 @@ export const i18n = {
       loading: "Even wachten...",
       passwordsDoNotMatch: "De wachtwoorden komen niet overeen.",
       genericError: "Er ging iets mis. Probeer het opnieuw.",
-      localDataNotice:
-        "Je lokale zoekgegevens blijven op dit apparaat. Account-synchronisatie voegen we in de volgende stap toe.",
     },
     modal: {
       close: "Sluiten",
@@ -491,7 +590,11 @@ export const i18n = {
       sourceSummary: "Resultaten per bron",
       sources: "Bronnen",
       sourceOverview: "Bronnen",
-      sourceOverviewDescription: "Resultaten per bron en automatische beschikbaarheid.",
+      sourceOverviewDescription: "Bronnen die RentScout automatisch volgt en bronnen die handmatig blijven.",
+      monitoredAutomatically: "Automatisch gevolgd",
+      limitedManualSources: "Handmatig/beperkt",
+      sourcesOnline: "Bronnen online",
+      listingsAddedToday: "Vandaag toegevoegd",
       resultsRecent: "Resultaten zijn recent bijgewerkt.",
       lastUpdated: "Laatst bijgewerkt",
       freshness: {
@@ -558,6 +661,13 @@ export const i18n = {
       cta: "Start search",
       contactEmail: "contact@rentscout.nl",
       footerText: "A calm dashboard for your rental search.",
+      primaryNavigation: "Primary navigation",
+      mobileNavigation: "Mobile navigation",
+      toggleNavigation: "Toggle navigation",
+      switchToLightMode: "Switch to light mode",
+      switchToDarkMode: "Switch to dark mode",
+      lightMode: "Light",
+      darkMode: "Dark",
     },
     home: {
       eyebrow: "RentScout",
@@ -595,6 +705,88 @@ export const i18n = {
         "Listing workflow",
         "Saved searches",
       ],
+      previewProfileTitle: "Breda search profile",
+      previewProfileMeta: "Apartment · max EUR 1,300 · private kitchen",
+      previewMatchCount: "12 matches",
+      previewSources: "Funda · Marktplaats",
+      previewSavedSearchTitle: "Saved search",
+      previewSavedSearchMeta: "Breda · updated daily",
+      previewLiveBadge: "Live",
+      previewListings: [
+        {
+          title: "Apartment near the station",
+          meta: "Breda · 72 m2 · 2 rooms",
+          price: "EUR 1,225",
+          label: "Strong match",
+        },
+        {
+          title: "Studio in the center",
+          meta: "Tilburg · 31 m2 · private kitchen",
+          price: "EUR 830",
+          label: "New",
+        },
+        {
+          title: "Quiet home with balcony",
+          meta: "Eindhoven · 64 m2 · available",
+          price: "EUR 1,150",
+          label: "Saved",
+        },
+      ],
+      searchSignals: [
+        { label: "New matches", value: 12, width: "82%" },
+        { label: "Within budget", value: 9, width: "68%" },
+        { label: "Private amenities", value: 6, width: "48%" },
+      ],
+      productHighlights: [
+        "Multiple sources in one overview",
+        "Filters that reduce noise",
+        "Progress and notes for each listing",
+      ],
+      journeyTitle: "From searching to clarity.",
+      journeySteps: [
+        {
+          title: "Set your search profile",
+          body: "Choose city, budget and home preferences. RentScout keeps your setup ready for later.",
+        },
+        {
+          title: "Compare homes in one place",
+          body: "Review relevant homes side by side with price, type, source and practical signals.",
+        },
+        {
+          title: "Save favourites and track progress",
+          body: "Mark what matters, hide noise and keep notes for each home.",
+        },
+      ],
+      practicalToolsTitle: "Practical tools for a better search.",
+      practicalFeatures: [
+        {
+          title: "Multiple sources",
+          body: "View rental listings from different channels without repeating the same search.",
+        },
+        {
+          title: "Smart filters",
+          body: "Filter by budget, property type, area, privacy and availability.",
+        },
+        {
+          title: "Saved search profiles",
+          body: "Save combinations of preferences and open them again later.",
+        },
+        {
+          title: "Listing progress",
+          body: "Mark listings as interesting, viewed, applied or hidden.",
+        },
+        {
+          title: "Fewer duplicate listings",
+          body: "Compare listings more calmly when the same home appears in multiple places.",
+        },
+        {
+          title: "Calmer search experience",
+          body: "A clear workflow helps you decide faster without tab chaos.",
+        },
+      ],
+      finalCtaTitle: "Start with a calmer view of your rental search.",
+      finalCtaBody:
+        "Set your preferences and open a dashboard built for comparing, saving and following up.",
     },
     aboutPage: {
       title: "About RentScout",
@@ -617,6 +809,11 @@ export const i18n = {
       ],
       contactTitle: "Contact",
       contactBody: "For questions or feedback, contact contact@rentscout.nl.",
+      startSearch: "Start search",
+      workflowTitle: "Search workflow",
+      workflowSubtitle: "Sources, filters and progress",
+      workflowBadge: "Calm overview",
+      sequenceTitle: "A practical sequence for faster decisions.",
     },
     accountPage: {
       title: "Account",
@@ -635,6 +832,8 @@ export const i18n = {
       placeholder: "Stored locally on this device.",
       email: "Email",
       name: "Name",
+      signedInBadge: "Signed in",
+      workspace: "Workspace",
     },
     welcome: {
       eyebrow: "RentScout",
@@ -692,6 +891,7 @@ export const i18n = {
       start: "Start search",
       howItWorks: "How it works",
       fetchingToast: "We’re fetching the latest listings for you.",
+      searchSetupProgress: "Search setup progress",
     },
     dashboard: {
       eyebrow: "RentScout",
@@ -772,10 +972,9 @@ export const i18n = {
       allTypes: "All types",
       unknown: "Unknown",
       newest: "Newest first",
+      recentlyUpdated: "Recently updated",
       cheapest: "Cheapest first",
       mostExpensive: "Most expensive first",
-      largest: "Largest first",
-      smallest: "Smallest first",
       any: "Any",
       required: "Required",
       notPrivate: "Not private",
@@ -838,8 +1037,12 @@ export const i18n = {
       openingAd: "Opening listing",
       priceUnknown: "Price unknown",
       recentlySeen: "Seen recently",
+      firstSeen: "Online since",
+      lastChecked: "Last checked",
+      newBadge: "New",
       alsoOnOtherSources: "Also on other sources",
       originalLanguageNote: "Listing text is shown in the original source language.",
+      fullDescriptionUnavailable: "A full description is not available yet.",
       availability: {
         available: "Available",
         under_option: "Under option",
@@ -901,6 +1104,7 @@ export const i18n = {
       empty: "No saved search profiles",
       noneSelected: "No profile selected",
       profileName: "Profile name",
+      profileNamePlaceholder: "Breda studio max 1000",
       save: "Save current filters",
       apply: "Apply profile",
       update: "Update profile",
@@ -934,8 +1138,6 @@ export const i18n = {
       loading: "Working...",
       passwordsDoNotMatch: "The passwords do not match.",
       genericError: "Something went wrong. Try again.",
-      localDataNotice:
-        "Your local search data stays on this device. Account sync will be added in the next step.",
     },
     modal: {
       close: "Close",
@@ -1031,7 +1233,11 @@ export const i18n = {
       sourceSummary: "Results by source",
       sources: "Sources",
       sourceOverview: "Sources",
-      sourceOverviewDescription: "Results by source and automatic availability.",
+      sourceOverviewDescription: "Sources RentScout monitors automatically and sources that remain manual.",
+      monitoredAutomatically: "Monitored automatically",
+      limitedManualSources: "Manual/limited",
+      sourcesOnline: "Sources online",
+      listingsAddedToday: "Added today",
       resultsRecent: "Results were updated recently.",
       lastUpdated: "Last updated",
       freshness: {

@@ -54,11 +54,10 @@ def get_listings(
     sort: Literal[
         "best_match",
         "newest",
+        "recently_updated",
         "cheapest",
         "most_expensive",
-        "largest",
-        "smallest",
-    ] = Query(default="best_match"),
+    ] = Query(default="newest"),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     database: Session = Depends(get_database_session),
@@ -203,22 +202,10 @@ def get_listings(
             Listing.last_seen_at.desc(),
             Listing.created_at.desc(),
         )
-    elif sort == "largest":
-        query = query.order_by(
-            case((Listing.area_m2.is_(None), 1), else_=0),
-            Listing.area_m2.desc(),
-            Listing.last_seen_at.desc(),
-            Listing.created_at.desc(),
-        )
-    elif sort == "smallest":
-        query = query.order_by(
-            case((Listing.area_m2.is_(None), 1), else_=0),
-            Listing.area_m2.asc(),
-            Listing.last_seen_at.desc(),
-            Listing.created_at.desc(),
-        )
+    elif sort == "recently_updated":
+        query = query.order_by(Listing.last_checked_at.desc(), Listing.updated_at.desc())
     elif sort == "newest":
-        query = query.order_by(Listing.last_seen_at.desc(), Listing.created_at.desc())
+        query = query.order_by(Listing.first_seen_at.desc(), Listing.created_at.desc())
     else:
         location_rank = case(
             (Listing.location_precision == "exact_address", 0),

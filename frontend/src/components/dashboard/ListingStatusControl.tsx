@@ -7,12 +7,12 @@ import { listingStatuses } from "@/lib/listingWorkflow";
 import { CustomSelect, type SelectOption } from "./CustomSelect";
 
 const statusTone: Record<ListingStatus, string> = {
-  new: "border-white/12 bg-white/[0.06] text-white/68",
-  interested: "border-brass/35 bg-brass/12 text-brass",
-  applied: "border-mint/35 bg-mint/12 text-mint",
+  new: "border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-muted)]",
+  interested: "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent-strong)]",
+  applied: "border-[var(--color-teal)] bg-[var(--color-teal-soft)] text-[var(--color-teal)]",
   viewing_planned: "border-[#a78bfa]/35 bg-[#7c3aed]/14 text-[#c4b5fd]",
   rejected: "border-danger/28 bg-danger/10 text-danger",
-  hidden: "border-white/10 bg-white/[0.025] text-white/38",
+  hidden: "border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-subtle)]",
 };
 
 const statusMark: Record<ListingStatus, string> = {
@@ -90,7 +90,7 @@ export function ListingStatusControl({
               className={`flex h-7 w-7 items-center justify-center rounded-lg border text-[10px] font-semibold transition ${
                 active
                   ? statusTone[listingStatus]
-                  : "border-white/10 bg-black/18 text-white/38 hover:border-white/22 hover:text-white"
+                  : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-subtle)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
               }`}
             >
               {statusMark[listingStatus]}
@@ -150,7 +150,7 @@ export function QuickStatusActions({
             className={`rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition ${
               active
                 ? statusTone[action.value]
-                : "border-white/10 bg-black/18 text-white/62 hover:border-white/22 hover:text-white"
+                : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
             }`}
           >
             {action.label}

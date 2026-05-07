@@ -6,7 +6,6 @@ import { ActiveFilters } from "@/components/dashboard/ActiveFilters";
 import { FilterPanel } from "@/components/dashboard/FilterPanel";
 import { ListingCard } from "@/components/dashboard/ListingCard";
 import { ListingModal } from "@/components/dashboard/ListingModal";
-import { ScraperProgress } from "@/components/dashboard/ScraperProgress";
 import { EmptyState, SkeletonGrid } from "@/components/dashboard/States";
 import { Toast, ToastStack } from "@/components/dashboard/ToastStack";
 import { WelcomeScreen } from "@/components/dashboard/WelcomeScreen";
@@ -17,7 +16,6 @@ import {
   fetchListings,
   fetchScraperFreshness,
   fetchSources,
-  runScraper,
 } from "@/lib/api";
 import { i18n, type Language } from "@/lib/i18n";
 import {
@@ -42,13 +40,11 @@ import type {
   LocalListingWorkflowState,
   PropertyType,
   ScraperFreshness,
-  ScraperResult,
   SearchProfile,
   SourceInfo,
 } from "@/types/listing";
 
 const onboardingStorageKey = "rental-radar-onboarding-complete-v1";
-const scanSourcesStorageKey = "rental-radar-scan-sources-v1";
 
 function AnimatedValue({ value }: { value: string | number }) {
   return (
@@ -74,7 +70,7 @@ function ErrorPanel({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="cinematic-panel mb-5 rounded-[1.5rem] border border-danger/30 bg-[linear-gradient(135deg,rgba(248,113,113,0.16),rgba(8,13,24,0.78)_46%,rgba(8,13,24,0.92))] p-4 text-sm shadow-cinematic backdrop-blur-2xl sm:p-5"
+      className="mb-5 rounded-[1.5rem] border border-danger/30 bg-[var(--color-danger-soft)] p-4 text-sm shadow-[var(--shadow-soft)] sm:p-5"
       role="status"
     >
       <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start">
@@ -82,8 +78,8 @@ function ErrorPanel({
           !
         </div>
         <div className="min-w-0">
-          <div className="font-semibold text-white">{message}</div>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-white/58">{help}</p>
+          <div className="font-semibold text-[var(--color-text)]">{message}</div>
+          <p className="rs-muted mt-1 max-w-2xl text-sm leading-6">{help}</p>
         </div>
       </div>
     </motion.div>
@@ -99,43 +95,42 @@ function FilterDebugPanel({
   serverCount: number;
   visibleCount: number;
 }) {
-  if (process.env.NODE_ENV !== "development") {
+  if (
+    process.env.NODE_ENV !== "development" ||
+    process.env.NEXT_PUBLIC_SHOW_DEBUG !== "true"
+  ) {
     return null;
   }
 
   const queryParams = buildListingQueryParams(filters).toString();
 
   return (
-    <details className="mt-5 rounded-2xl border border-cyan-100/20 bg-slate-950/70 p-4 text-xs text-white/60 shadow-cinematic backdrop-blur-2xl">
-      <summary className="cursor-pointer select-none font-semibold text-cyan-100/80">
+    <details className="mt-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-xs text-[var(--color-muted)] shadow-[var(--shadow-soft)]">
+      <summary className="cursor-pointer select-none font-semibold text-[var(--color-accent-strong)]">
         Dev filter debug
       </summary>
       <div className="mt-4 space-y-3">
         <div>
-          <div className="mb-1 font-semibold text-white/70">API query params</div>
-          <pre className="overflow-x-auto rounded-xl border border-white/10 bg-black/30 p-3">
+          <div className="mb-1 font-semibold text-[var(--color-text)]">API query params</div>
+          <pre className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
             {queryParams || "(none)"}
           </pre>
         </div>
         <div>
-          <div className="mb-1 font-semibold text-white/70">Counts</div>
-          <pre className="overflow-x-auto rounded-xl border border-white/10 bg-black/30 p-3">
+          <div className="mb-1 font-semibold text-[var(--color-text)]">Counts</div>
+          <pre className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
             {JSON.stringify({ serverCount, visibleCount }, null, 2)}
           </pre>
         </div>
         <div>
-          <div className="mb-1 font-semibold text-white/70">Frontend filter state</div>
-          <pre className="max-h-80 overflow-auto rounded-xl border border-white/10 bg-black/30 p-3">
+          <div className="mb-1 font-semibold text-[var(--color-text)]">Frontend filter state</div>
+          <pre className="max-h-80 overflow-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
             {JSON.stringify(filters, null, 2)}
           </pre>
         </div>
       </div>
     </details>
   );
-}
-
-function normalizeSourceKey(sourceIds: string[]) {
-  return [...sourceIds].sort().join(",");
 }
 
 function formatUpdatedAt(value: string | null, language: Language) {
@@ -162,9 +157,6 @@ export default function DashboardPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [scraperLoading, setScraperLoading] = useState(false);
-  const [autoRefreshLoading, setAutoRefreshLoading] = useState(false);
-  const [scraperResult, setScraperResult] = useState<ScraperResult | null>(null);
   const [scraperFreshness, setScraperFreshness] = useState<ScraperFreshness | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -172,12 +164,9 @@ export default function DashboardPage() {
   const [workflowState, setWorkflowState] = useState<LocalListingWorkflowState>({});
   const [searchProfiles, setSearchProfiles] = useState<SearchProfile[]>([]);
   const [configuredSources, setConfiguredSources] = useState<SourceInfo[]>([]);
-  const [selectedScanSourceIds, setSelectedScanSourceIds] = useState<string[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [profileName, setProfileName] = useState("");
   const toastId = useRef(0);
-  const scraperRunInFlightRef = useRef(false);
-  const autoRefreshKeyRef = useRef("");
   const copy = i18n[language];
 
   useEffect(() => {
@@ -198,33 +187,7 @@ export default function DashboardPage() {
     setWorkflowState(loadListingWorkflowState());
     setSearchProfiles(loadSearchProfiles());
     void fetchSources()
-      .then((sourcesData) => {
-        setConfiguredSources(sourcesData);
-        const storedSourceIds = window.localStorage.getItem(scanSourcesStorageKey);
-
-        if (storedSourceIds) {
-          try {
-            const parsedSourceIds = JSON.parse(storedSourceIds);
-
-            if (Array.isArray(parsedSourceIds)) {
-              setSelectedScanSourceIds(
-                parsedSourceIds.filter((sourceId): sourceId is string =>
-                  sourcesData.some((source) => source.source_id === sourceId),
-                ),
-              );
-              return;
-            }
-          } catch {
-            window.localStorage.removeItem(scanSourcesStorageKey);
-          }
-        }
-
-        setSelectedScanSourceIds(
-          sourcesData
-            .filter((source) => source.default_enabled_for_auto_scan)
-            .map((source) => source.source_id),
-        );
-      })
+      .then(setConfiguredSources)
       .catch(() => setConfiguredSources([]));
   }, []);
 
@@ -268,7 +231,7 @@ export default function DashboardPage() {
   );
 
   const refreshScraperFreshness = useCallback(
-    async (city: string, sourceIds: string[]) => {
+    async (city: string, sourceIds?: string[]) => {
       try {
         const data = await fetchScraperFreshness(city, sourceIds);
         setScraperFreshness(data);
@@ -324,11 +287,34 @@ export default function DashboardPage() {
       count: listings.filter((listing) => listing.source === source.display_name).length,
     }));
   }, [configuredSources, listings]);
+  const automaticSourceCounts = useMemo(
+    () => sourceCounts.filter((source) => source.auto_scan_enabled),
+    [sourceCounts],
+  );
+  const limitedSourceCounts = useMemo(
+    () => sourceCounts.filter((source) => !source.auto_scan_enabled),
+    [sourceCounts],
+  );
+  const sourceHealthStats = useMemo(() => {
+    const automaticSources = configuredSources.filter((source) => source.auto_scan_enabled);
+    const limitedSources = configuredSources.filter((source) => !source.auto_scan_enabled);
+    const onlineSources = automaticSources.filter((source) =>
+      source.status === "online" || source.status === "degraded",
+    );
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const listingsAddedToday = listings.filter((listing) => {
+      const firstSeen = new Date(listing.first_seen_at ?? listing.created_at);
+      return !Number.isNaN(firstSeen.getTime()) && firstSeen >= startOfToday;
+    }).length;
 
-  function updateSelectedScanSourceIds(sourceIds: string[]) {
-    setSelectedScanSourceIds(sourceIds);
-    window.localStorage.setItem(scanSourcesStorageKey, JSON.stringify(sourceIds));
-  }
+    return {
+      automaticSources,
+      limitedSources,
+      onlineSources,
+      listingsAddedToday,
+    };
+  }, [configuredSources, listings]);
 
   const visibleListings = useMemo(() => {
     return listings.filter((listing) => {
@@ -527,67 +513,6 @@ export default function DashboardPage() {
     updateWorkflowState(nextState);
   }
 
-  const runScraperForFilters = useCallback(async (
-    requestedFilters: ListingFilters,
-    startMessage: string = copy.toast.scrapeStart,
-    options: { automatic?: boolean } = {},
-  ) => {
-    if (scraperRunInFlightRef.current) {
-      return;
-    }
-
-    const scraperCity = requestedFilters.city.trim() || "Breda";
-    const nextFilters = {
-      ...requestedFilters,
-      city: scraperCity,
-      offset: 0,
-    };
-
-    scraperRunInFlightRef.current = true;
-    setScraperLoading(true);
-    setAutoRefreshLoading(Boolean(options.automatic));
-    setError(null);
-    setScraperResult(null);
-
-    if (!options.automatic) {
-      showToast(startMessage, "info");
-    }
-
-    try {
-      const result = await runScraper(scraperCity, selectedScanSourceIds);
-      setScraperResult(result);
-      if (!options.automatic) {
-        showToast(copy.toast.scrapeSuccess, "success");
-      }
-      setFilters(nextFilters);
-      await loadListings(nextFilters);
-      await refreshScraperFreshness(scraperCity, selectedScanSourceIds);
-    } catch (caughtError) {
-      const message =
-        caughtError instanceof Error
-          ? caughtError.message
-          : copy.toast.scrapeError;
-      setError(message);
-      showToast(copy.toast.scrapeError, "error");
-    } finally {
-      scraperRunInFlightRef.current = false;
-      setScraperLoading(false);
-      setAutoRefreshLoading(false);
-    }
-  }, [
-    copy.toast.scrapeError,
-    copy.toast.scrapeStart,
-    copy.toast.scrapeSuccess,
-    loadListings,
-    refreshScraperFreshness,
-    selectedScanSourceIds,
-    showToast,
-  ]);
-
-  async function handleRunScraper() {
-    await runScraperForFilters(filters);
-  }
-
   function resetFilters() {
     setFilters(createInitialFilters());
   }
@@ -633,54 +558,32 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    if (!searchStarted || !selectedScanSourceIds.length) {
+    if (!searchStarted) {
       return;
     }
 
     const scraperCity = filters.city.trim() || "Breda";
-    const sourceKey = normalizeSourceKey(selectedScanSourceIds);
-    const refreshKey = `${scraperCity.toLowerCase()}|${sourceKey}`;
-
-    if (autoRefreshKeyRef.current === refreshKey) {
-      return;
-    }
-
-    autoRefreshKeyRef.current = refreshKey;
-
     let cancelled = false;
 
-    void refreshScraperFreshness(scraperCity, selectedScanSourceIds).then((freshness) => {
-      if (cancelled || !freshness || freshness.is_fresh || scraperRunInFlightRef.current) {
+    void refreshScraperFreshness(scraperCity).then((freshness) => {
+      if (cancelled || !freshness) {
         return;
       }
-
-      void runScraperForFilters(
-        {
-          ...filters,
-          city: scraperCity,
-          offset: 0,
-        },
-        copy.toast.scrapeStart,
-        { automatic: true },
-      );
     });
 
     return () => {
       cancelled = true;
     };
   }, [
-    copy.toast.scrapeStart,
-    filters,
+    filters.city,
     refreshScraperFreshness,
-    runScraperForFilters,
     searchStarted,
-    selectedScanSourceIds,
   ]);
 
   return (
-    <div className="min-h-screen bg-[#070a10] text-cream">
+    <div className="theme-dashboard min-h-screen">
       <SiteHeader language={language} onLanguageChange={changeLanguage} />
-    <main className="relative isolate overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
+    <main className="relative isolate overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8">
       <ToastStack toasts={toasts} />
 
       <AnimatePresence mode="wait">
@@ -705,33 +608,33 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: "easeOut" }}
-          className="mb-5 rounded-2xl border border-white/10 bg-white/[0.035] p-5 shadow-premium"
+          className="dashboard-shell mb-5 rounded-2xl p-5"
         >
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/38">
+              <div className="dashboard-muted mb-2 text-xs font-semibold uppercase tracking-[0.16em]">
                 {copy.dashboard.eyebrow}
               </div>
-              <h1 className="text-3xl font-semibold leading-tight text-white sm:text-4xl">
+              <h1 className="text-3xl font-semibold leading-tight text-[var(--color-text)] sm:text-4xl">
                 {copy.dashboard.title}
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/56">
+              <p className="dashboard-muted mt-3 max-w-2xl text-sm leading-6">
                 {copy.dashboard.subtitle}
               </p>
               {selectedProfile ? (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-cyan-200/25 bg-cyan-300/10 px-3 py-1.5 text-xs font-semibold text-cyan-100">
+                  <span className="rs-chip-active rounded-full px-3 py-1.5 text-xs font-semibold">
                     {copy.searchProfiles.active}: {selectedProfile.name}
                   </span>
                   {hasUnsavedProfileChanges ? (
-                    <span className="rounded-full border border-white/10 bg-white/[0.055] px-3 py-1.5 text-xs font-semibold text-white/58">
+                    <span className="rs-chip rounded-full px-3 py-1.5 text-xs font-semibold">
                       {copy.searchProfiles.unsaved}
                     </span>
                   ) : null}
                   <button
                     type="button"
                     onClick={handleUpdateProfile}
-                    className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-xs font-semibold text-white/62 transition hover:border-cyan-100/40 hover:text-white"
+                    className="rs-control rounded-full px-3 py-1.5 text-xs font-semibold"
                   >
                     {copy.searchProfiles.update}
                   </button>
@@ -740,14 +643,14 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setSearchStarted(false)}
-                className="mt-5 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-semibold text-white/62 transition hover:border-cyan-100/40 hover:text-white"
+                className="rs-control mt-5 rounded-full px-4 py-2 text-sm font-semibold"
               >
                 {copy.dashboard.changeSearch}
               </button>
               <button
                 type="button"
                 onClick={restartOnboarding}
-                className="ml-2 mt-5 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-semibold text-white/62 transition hover:border-cyan-100/40 hover:text-white"
+                className="rs-control ml-2 mt-5 rounded-full px-4 py-2 text-sm font-semibold"
               >
                 {copy.dashboard.restartSetup}
               </button>
@@ -755,27 +658,27 @@ export default function DashboardPage() {
 
             <div className="sm:min-w-[24rem]">
               <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl border border-white/10 bg-black/18 p-3">
-                  <div className="text-xs uppercase tracking-[0.16em] text-white/38">
+                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
+                  <div className="rs-subtle text-xs uppercase tracking-[0.16em]">
                     {copy.dashboard.results}
                   </div>
-                  <div className="mt-2 text-2xl font-semibold text-white">
+                  <div className="mt-2 text-2xl font-semibold text-[var(--color-text)]">
                     <AnimatedValue value={visibleListings.length} />
                   </div>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-black/18 p-3">
-                  <div className="text-xs uppercase tracking-[0.16em] text-white/38">
+                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
+                  <div className="rs-subtle text-xs uppercase tracking-[0.16em]">
                     {copy.dashboard.private}
                   </div>
-                  <div className="mt-2 text-2xl font-semibold text-mint">
+                  <div className="mt-2 text-2xl font-semibold text-[var(--color-teal)]">
                     <AnimatedValue value={stats.privateCount} />
                   </div>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-black/18 p-3">
-                  <div className="text-xs uppercase tracking-[0.16em] text-white/38">
+                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
+                  <div className="rs-subtle text-xs uppercase tracking-[0.16em]">
                     {copy.dashboard.lowestRent}
                   </div>
-                  <div className="mt-2 text-lg font-semibold text-brass">
+                  <div className="mt-2 text-lg font-semibold text-[var(--color-accent-strong)]">
                     <AnimatedValue
                       value={
                         stats.lowestPrice === null
@@ -793,7 +696,7 @@ export default function DashboardPage() {
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-5 grid gap-2 border-y border-white/8 py-3 sm:grid-cols-5"
+          className="mb-5 grid gap-2 border-y border-[var(--color-border)] py-3 sm:grid-cols-5"
         >
           {[
             { label: copy.workflow.stats.visible, value: visibleListings.length },
@@ -803,10 +706,10 @@ export default function DashboardPage() {
             { label: copy.workflow.stats.hidden, value: stats.statusCounts.hidden },
           ].map((item) => (
             <div key={item.label} className="px-2 py-2">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+              <div className="dashboard-muted text-[10px] font-semibold uppercase tracking-[0.14em]">
                 {item.label}
               </div>
-              <div className="mt-1 text-lg font-semibold text-white">
+              <div className="mt-1 text-lg font-semibold text-[var(--color-text)]">
                 <AnimatedValue value={item.value} />
               </div>
             </div>
@@ -822,25 +725,20 @@ export default function DashboardPage() {
                 offset: 0,
               }))
             }
-            className="px-2 py-2 text-left text-xs font-semibold text-white/52 transition hover:text-white sm:col-span-5"
+            className="px-2 py-2 text-left text-xs font-semibold text-[var(--color-muted)] transition hover:text-[var(--color-text)] sm:col-span-5"
           >
             {copy.workflow.viewHidden}
           </motion.button>
         </motion.section>
 
         <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
-          <aside className="sticky top-20 hidden max-h-[calc(100vh-6rem)] overflow-y-auto rounded-2xl border border-white/10 bg-[#0b1017] p-4 shadow-premium lg:block">
+          <aside className="dashboard-shell sticky top-20 hidden max-h-[calc(100vh-6rem)] overflow-y-auto rounded-2xl p-4 lg:block">
             <FilterPanel
               filters={filters}
               sources={sources}
-              configuredSources={configuredSources}
-              selectedScanSourceIds={selectedScanSourceIds}
               loading={loading}
-              scraperLoading={scraperLoading}
               onChange={setFilters}
               onReset={resetFilters}
-              onRunScraper={handleRunScraper}
-              onScanSourceChange={updateSelectedScanSourceIds}
               language={language}
               hiddenCount={stats.statusCounts.hidden}
               profiles={searchProfiles}
@@ -857,34 +755,29 @@ export default function DashboardPage() {
           </aside>
 
           <section className="min-w-0">
-            <div className="mb-5 rounded-2xl border border-white/10 bg-white/[0.035] p-4 shadow-premium">
+            <div className="dashboard-shell mb-5 rounded-2xl p-4">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <div className="text-sm font-semibold text-white">
+                  <div className="text-sm font-semibold text-[var(--color-text)]">
                     {loading
                       ? copy.dashboard.refreshing
                       : `${visibleListings.length} ${copy.dashboard.found}`}
                   </div>
-                  <p className="mt-1 text-xs text-white/42">
+                  <p className="dashboard-muted mt-1 text-xs">
                     {scraperFreshness?.is_fresh
                       ? copy.scraper.resultsRecent
                       : copy.dashboard.autoRefresh}
                   </p>
                   {newestFinishedAtLabel ? (
-                    <p className="mt-1 text-xs text-white/42">
+                    <p className="dashboard-muted mt-1 text-xs">
                       {copy.scraper.lastUpdated}: {newestFinishedAtLabel}
                     </p>
                   ) : null}
                 </div>
-                {autoRefreshLoading ? (
-                  <span className="inline-flex h-9 items-center rounded-full border border-mint/25 bg-mint/10 px-3 text-xs font-semibold text-mint">
-                    {copy.scraper.autoRefreshing}
-                  </span>
-                ) : null}
                 <button
                   type="button"
                   onClick={() => setDrawerOpen(true)}
-                  className="h-11 rounded-xl border border-white/10 bg-white/[0.06] px-4 text-sm font-semibold text-white/70 transition hover:border-white/24 hover:text-white lg:hidden"
+                  className="rs-control h-11 rounded-xl px-4 text-sm font-semibold lg:hidden"
                 >
                   {copy.dashboard.filters}
                 </button>
@@ -897,58 +790,94 @@ export default function DashboardPage() {
               />
             </div>
 
-            <ScraperProgress
-              loading={scraperLoading}
-              result={scraperResult}
-              language={language}
-              automatic={autoRefreshLoading}
-            />
-
             <motion.section
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-5 rounded-2xl border border-white/10 bg-white/[0.035] p-4 shadow-premium"
+              className="dashboard-shell mb-5 rounded-2xl p-4"
             >
-              <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/38">
-                {copy.scraper.sourceOverview}
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="rs-subtle text-xs font-semibold uppercase tracking-[0.16em]">
+                    {copy.scraper.sourceOverview}
+                  </div>
+                  <p className="rs-muted mt-2 max-w-2xl text-xs leading-5">
+                    {copy.scraper.sourceOverviewDescription}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs sm:min-w-[24rem]">
+                  <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
+                    <div className="rs-subtle">{copy.scraper.sourcesOnline}</div>
+                    <div className="mt-1 text-lg font-semibold text-[var(--color-text)]">
+                      {sourceHealthStats.onlineSources.length}/{sourceHealthStats.automaticSources.length}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
+                    <div className="rs-subtle">{copy.scraper.listingsAddedToday}</div>
+                    <div className="mt-1 text-lg font-semibold text-[var(--color-text)]">
+                      {sourceHealthStats.listingsAddedToday}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
+                    <div className="rs-subtle">{copy.scraper.limitedManualSources}</div>
+                    <div className="mt-1 text-lg font-semibold text-[var(--color-text)]">
+                      {sourceHealthStats.limitedSources.length}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="mb-3 text-xs leading-5 text-white/42">
-                {copy.scraper.sourceOverviewDescription}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {sourceCounts.map((item) => {
+              <div className="space-y-3">
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                  {automaticSourceCounts.map((item) => {
                   const sourceFreshness = freshnessBySource.get(item.source_id);
                   const freshnessState = sourceFreshness?.state ?? "never_scanned";
+                  const lastScan = item.last_scan_finished_at ?? sourceFreshness?.finished_at ?? null;
 
                   return (
-                    <span
+                    <div
                       key={item.source_id}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/18 px-3 py-1.5 text-xs font-semibold text-white/62"
+                      className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3"
                     >
-                      <span>{item.display_name} {item.count}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] ${
-                        item.supports_automatic_scraping
-                          ? "bg-mint/10 text-mint"
-                          : "bg-white/[0.06] text-white/42"
-                      }`}
-                      >
-                        {item.supports_automatic_scraping
-                          ? copy.scraper.automaticSource
-                          : copy.scraper.limitedSource}
-                      </span>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] ${
-                        freshnessState === "recent"
-                          ? "bg-cyan-300/10 text-cyan-100"
-                          : freshnessState === "stale"
-                            ? "bg-brass/10 text-brass"
-                            : "bg-white/[0.06] text-white/42"
-                      }`}
-                      >
-                        {copy.scraper.freshness[freshnessState]}
-                      </span>
-                    </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm font-semibold text-[var(--color-text)]">
+                          {item.display_name}
+                        </span>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          freshnessState === "recent"
+                            ? "bg-[var(--color-teal-soft)] text-[var(--color-teal)]"
+                            : freshnessState === "stale"
+                              ? "bg-[var(--color-accent-soft)] text-[var(--color-accent-strong)]"
+                              : "bg-[var(--color-soft)] text-[var(--color-subtle)]"
+                        }`}
+                        >
+                          {copy.scraper.freshness[freshnessState]}
+                        </span>
+                      </div>
+                      <div className="rs-muted mt-2 flex items-center justify-between gap-3 text-xs">
+                        <span>{item.count} {copy.dashboard.results.toLowerCase()}</span>
+                        {lastScan ? <span>{formatUpdatedAt(lastScan, language)}</span> : null}
+                      </div>
+                    </div>
                   );
                 })}
+                </div>
+                {limitedSourceCounts.length ? (
+                  <details className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] px-3 py-2">
+                    <summary className="cursor-pointer select-none text-xs font-semibold text-[var(--color-muted)]">
+                      {copy.scraper.limitedManualSources}: {limitedSourceCounts.length}
+                    </summary>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {limitedSourceCounts.map((item) => (
+                        <span
+                          key={item.source_id}
+                          className="rs-chip rounded-full px-3 py-1.5 text-xs font-semibold"
+                          title={item.internal_reason ?? item.notes}
+                        >
+                          {item.display_name}
+                        </span>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
               </div>
             </motion.section>
 
@@ -976,7 +905,7 @@ export default function DashboardPage() {
                 </AnimatePresence>
               </motion.div>
             ) : (
-              <EmptyState onRunScraper={handleRunScraper} language={language} />
+              <EmptyState language={language} />
             )}
           </section>
         </div>
@@ -984,7 +913,7 @@ export default function DashboardPage() {
       <AnimatePresence>
         {drawerOpen ? (
           <motion.div
-            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-md lg:hidden"
+            className="fixed inset-0 z-40 bg-black/45 backdrop-blur-md lg:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -995,15 +924,15 @@ export default function DashboardPage() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 260 }}
-              className="h-full w-[min(92vw,24rem)] overflow-y-auto border-r border-white/10 bg-[#10131a] p-5 shadow-premium"
+              className="h-full w-[min(92vw,24rem)] overflow-y-auto border-r border-[var(--color-border)] bg-[var(--color-page)] p-5 shadow-[var(--shadow-hover)]"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="mb-5 flex items-center justify-between">
-                <div className="text-sm font-semibold text-white">{copy.dashboard.filters}</div>
+                <div className="text-sm font-semibold text-[var(--color-text)]">{copy.dashboard.filters}</div>
                 <button
                   type="button"
                   onClick={() => setDrawerOpen(false)}
-                  className="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.05] text-white/60"
+                  className="rs-control h-10 w-10 rounded-xl"
                   aria-label={copy.dashboard.closeFilters}
                 >
                   x
@@ -1012,14 +941,9 @@ export default function DashboardPage() {
               <FilterPanel
                 filters={filters}
                 sources={sources}
-                configuredSources={configuredSources}
-                selectedScanSourceIds={selectedScanSourceIds}
                 loading={loading}
-                scraperLoading={scraperLoading}
                 onChange={setFilters}
                 onReset={resetFilters}
-                onRunScraper={handleRunScraper}
-                onScanSourceChange={updateSelectedScanSourceIds}
                 language={language}
                 hiddenCount={stats.statusCounts.hidden}
                 profiles={searchProfiles}

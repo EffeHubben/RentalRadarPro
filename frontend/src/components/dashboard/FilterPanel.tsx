@@ -7,7 +7,6 @@ import type {
   ListingSort,
   PropertyType,
   SearchProfile,
-  SourceInfo,
 } from "@/types/listing";
 import { i18n, type Language } from "@/lib/i18n";
 import { listingStatuses } from "@/lib/listingWorkflow";
@@ -21,14 +20,14 @@ const sectionVariants = {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-white/42">
+    <span className="rs-subtle mb-2 block text-xs font-semibold uppercase tracking-[0.16em]">
       {children}
     </span>
   );
 }
 
 function inputClass() {
-  return "h-10 w-full rounded-lg border border-white/10 bg-black/16 px-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-brass/60 focus:bg-white/[0.055] focus:ring-2 focus:ring-brass/15";
+  return "rs-input h-10";
 }
 
 function Section({
@@ -47,7 +46,7 @@ function Section({
   return (
     <motion.section
       variants={sectionVariants}
-      className="group border-b border-white/8 pb-3 last:border-b-0"
+      className="group border-b border-[var(--color-border)] pb-3 last:border-b-0"
     >
       <details
         open={open}
@@ -56,12 +55,12 @@ function Section({
       >
         <summary className="flex cursor-pointer list-none items-start justify-between gap-3 py-2">
           <span>
-            <span className="block text-sm font-semibold text-white">{title}</span>
+            <span className="block text-sm font-semibold text-[var(--color-text)]">{title}</span>
             {description ? (
-              <span className="mt-1 block text-xs leading-5 text-white/38">{description}</span>
+              <span className="rs-subtle mt-1 block text-xs leading-5">{description}</span>
             ) : null}
           </span>
-          <span className="mt-0.5 text-sm text-white/35 transition group-open:rotate-45">+</span>
+          <span className="rs-subtle mt-0.5 text-sm transition group-open:rotate-45">+</span>
         </summary>
         <div className="space-y-3 pt-3">{children}</div>
       </details>
@@ -83,61 +82,17 @@ function Toggle({
       type="button"
       whileTap={{ scale: 0.98 }}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-black/16 px-3 py-2.5 text-left text-sm text-white/72 transition hover:border-white/20 hover:bg-white/[0.04]"
+      className="rs-control flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm"
     >
       <span>{label}</span>
       <span
         className={`relative h-6 w-11 rounded-full border transition ${
-          checked ? "border-brass/60 bg-brass" : "border-white/10 bg-black/35"
+          checked ? "border-[var(--color-accent)] bg-[var(--color-accent)]" : "border-[var(--color-border)] bg-[var(--color-soft)]"
         }`}
       >
         <motion.span
           animate={{ x: checked ? 20 : 0 }}
-          className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow"
-        />
-      </span>
-    </motion.button>
-  );
-}
-
-function SourceScanToggle({
-  source,
-  checked,
-  language,
-  onChange,
-}: {
-  source: SourceInfo;
-  checked: boolean;
-  language: Language;
-  onChange: (checked: boolean) => void;
-}) {
-  const copy = i18n[language].filters;
-  const note = language === "nl" ? source.status_note_nl : source.status_note_en;
-
-  return (
-    <motion.button
-      type="button"
-      whileTap={{ scale: 0.98 }}
-      onClick={() => onChange(!checked)}
-      className="flex w-full items-start justify-between gap-3 rounded-lg border border-white/10 bg-black/16 px-3 py-3 text-left transition hover:border-white/20 hover:bg-white/[0.04]"
-    >
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold text-white/78">
-          {source.display_name}
-        </span>
-        <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/35">
-          <span>{source.supports_automatic_scraping ? copy.automatic : copy.limited}</span>
-          {note ? <span className="normal-case tracking-normal text-white/38">{note}</span> : null}
-        </span>
-      </span>
-      <span
-        className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition ${
-          checked ? "border-brass/60 bg-brass" : "border-white/10 bg-black/35"
-        }`}
-      >
-        <motion.span
-          animate={{ x: checked ? 20 : 0 }}
-          className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow"
+          className="absolute left-1 top-1 h-4 w-4 rounded-full bg-[var(--color-surface)] shadow"
         />
       </span>
     </motion.button>
@@ -197,14 +152,14 @@ function StatusChips({
             onClick={() => onChange(option.value)}
             className={`relative rounded-full border px-3 py-2 text-xs font-semibold transition ${
               active
-                ? "border-cyan-200/45 bg-cyan-300/12 text-cyan-100"
-                : "border-white/10 bg-slate-950/28 text-white/55 hover:border-cyan-100/24 hover:text-white"
+                ? "rs-chip-active"
+                : "rs-chip hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
             }`}
           >
             {active ? (
               <motion.span
                 layoutId="active-status-chip"
-                className="absolute inset-0 rounded-full bg-cyan-300/10"
+                className="absolute inset-0 rounded-full bg-[var(--color-accent-soft)]"
                 transition={{ type: "spring", damping: 24, stiffness: 260 }}
               />
             ) : null}
@@ -219,14 +174,9 @@ function StatusChips({
 export function FilterPanel({
   filters,
   sources,
-  configuredSources,
-  selectedScanSourceIds,
   loading,
   onChange,
   onReset,
-  onRunScraper,
-  onScanSourceChange,
-  scraperLoading,
   language,
   hiddenCount,
   profiles,
@@ -242,14 +192,9 @@ export function FilterPanel({
 }: {
   filters: ListingFilters;
   sources: string[];
-  configuredSources: SourceInfo[];
-  selectedScanSourceIds: string[];
   loading: boolean;
   onChange: (filters: ListingFilters) => void;
   onReset: () => void;
-  onRunScraper: () => void;
-  onScanSourceChange: (sourceIds: string[]) => void;
-  scraperLoading: boolean;
   language: Language;
   hiddenCount: number;
   profiles: SearchProfile[];
@@ -276,10 +221,9 @@ export function FilterPanel({
   const sortOptions: Array<SelectOption<ListingSort>> = [
     { label: copy.bestMatch, value: "best_match" },
     { label: copy.newest, value: "newest" },
+    { label: copy.recentlyUpdated, value: "recently_updated" },
     { label: copy.cheapest, value: "cheapest" },
     { label: copy.mostExpensive, value: "most_expensive" },
-    { label: copy.largest, value: "largest" },
-    { label: copy.smallest, value: "smallest" },
   ];
   const booleanOptions: Array<SelectOption<"any" | "true" | "false">> = [
     { label: copy.any, value: "any" },
@@ -332,14 +276,6 @@ export function FilterPanel({
     });
   }
 
-  function updateScanSource(sourceId: string, checked: boolean) {
-    const nextIds = checked
-      ? Array.from(new Set([...selectedScanSourceIds, sourceId]))
-      : selectedScanSourceIds.filter((id) => id !== sourceId);
-
-    onScanSourceChange(nextIds);
-  }
-
   return (
     <motion.div
       initial="hidden"
@@ -347,18 +283,18 @@ export function FilterPanel({
       variants={{ visible: { transition: { staggerChildren: 0.045 } } }}
       className="space-y-4"
     >
-      <div className="border-b border-white/8 pb-4">
+      <div className="border-b border-[var(--color-border)] pb-4">
         <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-base font-semibold text-white">{copy.title}</h2>
-          <p className="mt-1 text-xs leading-5 text-white/42">
+          <h2 className="text-base font-semibold text-[var(--color-text)]">{copy.title}</h2>
+          <p className="rs-muted mt-1 text-xs leading-5">
             {copy.intro}
           </p>
         </div>
         <button
           type="button"
           onClick={onReset}
-          className="shrink-0 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-semibold text-white/62 transition hover:border-white/24 hover:text-white"
+          className="rs-control shrink-0 rounded-lg px-3 py-2 text-xs font-semibold"
         >
           {copy.reset}
         </button>
@@ -469,8 +405,8 @@ export function FilterPanel({
                     onClick={() => togglePropertyType(option.value)}
                     className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
                       active
-                        ? "border-cyan-200/45 bg-cyan-300/12 text-cyan-100"
-                        : "border-white/10 bg-slate-950/28 text-white/55 hover:border-cyan-100/24 hover:text-white"
+                        ? "rs-chip-active"
+                        : "rs-chip hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
                     }`}
                   >
                     {option.label}
@@ -478,7 +414,7 @@ export function FilterPanel({
                 );
               })}
           </div>
-          <p className="mt-2 text-xs leading-5 text-white/38">{copy.propertyTypesHelp}</p>
+          <p className="rs-subtle mt-2 text-xs leading-5">{copy.propertyTypesHelp}</p>
         </div>
         <div className="grid grid-cols-3 gap-3">
           <label className="block">
@@ -588,25 +524,9 @@ export function FilterPanel({
         />
       </Section>
 
-      {configuredSources.length ? (
-        <Section title={copy.scanSources} description={copy.scanSourcesDescription}>
-          <div className="space-y-2">
-            {configuredSources.map((source) => (
-              <SourceScanToggle
-                key={source.source_id}
-                source={source}
-                checked={selectedScanSourceIds.includes(source.source_id)}
-                language={language}
-                onChange={(checked) => updateScanSource(source.source_id, checked)}
-              />
-            ))}
-          </div>
-        </Section>
-      ) : null}
-
       <Section title={workflowCopy.progress}>
         {hiddenCount > 0 ? (
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-200/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">
+          <div className="rs-chip-active inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold">
             {workflowCopy.labels.hidden}: {hiddenCount}
           </div>
         ) : null}
@@ -615,9 +535,9 @@ export function FilterPanel({
           options={statusOptions}
           onChange={(value) => update("status", value)}
         />
-        <p className="text-xs leading-5 text-white/42">{workflowCopy.hiddenExplanation}</p>
+        <p className="rs-muted text-xs leading-5">{workflowCopy.hiddenExplanation}</p>
         {!filters.showHiddenListings ? (
-          <p className="rounded-xl border border-white/10 bg-slate-950/28 px-3 py-2 text-xs leading-5 text-white/48">
+          <p className="rs-chip rounded-xl px-3 py-2 text-xs leading-5">
             {workflowCopy.hiddenExcluded}
           </p>
         ) : null}
@@ -637,16 +557,11 @@ export function FilterPanel({
         />
       </Section>
 
-      <motion.button
-        type="button"
-        whileHover={{ y: -1 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={onRunScraper}
-        disabled={scraperLoading || loading}
-        className="h-11 w-full rounded-lg bg-brass px-4 text-sm font-semibold text-ink transition hover:bg-[#e3bd6a] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/40"
-      >
-        {scraperLoading ? copy.runLoading : copy.run}
-      </motion.button>
+      {loading ? (
+        <div className="rs-chip rounded-xl px-3 py-2 text-xs font-semibold">
+          {i18n[language].dashboard.refreshing}
+        </div>
+      ) : null}
     </motion.div>
   );
 }

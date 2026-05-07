@@ -34,10 +34,18 @@ Backend:
 - `REFRESH_COOKIE_SAMESITE`: Use `lax` for same-site frontend/backend setups. Cross-site setups may need `none` with HTTPS.
 - `FRONTEND_ORIGIN`: Public frontend origin, for example `https://rentscout.nl`.
 - `BACKEND_CORS_ORIGINS`: Comma-separated allowed frontend origins.
+- `LISTING_SCAN_INTERVAL_MINUTES`: Default automatic source scan interval. Use `5` for production.
+- `LISTING_SOURCE_TIMEOUT_SECONDS`: Per-source scan timeout. Default is `45`.
 
 Frontend:
 
 - `NEXT_PUBLIC_API_URL`: Public backend API root including `/api`, for example `https://api.rentscout.nl/api`.
+
+Scanner worker:
+
+- Uses the same backend environment variables and database volume as the backend.
+- Runs server-side only with `python -m app.services.scanner --city Breda --continuous --sleep-seconds 300`.
+- The frontend should not trigger scraping; it reads stored listings and source status from the backend API.
 
 Use `.env.example`, `backend/.env.example`, and `frontend/.env.local.example` as safe templates. Never commit real `.env` files.
 
@@ -74,6 +82,7 @@ NEXT_PUBLIC_API_URL=https://api.rentscout.nl/api
 FRONTEND_ORIGIN=https://rentscout.nl
 BACKEND_CORS_ORIGINS=https://rentscout.nl,https://www.rentscout.nl
 REFRESH_COOKIE_SECURE=true
+LISTING_SCAN_INTERVAL_MINUTES=5
 ```
 
 6. Build and start:
@@ -82,7 +91,20 @@ REFRESH_COOKIE_SECURE=true
 docker compose up -d --build
 ```
 
-7. Put a reverse proxy in front of the containers and enable HTTPS.
+7. Start the server-side scanner worker:
+
+```bash
+docker compose up -d scanner
+docker compose logs -f scanner
+```
+
+Stop only the scanner worker:
+
+```bash
+docker compose stop scanner
+```
+
+8. Put a reverse proxy in front of the containers and enable HTTPS.
 
 ## Reverse Proxy
 
@@ -131,6 +153,8 @@ docker compose ps
 
 Do not commit the real database. It may contain user accounts, refresh tokens, scraped data, and local state. Keep backups outside Git.
 
+Before the first production deploy that enables the scanner worker, back up the SQLite database from the `backend_data` volume. The backend and scanner share the same SQLite file; SQLite busy timeout and WAL mode are configured by the backend database engine to reduce lock contention, but backups remain required before schema or worker changes.
+
 ## Secrets
 
 Keep production secrets in VPS environment files, your deployment platform, or a secrets manager. Do not paste real secrets into:
@@ -162,6 +186,7 @@ View logs:
 ```bash
 docker compose logs -f backend
 docker compose logs -f frontend
+docker compose logs -f scanner
 ```
 
 Restart one service:
@@ -169,6 +194,7 @@ Restart one service:
 ```bash
 docker compose restart backend
 docker compose restart frontend
+docker compose restart scanner
 ```
 
 ## Future PostgreSQL Recommendation

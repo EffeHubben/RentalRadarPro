@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     refresh_cookie_samesite: str = "lax"
     frontend_origin: str = "http://localhost:3000"
     backend_cors_origins: str = ",".join(DEFAULT_CORS_ORIGINS)
+    listing_scan_interval_minutes: int = 5
+    listing_source_timeout_seconds: int = 45
 
     @property
     def token_secret_key(self) -> str:

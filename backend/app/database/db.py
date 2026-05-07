@@ -1,13 +1,27 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
 from app.core.config import settings
 
 
+IS_SQLITE = settings.database_url.startswith("sqlite")
+
+
 engine = create_engine(
     settings.database_url,
-    connect_args={"check_same_thread": False}
+    connect_args={"check_same_thread": False, "timeout": 30} if IS_SQLITE else {},
+    pool_pre_ping=True,
 )
+
+
+if IS_SQLITE:
+    @event.listens_for(engine, "connect")
+    def configure_sqlite_connection(dbapi_connection, connection_record) -> None:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA busy_timeout = 30000")
+        cursor.execute("PRAGMA journal_mode = WAL")
+        cursor.execute("PRAGMA synchronous = NORMAL")
+        cursor.close()
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -42,6 +56,15 @@ LISTING_COLUMN_MIGRATIONS = {
     "canonical_key": "ALTER TABLE listings ADD COLUMN canonical_key VARCHAR(255)",
     "duplicate_group_id": "ALTER TABLE listings ADD COLUMN duplicate_group_id VARCHAR(255)",
     "source_count": "ALTER TABLE listings ADD COLUMN source_count INTEGER DEFAULT 1",
+    "source_key": "ALTER TABLE listings ADD COLUMN source_key VARCHAR(80)",
+    "first_seen_at": "ALTER TABLE listings ADD COLUMN first_seen_at DATETIME",
+    "last_checked_at": "ALTER TABLE listings ADD COLUMN last_checked_at DATETIME",
+}
+
+SCAN_HISTORY_COLUMN_MIGRATIONS = {
+    "skipped_count": "ALTER TABLE scan_history ADD COLUMN skipped_count INTEGER DEFAULT 0",
+    "duplicate_count": "ALTER TABLE scan_history ADD COLUMN duplicate_count INTEGER DEFAULT 0",
+    "duration_ms": "ALTER TABLE scan_history ADD COLUMN duration_ms INTEGER",
 }
 
 GEOCODE_CACHE_COLUMN_MIGRATIONS = {
@@ -88,6 +111,55 @@ def migrate_listing_table() -> None:
                 """
             )
         )
+        connection.execute(
+            text(
+                """
+                UPDATE listings
+                SET source_key = lower(replace(source, ' ', '_'))
+                WHERE source_key IS NULL OR source_key = ''
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                UPDATE listings
+                SET first_seen_at = COALESCE(created_at, updated_at, last_seen_at)
+                WHERE first_seen_at IS NULL
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                UPDATE listings
+                SET last_checked_at = COALESCE(last_seen_at, updated_at, created_at)
+                WHERE last_checked_at IS NULL
+                """
+            )
+        )
+
+
+def migrate_scan_history_table() -> None:
+    with engine.begin() as connection:
+        existing_tables = {
+            row[0]
+            for row in connection.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table'")
+            )
+        }
+
+        if "scan_history" not in existing_tables:
+            return
+
+        existing_columns = {
+            row[1]
+            for row in connection.execute(text("PRAGMA table_info(scan_history)"))
+        }
+
+        for column_name, migration_sql in SCAN_HISTORY_COLUMN_MIGRATIONS.items():
+            if column_name not in existing_columns:
+                connection.execute(text(migration_sql))
 
 
 def migrate_geocode_cache_table() -> None:
@@ -153,6 +225,7 @@ def create_database_tables() -> None:
 
     Base.metadata.create_all(bind=engine)
     migrate_listing_table()
+    migrate_scan_history_table()
     migrate_geocode_cache_table()
     backfill_existing_listing_locations()
     backfill_existing_listing_availability()

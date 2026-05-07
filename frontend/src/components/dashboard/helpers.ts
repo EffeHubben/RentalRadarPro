@@ -1,15 +1,6 @@
 import type { Listing, ListingFilters, PropertyType } from "@/types/listing";
 import { i18n, type Language } from "@/lib/i18n";
 
-export const propertyTypeLabels: Record<PropertyType, string> = {
-  studio: "Studio",
-  apartment: "Appartement",
-  room: "Kamer",
-  house: "Woning",
-  parking: "Parkeren",
-  unknown: "Onbekend",
-};
-
 export function propertyTypeLabel(type: PropertyType, language: Language) {
   return i18n[language].propertyTypes[type];
 }
@@ -96,11 +87,7 @@ export function createSummary(listing: Listing, maxLength = 155) {
 
 export function descriptionSections(description: string | null, language: Language = "nl") {
   if (!description?.trim()) {
-    return [
-      language === "nl"
-        ? "Er is nog geen volledige beschrijving beschikbaar."
-        : "A full description is not available yet.",
-    ];
+    return [i18n[language].listing.fullDescriptionUnavailable];
   }
 
   const normalized = description.replace(/\s+/g, " ").trim();
@@ -110,7 +97,7 @@ export function descriptionSections(description: string | null, language: Langua
 }
 
 export function listingDate(listing: Listing, language: Language = "nl") {
-  const date = new Date(listing.last_seen_at ?? listing.created_at);
+  const date = new Date(listing.first_seen_at ?? listing.created_at);
 
   if (Number.isNaN(date.getTime())) {
     return i18n[language].listing.recentlySeen;
@@ -150,7 +137,7 @@ export function createInitialFilters(): ListingFilters {
     status: "",
     showHiddenListings: false,
     search: "",
-    sort: "best_match",
+    sort: "newest",
     limit: 50,
     offset: 0,
   };

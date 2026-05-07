@@ -12,6 +12,7 @@ class Listing(Base):
 
     title = Column(String(255), nullable=False)
     source = Column(String(100), nullable=False)
+    source_key = Column(String(80), nullable=True, index=True)
     url = Column(Text, nullable=False, unique=True, index=True)
 
     city = Column(String(100), nullable=True)
@@ -50,4 +51,6 @@ class Listing(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    first_seen_at = Column(DateTime, default=datetime.utcnow, index=True)
     last_seen_at = Column(DateTime, default=datetime.utcnow)
+    last_checked_at = Column(DateTime, default=datetime.utcnow)

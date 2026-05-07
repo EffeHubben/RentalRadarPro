@@ -31,14 +31,12 @@ function sortLabel(sort: ListingFilters["sort"], language: Language) {
   switch (sort) {
     case "newest":
       return copy.newest;
+    case "recently_updated":
+      return copy.recentlyUpdated;
     case "cheapest":
       return copy.cheapest;
     case "most_expensive":
       return copy.mostExpensive;
-    case "largest":
-      return copy.largest;
-    case "smallest":
-      return copy.smallest;
     case "best_match":
     default:
       return copy.bestMatch;
@@ -177,11 +175,11 @@ export function getActiveFilters(filters: ListingFilters, language: Language): F
       resetValue: true,
     });
   }
-  if (filters.sort !== "best_match") {
+  if (filters.sort !== "newest") {
     pills.push({
       key: "sort",
       label: `${copy.sort}: ${sortLabel(filters.sort, language)}`,
-      resetValue: "best_match",
+      resetValue: "newest",
     });
   }
 
@@ -221,9 +219,9 @@ export function ActiveFilters({
                     offset: 0,
                   })
                 }
-                className="rounded-full border border-white/10 bg-black/16 px-3 py-1.5 text-xs font-medium text-white/58 transition hover:border-white/22 hover:text-white"
+                className="rs-chip rounded-full px-3 py-1.5 text-xs font-medium transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
               >
-                {filter.label} <span className="ml-1 text-white/35">x</span>
+                {filter.label} <span className="rs-subtle ml-1">x</span>
               </motion.button>
             ))}
           </motion.div>
@@ -231,7 +229,7 @@ export function ActiveFilters({
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-sm text-white/38"
+            className="rs-subtle text-sm"
           >
             {copy.none}
           </motion.p>

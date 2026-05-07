@@ -21,9 +21,9 @@ const config: Config = {
         danger: "#f87171",
       },
       boxShadow: {
-        premium: "0 18px 70px rgba(0, 0, 0, 0.42)",
+        premium: "var(--shadow-premium)",
         cinematic:
-          "0 24px 90px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.08)",
+          "var(--shadow-premium)",
       },
     },
   },

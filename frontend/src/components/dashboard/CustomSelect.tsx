@@ -46,7 +46,7 @@ export function CustomSelect<T extends string>({
   return (
     <div ref={containerRef} className="relative">
       {label ? (
-        <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-white/42">
+        <span className="rs-subtle mb-2 block text-xs font-semibold uppercase tracking-[0.16em]">
           {label}
         </span>
       ) : null}
@@ -78,12 +78,12 @@ export function CustomSelect<T extends string>({
             setOpen(false);
           }
         }}
-        className="flex h-10 w-full items-center justify-between rounded-lg border border-white/10 bg-black/16 px-3 text-left text-sm text-white outline-none transition hover:border-white/20 hover:bg-white/[0.045] focus:border-brass/70 focus:ring-2 focus:ring-brass/20"
+        className="rs-control flex h-10 w-full items-center justify-between rounded-lg px-3 text-left text-sm outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent-soft)]"
       >
         <span className="truncate">{activeOption?.label}</span>
         <motion.span
           animate={{ rotate: open ? 180 : 0 }}
-          className="ml-3 text-xs text-white/45"
+          className="rs-subtle ml-3 text-xs"
         >
           v
         </motion.span>
@@ -96,7 +96,7 @@ export function CustomSelect<T extends string>({
             animate={{ opacity: 1, y: 6, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="absolute left-0 right-0 top-full z-50 overflow-hidden rounded-xl border border-white/10 bg-[#121722] p-1 shadow-[0_20px_70px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+            className="absolute left-0 right-0 top-full z-50 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1 shadow-[var(--shadow-hover)] backdrop-blur-xl"
             role="listbox"
           >
             {options.map((option) => {
@@ -114,8 +114,8 @@ export function CustomSelect<T extends string>({
                   }}
                   className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition ${
                     selected
-                      ? "bg-brass/14 text-brass"
-                      : "text-white/68 hover:bg-white/[0.06] hover:text-white"
+                      ? "bg-[var(--color-accent-soft)] text-[var(--color-accent-strong)]"
+                      : "text-[var(--color-muted)] hover:bg-[var(--color-soft)] hover:text-[var(--color-text)]"
                   }`}
                 >
                   <span>{option.label}</span>

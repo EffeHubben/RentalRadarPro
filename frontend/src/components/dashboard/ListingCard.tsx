@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import type { Listing, ListingStatus } from "@/types/listing";
 import { i18n, type Language } from "@/lib/i18n";
@@ -29,8 +29,10 @@ function ImageBlock({
   const copy = i18n[language].listing;
   const [failed, setFailed] = useState(false);
   const imageUrl = listing.image_url?.trim() ?? "";
+  const imageHost = imageUrl ? safeImageHost(imageUrl) : "";
   const hasUsableImage =
     Boolean(imageUrl) &&
+    !blockedImageHosts.has(imageHost) &&
     !imageUrl.toLowerCase().includes("photo_waiting") &&
     !imageUrl.toLowerCase().includes("placeholder");
 
@@ -63,10 +65,10 @@ function ImageBlock({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.28 }}
-      className={`${height} flex w-full items-center justify-center bg-[#111827]`}
+      className={`${height} flex w-full items-center justify-center bg-[var(--color-soft)]`}
     >
       <div className="px-8 py-7 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/50">
+        <div className="rs-chip mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl">
           <svg
             viewBox="0 0 24 24"
             aria-hidden="true"
@@ -82,11 +84,21 @@ function ImageBlock({
             <path d="M9 20v-6h6v6" />
           </svg>
         </div>
-        <div className="text-sm font-semibold text-white">{copy.noPhoto}</div>
-        <div className="mt-1 text-xs text-white/42">{copy.imagePendingHint}</div>
+        <div className="text-sm font-semibold text-[var(--color-text)]">{copy.noPhoto}</div>
+        <div className="rs-muted mt-1 text-xs">{copy.imagePendingHint}</div>
       </div>
     </motion.div>
   );
+}
+
+const blockedImageHosts = new Set(["b.static.nbo.nl"]);
+
+function safeImageHost(imageUrl: string) {
+  try {
+    return new URL(imageUrl).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
 }
 
 function Badge({
@@ -102,10 +114,10 @@ function Badge({
     <span
       className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
         accent
-          ? "border-cyan-200/35 bg-cyan-300/12 text-cyan-100"
+          ? "rs-chip-positive"
           : muted
-          ? "border-white/10 bg-white/[0.04] text-white/45"
-          : "border-white/12 bg-white/[0.07] text-white/72"
+          ? "rs-chip opacity-75"
+          : "rs-chip"
       }`}
     >
       {children}
@@ -121,6 +133,35 @@ function wasSeenRecently(listing: Listing) {
   }
 
   return Date.now() - date.getTime() <= 3 * 24 * 60 * 60 * 1000;
+}
+
+function isNewListing(listing: Listing) {
+  const date = new Date(listing.first_seen_at ?? listing.created_at);
+
+  if (Number.isNaN(date.getTime())) {
+    return false;
+  }
+
+  return Date.now() - date.getTime() <= 24 * 60 * 60 * 1000;
+}
+
+function formatDateTime(value: string | null | undefined, language: Language) {
+  if (!value) {
+    return i18n[language].listing.notAvailable;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return i18n[language].listing.notAvailable;
+  }
+
+  return new Intl.DateTimeFormat(language === "nl" ? "nl-NL" : "en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 export function PrivacyBadges({
@@ -159,15 +200,7 @@ export function ListingImage(props: { listing: Listing; language: Language; larg
   return <ImageBlock {...props} />;
 }
 
-export function ListingCard({
-  listing,
-  index,
-  onOpen,
-  onToast,
-  language,
-  status,
-  onStatusChange,
-}: {
+type ListingCardProps = {
   listing: Listing;
   index: number;
   onOpen: (listing: Listing) => void;
@@ -175,7 +208,20 @@ export function ListingCard({
   language: Language;
   status: ListingStatus;
   onStatusChange: (listing: Listing, status: ListingStatus) => void;
-}) {
+};
+
+export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function ListingCard(
+  {
+    listing,
+    index,
+    onOpen,
+    onToast,
+    language,
+    status,
+    onStatusChange,
+  },
+  ref,
+) {
   const summary = createSummary(listing);
   const copy = i18n[language].listing;
   const confidence = listing.confidence_score ?? 0.45;
@@ -185,10 +231,12 @@ export function ListingCard({
     listing.availability_status === "under_option" ||
     listing.availability_status === "reserved";
   const strongMatch = confidence >= 0.75 && !unavailable;
+  const newListing = isNewListing(listing);
   const [hasLoadedRealImage, setHasLoadedRealImage] = useState(false);
 
   return (
     <motion.article
+      ref={ref}
       layout
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
@@ -196,11 +244,11 @@ export function ListingCard({
       whileTap={{ scale: 0.992 }}
       transition={{ duration: 0.35, delay: Math.min(index * 0.035, 0.28) }}
       onClick={() => onOpen(listing)}
-      className={`group cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] shadow-premium outline-none transition duration-300 hover:border-white/22 hover:bg-white/[0.05] ${
+      className={`group cursor-pointer overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-soft)] outline-none transition duration-300 hover:-translate-y-1 hover:border-[var(--color-border-strong)] hover:shadow-[var(--shadow-hover)] ${
         lowConfidence || unavailable ? "opacity-[0.72] saturate-[0.82]" : ""
       }`}
     >
-      <div className="relative overflow-hidden border-b border-white/10">
+      <div className="relative overflow-hidden border-b border-[var(--color-border)]">
         <ImageBlock
           listing={listing}
           language={language}
@@ -208,6 +256,7 @@ export function ListingCard({
         />
         <div className="absolute left-4 top-4 flex flex-wrap gap-2">
           <Badge>{propertyTypeLabel(listing.property_type, language)}</Badge>
+          {newListing ? <Badge accent>{copy.newBadge}</Badge> : null}
           {strongMatch ? <Badge accent>{copy.strongMatch}</Badge> : null}
           {unavailable ? (
             <Badge muted>{copy.availability[listing.availability_status]}</Badge>
@@ -221,7 +270,7 @@ export function ListingCard({
 
       <div className="space-y-5 p-5">
         <div>
-          <div className="mb-3 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.14em] text-white/40">
+          <div className="rs-subtle mb-3 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.14em]">
             <span>{listing.source}</span>
             <span>{listingDate(listing, language)}</span>
           </div>
@@ -234,31 +283,31 @@ export function ListingCard({
               onChange={(nextStatus) => onStatusChange(listing, nextStatus)}
             />
           </div>
-          <h2 className="line-clamp-2 min-h-14 text-lg font-semibold leading-7 text-white">
+          <h2 className="line-clamp-2 min-h-14 text-lg font-semibold leading-7 text-[var(--color-text)]">
             {cleanTitle(listing.title)}
           </h2>
-          <p className="mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-white/50">
+          <p className="rs-muted mt-3 line-clamp-2 min-h-10 text-sm leading-5">
             {summary || copy.noSummary}
           </p>
-          <p className="mt-2 text-[11px] leading-4 text-white/32">
+          <p className="rs-subtle mt-2 text-[11px] leading-4">
             {copy.originalLanguageNote}
           </p>
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-sm">
-          <div className="rounded-lg bg-black/16 p-3">
-            <div className="text-white/38">{copy.rent}</div>
-            <div className="mt-1 font-semibold text-cyan-100">{formatPrice(listing.price, language)}</div>
+          <div className="rounded-lg bg-[var(--color-soft)] p-3">
+            <div className="rs-subtle">{copy.rent}</div>
+            <div className="mt-1 font-semibold text-[var(--color-accent-strong)]">{formatPrice(listing.price, language)}</div>
           </div>
-          <div className="rounded-lg bg-black/16 p-3">
-            <div className="text-white/38">{copy.area}</div>
-            <div className="mt-1 font-semibold text-white">
+          <div className="rounded-lg bg-[var(--color-soft)] p-3">
+            <div className="rs-subtle">{copy.area}</div>
+            <div className="mt-1 font-semibold text-[var(--color-text)]">
               {listing.area_m2 ? `${listing.area_m2} m2` : copy.notAvailable}
             </div>
           </div>
-          <div className="rounded-lg bg-black/16 p-3">
-            <div className="text-white/38">{copy.rooms}</div>
-            <div className="mt-1 font-semibold text-white">{listing.rooms ?? copy.notAvailable}</div>
+          <div className="rounded-lg bg-[var(--color-soft)] p-3">
+            <div className="rs-subtle">{copy.rooms}</div>
+            <div className="mt-1 font-semibold text-[var(--color-text)]">{listing.rooms ?? copy.notAvailable}</div>
           </div>
         </div>
 
@@ -269,8 +318,23 @@ export function ListingCard({
           {wasSeenRecently(listing) ? <Badge>{copy.recentlySeen}</Badge> : null}
         </div>
 
-        <div className="flex items-center justify-between border-t border-white/10 pt-4">
-          <span className="text-sm text-white/45">{listing.city ?? copy.cityUnknown}</span>
+        <div className="grid gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3 text-xs">
+          <div className="flex items-center justify-between gap-3">
+            <span className="rs-subtle">{copy.firstSeen}</span>
+            <span className="font-semibold text-[var(--color-text)]">
+              {formatDateTime(listing.first_seen_at ?? listing.created_at, language)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="rs-subtle">{copy.lastChecked}</span>
+            <span className="font-semibold text-[var(--color-text)]">
+              {formatDateTime(listing.last_checked_at ?? listing.last_seen_at, language)}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-4">
+          <span className="rs-muted text-sm">{listing.city ?? copy.cityUnknown}</span>
           <a
             href={listing.url}
             target="_blank"
@@ -279,7 +343,7 @@ export function ListingCard({
               event.stopPropagation();
               onToast(copy.openingAd, "info");
             }}
-            className="rounded-lg border border-white/12 bg-white/[0.045] px-3 py-2 text-xs font-semibold text-white/70 transition hover:border-brass/40 hover:text-white"
+            className="rs-control rounded-lg px-3 py-2 text-xs font-semibold"
           >
             {copy.openAd}
           </a>
@@ -287,4 +351,4 @@ export function ListingCard({
       </div>
     </motion.article>
   );
-}
+});

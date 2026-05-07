@@ -6,7 +6,7 @@ import { i18n, type Language } from "@/lib/i18n";
 import { CustomSelect, type SelectOption } from "./CustomSelect";
 
 function inputClass() {
-  return "h-11 w-full rounded-lg border border-white/10 bg-white/[0.045] px-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-brass/70 focus:bg-white/[0.07] focus:ring-2 focus:ring-brass/20";
+  return "rs-input h-11";
 }
 
 function ActionButton({
@@ -22,10 +22,10 @@ function ActionButton({
 }) {
   const toneClass =
     tone === "primary"
-      ? "border-brass/40 bg-brass/12 text-brass hover:bg-brass hover:text-ink"
+      ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent-strong)] hover:bg-[var(--color-accent)] hover:text-white"
       : tone === "danger"
         ? "border-danger/28 bg-danger/10 text-danger hover:border-danger/50"
-        : "border-white/10 bg-black/18 text-white/64 hover:border-white/22 hover:text-white";
+        : "rs-control";
 
   return (
     <motion.button
@@ -81,12 +81,12 @@ export function SearchProfilesPanel({
         hidden: { opacity: 0, y: 10 },
         visible: { opacity: 1, y: 0 },
       }}
-      className="rounded-xl border border-white/10 bg-white/[0.025] p-4"
+      className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)]/60 p-4"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-white">{copy.title}</h3>
-          <p className="mt-1 text-xs leading-5 text-white/42">
+          <h3 className="text-sm font-semibold text-[var(--color-text)]">{copy.title}</h3>
+          <p className="rs-muted mt-1 text-xs leading-5">
             {profiles.length ? copy.description : copy.empty}
           </p>
         </div>
@@ -96,7 +96,7 @@ export function SearchProfilesPanel({
               initial={{ opacity: 0, scale: 0.94 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.94 }}
-              className="rounded-full border border-brass/25 bg-brass/10 px-2 py-1 text-[10px] font-semibold text-brass"
+              className="rs-chip-active rounded-full px-2 py-1 text-[10px] font-semibold"
             >
               {copy.unsaved}
             </motion.span>
@@ -106,14 +106,14 @@ export function SearchProfilesPanel({
 
       <div className="space-y-3">
         <label className="block">
-          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-white/42">
+          <span className="rs-subtle mb-2 block text-xs font-semibold uppercase tracking-[0.16em]">
             {copy.profileName}
           </span>
           <input
             value={profileName}
             onChange={(event) => onProfileNameChange(event.target.value)}
             className={inputClass()}
-            placeholder="Breda studio max 1000"
+            placeholder={copy.profileNamePlaceholder}
           />
         </label>
 

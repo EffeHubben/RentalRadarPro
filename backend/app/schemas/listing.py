@@ -19,6 +19,7 @@ class DuplicateSource(BaseModel):
 class ListingBase(BaseModel):
     title: str
     source: str
+    source_key: str | None = None
     url: str
 
     city: str | None = None
@@ -62,7 +63,9 @@ class ListingResponse(ListingBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    first_seen_at: datetime | None = None
     last_seen_at: datetime | None = None
+    last_checked_at: datetime | None = None
     duplicate_sources: list[DuplicateSource] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

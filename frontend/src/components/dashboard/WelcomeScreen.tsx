@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { ListingFilters, PropertyType } from "@/types/listing";
 import { i18n, type Language } from "@/lib/i18n";
 
@@ -29,7 +29,7 @@ const propertyOptions: Array<PropertyType | ""> = [
 const selectablePropertyTypes: PropertyType[] = ["studio", "apartment", "room", "house"];
 
 function inputClass() {
-  return "h-12 w-full rounded-lg border border-white/10 bg-white/[0.045] px-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-brass/60 focus:bg-white/[0.07] focus:ring-2 focus:ring-brass/15";
+  return "rs-input h-12";
 }
 
 function ToggleCard({
@@ -46,21 +46,23 @@ function ToggleCard({
       type="button"
       whileTap={{ scale: 0.98 }}
       onClick={() => onChange(!checked)}
-      className={`flex items-center justify-between rounded-lg border px-3 py-3 text-left transition ${
+      className={`flex items-center justify-between rounded-xl border px-3 py-3 text-left transition ${
         checked
-          ? "border-brass/45 bg-brass/10 text-white"
-          : "border-white/10 bg-black/16 text-white/68 hover:border-white/20 hover:bg-white/[0.045]"
+          ? "rs-chip-active"
+          : "rs-control text-[var(--color-muted)]"
       }`}
     >
       <span className="text-sm font-semibold">{label}</span>
       <span
         className={`relative h-6 w-11 rounded-full border transition ${
-          checked ? "border-mint/50 bg-mint/75" : "border-white/10 bg-black/35"
+          checked
+            ? "border-[var(--color-teal)] bg-[var(--color-teal)]"
+            : "border-[var(--color-border)] bg-[var(--color-soft)]"
         }`}
       >
         <motion.span
           animate={{ x: checked ? 20 : 0 }}
-          className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow"
+          className="absolute left-1 top-1 h-4 w-4 rounded-full bg-[var(--color-surface)] shadow"
         />
       </span>
     </motion.button>
@@ -81,6 +83,7 @@ export function WelcomeScreen({
 }) {
   const copy = i18n[language].onboarding;
   const propertyCopy = i18n[language].propertyTypes;
+  const shouldReduceMotion = useReducedMotion();
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<OnboardingValues>({
     city: initialCity,
@@ -115,6 +118,9 @@ export function WelcomeScreen({
     [copy.steps],
   );
   const progress = ((step + 1) / steps.length) * 100;
+  const selectedTypeLabels = (values.propertyTypes.length ? values.propertyTypes : selectablePropertyTypes)
+    .map((type) => propertyCopy[type])
+    .join(", ");
 
   function update<K extends keyof OnboardingValues>(key: K, value: OnboardingValues[K]) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -153,18 +159,18 @@ export function WelcomeScreen({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.28, ease: "easeOut" }}
-      className="relative isolate px-4 py-6 sm:px-6 lg:px-8"
+      className="relative isolate px-0 py-2 sm:py-4"
     >
       <div className="relative mx-auto w-full max-w-5xl">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_22rem]">
           <motion.div
-            className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] p-6 shadow-premium sm:p-8"
+            className="rs-card relative overflow-hidden rounded-2xl p-5 sm:p-7"
             initial={false}
-            animate={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ type: "spring", damping: 24, stiffness: 150 }}
           >
-            <div className="mb-8">
-              <div className="mb-4 flex gap-2">
+            <div className="mb-6">
+              <div className="mb-3 flex gap-2" aria-label={copy.searchSetupProgress}>
                 {steps.map((label, index) => (
                   <motion.button
                     key={label}
@@ -172,15 +178,15 @@ export function WelcomeScreen({
                     aria-label={label}
                     onClick={() => setStep(index)}
                     className={`h-2 rounded-full transition ${
-                      index <= step ? "bg-brass" : "bg-white/12"
+                      index <= step ? "bg-[var(--color-accent)]" : "bg-[var(--color-soft)]"
                     }`}
                     animate={{ width: index === step ? 34 : 14 }}
                   />
                 ))}
               </div>
-              <div className="h-1 overflow-hidden rounded-full bg-white/10">
+              <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-soft)]">
                 <motion.div
-                  className="h-full rounded-full bg-brass"
+                  className="h-full rounded-full bg-[var(--color-accent)]"
                   animate={{ width: `${progress}%` }}
                   transition={{ type: "spring", damping: 24, stiffness: 160 }}
                 />
@@ -192,26 +198,26 @@ export function WelcomeScreen({
                 key={step}
                 initial={false}
                 animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, x: -22, filter: "blur(8px)" }}
+                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, x: -16, filter: "blur(4px)" }}
                 transition={{ duration: 0.32, ease: "easeOut" }}
-                className="min-h-[18rem]"
+                className="min-h-[15rem]"
               >
                 {step === 0 ? (
-                  <div className="flex min-h-[18rem] flex-col justify-center">
-                    <p className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-brass">
+                  <div className="flex min-h-[15rem] flex-col justify-center">
+                    <p className="rs-eyebrow mb-4 text-sm font-semibold uppercase tracking-[0.16em]">
                       {copy.steps.welcome}
                     </p>
-                    <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-white sm:text-5xl">
+                    <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-[var(--color-text)] sm:text-5xl">
                       {copy.title}
                     </h1>
-                    <p className="mt-5 max-w-2xl text-base leading-7 text-white/68">
+                    <p className="rs-muted mt-5 max-w-2xl text-base leading-7">
                       {copy.subtitle}
                     </p>
                     <div className="mt-8 flex flex-wrap gap-2">
                       {copy.details.map((detail) => (
                         <span
                           key={detail}
-                          className="rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-medium text-white/68"
+                          className="rs-chip rounded-full px-4 py-2 text-sm font-medium"
                         >
                           {detail}
                         </span>
@@ -222,10 +228,10 @@ export function WelcomeScreen({
 
                 {step === 1 ? (
                   <div className="space-y-6">
-                    <h2 className="text-3xl font-semibold text-white sm:text-5xl">
+                    <h2 className="text-3xl font-semibold text-[var(--color-text)] sm:text-5xl">
                       {copy.locationTitle}
                     </h2>
-                    <p className="max-w-2xl text-sm leading-6 text-white/52">
+                    <p className="rs-muted max-w-2xl text-sm leading-6">
                       {copy.locationHelp}
                     </p>
                     <input
@@ -239,10 +245,10 @@ export function WelcomeScreen({
 
                 {step === 2 ? (
                   <div className="space-y-6">
-                    <h2 className="text-3xl font-semibold text-white sm:text-5xl">
+                    <h2 className="text-3xl font-semibold text-[var(--color-text)] sm:text-5xl">
                       {copy.budgetTitle}
                     </h2>
-                    <p className="max-w-2xl text-sm leading-6 text-white/52">
+                    <p className="rs-muted max-w-2xl text-sm leading-6">
                       {copy.budgetHelp}
                     </p>
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -274,10 +280,10 @@ export function WelcomeScreen({
 
                 {step === 3 ? (
                   <div className="space-y-6">
-                    <h2 className="text-3xl font-semibold text-white sm:text-5xl">
+                    <h2 className="text-3xl font-semibold text-[var(--color-text)] sm:text-5xl">
                       {copy.propertyTitle}
                     </h2>
-                    <p className="max-w-2xl text-sm leading-6 text-white/52">
+                    <p className="rs-muted max-w-2xl text-sm leading-6">
                       {copy.propertyHelp}
                     </p>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -291,20 +297,20 @@ export function WelcomeScreen({
                           <motion.button
                             key={type || "all"}
                             type="button"
-                            whileHover={{ y: -3 }}
+                            whileHover={shouldReduceMotion ? undefined : { y: -3 }}
                             whileTap={{ scale: 0.96 }}
                             onClick={() => togglePropertyType(type)}
                             className={`rounded-2xl border p-5 text-left transition ${
                               active
-                                ? "border-cyan-200/45 bg-cyan-300/12 text-cyan-100"
-                                : "border-white/10 bg-slate-950/28 text-white/70 hover:border-cyan-100/22 hover:bg-white/[0.055]"
+                                ? "rs-chip-active shadow-[var(--shadow-soft)]"
+                                : "rs-control text-[var(--color-muted)]"
                             }`}
                           >
                             <div className="text-lg font-semibold">{label}</div>
                             {active ? (
                               <motion.div
                                 layoutId={`property-active-${type || "all"}`}
-                                className="mt-4 h-1 rounded-full bg-cyan-200 shadow-[0_0_18px_rgba(125,211,252,0.45)]"
+                                className="mt-4 h-1 rounded-full bg-[var(--color-accent)]"
                               />
                             ) : null}
                           </motion.button>
@@ -316,10 +322,10 @@ export function WelcomeScreen({
 
                 {step === 4 ? (
                   <div className="space-y-6">
-                    <h2 className="text-3xl font-semibold text-white sm:text-5xl">
+                    <h2 className="text-3xl font-semibold text-[var(--color-text)] sm:text-5xl">
                       {copy.privacyTitle}
                     </h2>
-                    <p className="max-w-2xl text-sm leading-6 text-white/52">
+                    <p className="rs-muted max-w-2xl text-sm leading-6">
                       {copy.privacyHelp}
                     </p>
                     <div className="grid gap-3">
@@ -354,7 +360,7 @@ export function WelcomeScreen({
 
                 {step === 5 ? (
                   <div className="space-y-6">
-                    <h2 className="text-3xl font-semibold text-white sm:text-5xl">
+                    <h2 className="text-3xl font-semibold text-[var(--color-text)] sm:text-5xl">
                       {copy.readyTitle}
                     </h2>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -363,24 +369,24 @@ export function WelcomeScreen({
                         [copy.budget, values.noMaxPrice ? copy.noMaxPrice : values.maxPrice || copy.any],
                         [copy.privacy, values.allowShared ? copy.sharedAllowed : copy.sharedExcluded],
                       ].map(([label, value]) => (
-                        <div key={label} className="rounded-2xl border border-white/10 bg-slate-950/28 p-4">
-                          <div className="text-xs uppercase tracking-[0.14em] text-white/38">{label}</div>
-                          <div className="mt-2 text-sm font-semibold text-white">{value}</div>
+                        <div key={label} className="rs-card-solid rounded-2xl p-4">
+                          <div className="rs-subtle text-xs uppercase tracking-[0.14em]">{label}</div>
+                          <div className="mt-2 text-sm font-semibold text-[var(--color-text)]">{value}</div>
                         </div>
                       ))}
-                      <div className="rounded-2xl border border-white/10 bg-slate-950/28 p-4 sm:col-span-2">
-                        <div className="text-xs uppercase tracking-[0.14em] text-white/38">{copy.propertyType}</div>
+                      <div className="rs-card-solid rounded-2xl p-4 sm:col-span-2">
+                        <div className="rs-subtle text-xs uppercase tracking-[0.14em]">{copy.propertyType}</div>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {(values.propertyTypes.length ? values.propertyTypes : selectablePropertyTypes).map((type) => (
                             <span
                               key={type}
-                              className="rounded-full border border-cyan-200/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100"
+                              className="rs-chip-active rounded-full px-3 py-1 text-xs font-semibold"
                             >
                               {propertyCopy[type]}
                             </span>
                           ))}
                           {!values.propertyTypes.length ? (
-                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/46">
+                            <span className="rs-chip rounded-full px-3 py-1 text-xs font-semibold">
                               {copy.allTypes}
                             </span>
                           ) : null}
@@ -398,7 +404,7 @@ export function WelcomeScreen({
                 whileTap={{ scale: 0.98 }}
                 onClick={back}
                 disabled={step === 0}
-                className="h-11 rounded-lg border border-white/10 px-5 text-sm font-semibold text-white/62 transition hover:border-white/24 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+                className="rs-control h-11 rounded-lg px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-35"
               >
                 {copy.back}
               </motion.button>
@@ -406,7 +412,7 @@ export function WelcomeScreen({
                 type="button"
                 whileTap={{ scale: 0.985 }}
                 onClick={next}
-                className="h-11 rounded-lg bg-brass px-6 text-sm font-semibold text-ink transition hover:bg-[#e3bd6a]"
+                className="rs-primary-button h-11 rounded-lg px-6 text-sm font-semibold"
               >
                 {step === steps.length - 1 ? copy.start : copy.next}
               </motion.button>
@@ -417,22 +423,41 @@ export function WelcomeScreen({
             initial={false}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ type: "spring", damping: 26, stiffness: 170, delay: 0.1 }}
-            className="relative rounded-2xl border border-white/10 bg-black/18 p-5 shadow-premium"
+            className="rs-card relative rounded-2xl p-5"
           >
+            <div className="mb-4">
+              <div className="rs-eyebrow text-xs font-semibold uppercase tracking-[0.16em]">
+                {Math.round(progress)}%
+              </div>
+              <motion.div
+                key={`${step}-${values.city}-${values.maxPrice}-${values.propertyTypes.join(",")}`}
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3"
+              >
+                <div className="text-sm font-semibold text-[var(--color-text)]">
+                  {values.city || copy.any}
+                </div>
+                <div className="rs-muted mt-1 text-xs leading-5">
+                  {values.noMaxPrice ? copy.noMaxPrice : values.maxPrice || copy.any} · {selectedTypeLabels}
+                </div>
+              </motion.div>
+            </div>
             <div className="space-y-2">
               {steps.map((label, index) => (
-                <div
+                <motion.div
                   key={label}
+                  layout
                   className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
                     index === step
-                      ? "border-cyan-200/35 bg-cyan-300/10 text-cyan-100"
+                      ? "rs-chip-active"
                       : index < step
-                        ? "border-mint/20 bg-mint/8 text-mint"
-                        : "border-white/10 bg-slate-950/28 text-white/42"
+                        ? "rs-chip-positive"
+                        : "rs-chip"
                   }`}
                 >
                   {label}
-                </div>
+                </motion.div>
               ))}
             </div>
           </motion.aside>

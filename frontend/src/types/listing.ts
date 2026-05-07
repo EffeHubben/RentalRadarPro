@@ -2,6 +2,7 @@ export type Listing = {
   id: number;
   title: string;
   source: string;
+  source_key: string | null;
   url: string;
   city: string | null;
   price: number | null;
@@ -35,7 +36,9 @@ export type Listing = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  first_seen_at: string | null;
   last_seen_at: string | null;
+  last_checked_at: string | null;
 };
 
 export type PropertyType =
@@ -70,10 +73,9 @@ export type LocationPrecision =
 export type ListingSort =
   | "best_match"
   | "newest"
+  | "recently_updated"
   | "cheapest"
-  | "most_expensive"
-  | "largest"
-  | "smallest";
+  | "most_expensive";
 
 export type ListingStatus =
   | "new"
@@ -226,6 +228,20 @@ export type SourceInfo = {
   enabled: boolean;
   supports_city_search: boolean;
   base_url: string;
+  source_key: string;
+  category: "marketplace" | "landlord" | "housing-corporation" | "aggregator" | "manual";
+  auto_scan_enabled: boolean;
+  scan_interval_minutes: number;
+  max_timeout_seconds: number;
+  status: "online" | "degraded" | "offline" | "limited" | "manual";
+  last_scan_started_at: string | null;
+  last_scan_finished_at: string | null;
+  last_success_at: string | null;
+  last_error?: string | null;
+  listings_found_last_scan: number;
+  listings_added_today?: number;
+  internal_reason?: string | null;
+  next_due_at?: string | null;
   notes: string;
   manual_search_url_template?: string | null;
   manual_search_url?: string | null;

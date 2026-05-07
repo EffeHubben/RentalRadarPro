@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
+import logging
 from time import perf_counter
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -37,6 +39,7 @@ class ScraperRunRequest(BaseModel):
 
 
 FRESHNESS_WINDOW_MINUTES = 60
+logger = logging.getLogger("rentscout.scanner")
 
 
 def normalize_city(city: str | None) -> str:
@@ -76,7 +79,10 @@ def record_scan_history(
     scraped_count: int,
     created_count: int,
     updated_count: int,
-    error: str | None,
+    skipped_count: int = 0,
+    duplicate_count: int = 0,
+    duration_ms: int | None = None,
+    error: str | None = None,
     started_at: datetime,
     finished_at: datetime,
 ) -> None:
@@ -88,6 +94,9 @@ def record_scan_history(
             scraped_count=scraped_count,
             created_count=created_count,
             updated_count=updated_count,
+            skipped_count=skipped_count,
+            duplicate_count=duplicate_count,
+            duration_ms=duration_ms,
             error=error,
             started_at=started_at,
             finished_at=finished_at,
@@ -118,8 +127,10 @@ def update_existing_listing(
 ) -> None:
     existing_listing.title = scraped_listing.title or existing_listing.title
     existing_listing.source = scraped_listing.source or existing_listing.source
+    existing_listing.source_key = listing_metadata.pop("source_key", None) or existing_listing.source_key
     existing_listing.city = listing_metadata.pop("city", None) or scraped_listing.city or city
     existing_listing.last_seen_at = now
+    existing_listing.last_checked_at = now
     existing_listing.updated_at = now
     existing_listing.is_active = True
 
@@ -196,6 +207,37 @@ def build_location_metadata(database: Session, scraped_listing, city: str) -> di
     return enrich_location(database, merged_parts)
 
 
+def fetch_source_with_timeout(source, city: str):
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(source.fetch_listings, city)
+    try:
+        return future.result(timeout=source.timeout_seconds)
+    except FutureTimeoutError as error:
+        future.cancel()
+        executor.shutdown(wait=False, cancel_futures=True)
+        raise TimeoutError(
+            f"Source scan exceeded {source.timeout_seconds}s timeout."
+        ) from error
+    finally:
+        if future.done():
+            executor.shutdown(wait=False, cancel_futures=True)
+
+
+def mark_source_result(source, source_summary: dict, finished_at: datetime) -> None:
+    source.last_scan_finished_at = finished_at
+    source.listings_found_last_scan = source_summary["scraped_count"]
+    source.last_error = source_summary["error"]
+
+    if source_summary["status"] in {"success", "no_results"}:
+        source.failure_count = 0
+        source.last_success_at = finished_at
+        source.status = "online" if source_summary["status"] == "success" else "degraded"
+        return
+
+    source.failure_count += 1
+    source.status = "limited" if source_summary["status"] == "blocked" else "degraded"
+
+
 def add_location_quality_boost(listing_metadata: dict, location_metadata: dict) -> None:
     boost_by_precision = {
         "exact_address": 0.05,
@@ -229,53 +271,67 @@ def run_scrapers(
     selected_source_ids = request.sources if request and request.sources is not None else None
     reset_geocode_run_budget()
 
-    for source in enabled_sources(selected_source_ids):
+    for source in enabled_sources(selected_source_ids, auto_only=selected_source_ids is None):
         perf_started_at = perf_counter()
         scan_started_at = datetime.utcnow()
+        source.last_scan_started_at = scan_started_at
         source_summary = create_source_summary(
-            source_id=source.source_id,
+            source_id=source.source_key,
             source_name=source.display_name,
             manual_search_url=source.manual_search_url(city),
         )
         source_summaries.append(source_summary)
+        logger.info("scan_start source=%s city=%s timeout=%ss", source.source_key, city, source.timeout_seconds)
 
         try:
-            scraped_listings = source.fetch_listings(city)
+            scraped_listings = fetch_source_with_timeout(source, city)
         except SourceBlockedError as error:
             source_summary["status"] = "blocked"
             source_summary["error"] = str(error)
             source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
-            LAST_SOURCE_RUNS[source.source_id] = source_summary.copy()
+            finished_at = datetime.utcnow()
+            LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
+            mark_source_result(source, source_summary, finished_at)
             record_scan_history(
                 database,
                 city=city,
-                source_id=source.source_id,
+                source_id=source.source_key,
                 status=source_summary["status"],
                 scraped_count=source_summary["scraped_count"],
                 created_count=source_summary["created_count"],
                 updated_count=source_summary["updated_count"],
+                skipped_count=source_summary["skipped_count"],
+                duplicate_count=source_summary["duplicate_count"],
+                duration_ms=source_summary["duration_ms"],
                 error=source_summary["error"],
                 started_at=scan_started_at,
-                finished_at=datetime.utcnow(),
+                finished_at=finished_at,
             )
+            logger.warning("scan_blocked source=%s city=%s error=%s", source.source_key, city, error)
             continue
         except Exception as error:
             source_summary["status"] = "failed"
             source_summary["error"] = str(error)
             source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
-            LAST_SOURCE_RUNS[source.source_id] = source_summary.copy()
+            finished_at = datetime.utcnow()
+            LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
+            mark_source_result(source, source_summary, finished_at)
             record_scan_history(
                 database,
                 city=city,
-                source_id=source.source_id,
+                source_id=source.source_key,
                 status=source_summary["status"],
                 scraped_count=source_summary["scraped_count"],
                 created_count=source_summary["created_count"],
                 updated_count=source_summary["updated_count"],
+                skipped_count=source_summary["skipped_count"],
+                duplicate_count=source_summary["duplicate_count"],
+                duration_ms=source_summary["duration_ms"],
                 error=source_summary["error"],
                 started_at=scan_started_at,
-                finished_at=datetime.utcnow(),
+                finished_at=finished_at,
             )
+            logger.exception("scan_failed source=%s city=%s", source.source_key, city)
             continue
 
         source_summary["scraped_count"] = len(scraped_listings)
@@ -307,6 +363,7 @@ def run_scrapers(
                     image_url=scraped_listing.image_url,
                 )
             )
+            listing_metadata["source_key"] = source.source_key
             if scraped_listing.availability_status != "unknown":
                 listing_metadata["availability_status"] = scraped_listing.availability_status
                 listing_metadata["is_available"] = scraped_listing.is_available
@@ -337,6 +394,7 @@ def run_scrapers(
             listing = Listing(
                 title=scraped_listing.title,
                 source=scraped_listing.source,
+                source_key=source.source_key,
                 url=scraped_listing.url,
                 city=listing_metadata.pop("city", None) or scraped_listing.city or city,
                 price=scraped_listing.price,
@@ -358,7 +416,9 @@ def run_scrapers(
                 location_precision=listing_metadata.pop("location_precision", "unknown"),
                 location_confidence=listing_metadata.pop("location_confidence", 0.0),
                 is_active=True,
+                first_seen_at=now,
                 last_seen_at=now,
+                last_checked_at=now,
                 **listing_metadata,
             )
 
@@ -386,18 +446,35 @@ def run_scrapers(
             )
 
         source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
-        LAST_SOURCE_RUNS[source.source_id] = source_summary.copy()
+        finished_at = datetime.utcnow()
+        LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
+        mark_source_result(source, source_summary, finished_at)
         record_scan_history(
             database,
             city=city,
-            source_id=source.source_id,
+            source_id=source.source_key,
             status=source_summary["status"],
             scraped_count=source_summary["scraped_count"],
             created_count=source_summary["created_count"],
             updated_count=source_summary["updated_count"],
+            skipped_count=source_summary["skipped_count"],
+            duplicate_count=source_summary["duplicate_count"],
+            duration_ms=source_summary["duration_ms"],
             error=source_summary["error"],
             started_at=scan_started_at,
-            finished_at=datetime.utcnow(),
+            finished_at=finished_at,
+        )
+        logger.info(
+            "scan_finished source=%s city=%s status=%s scraped=%s created=%s updated=%s skipped=%s duplicates=%s duration_ms=%s",
+            source.source_key,
+            city,
+            source_summary["status"],
+            source_summary["scraped_count"],
+            source_summary["created_count"],
+            source_summary["updated_count"],
+            source_summary["skipped_count"],
+            source_summary["duplicate_count"],
+            source_summary["duration_ms"],
         )
 
     return {
@@ -428,7 +505,7 @@ def get_scraper_freshness(
     cutoff = datetime.utcnow() - timedelta(minutes=FRESHNESS_WINDOW_MINUTES)
     source_freshness = []
 
-    for source in enabled_sources(selected_source_ids):
+    for source in enabled_sources(selected_source_ids, auto_only=selected_source_ids is None):
         latest_scan = latest_scan_for_source(database, normalized_city, source.source_id)
         finished_at = latest_scan.finished_at if latest_scan else None
         has_scan = latest_scan is not None
