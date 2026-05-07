@@ -208,9 +208,11 @@ export default function HomePage() {
       : copy.proPlanBadge;
   const proPlanButtonLabel = !billingEnabled
     ? copy.proPlanComingSoon
-    : isPro
-      ? copy.proPlanManageCta
-      : copy.proPlanCta;
+    : !auth.isAuthenticated || !auth.accessToken
+      ? copy.proPlanGuestCta
+      : isPro
+        ? copy.proPlanManageCta
+        : copy.proPlanCta;
   const proPlanButtonMode: BillingMode = isPro ? "portal" : "checkout";
   const proPlanPrice = billingEnabled ? copy.proPlanPrice : copy.proPlanComingSoon;
   const proPlanPriceSuffix = billingEnabled ? copy.proPlanPriceSuffix : "";
@@ -427,13 +429,9 @@ export default function HomePage() {
                     type="button"
                     onClick={() => void startBillingFlow(proPlanButtonMode)}
                     disabled={billingLoading || !billingEnabled}
-                    className="mt-6 inline-flex h-11 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-subtle)] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-6 inline-flex h-11 items-center justify-center rounded-lg border border-brass/40 bg-brass px-5 text-sm font-semibold text-ink shadow-[0_12px_28px_rgba(215,168,79,0.24)] transition hover:bg-brass/90 hover:shadow-[0_16px_34px_rgba(215,168,79,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-elevated)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {billingEnabled
-                      ? billingLoading
-                        ? copy.billingLoading
-                        : proPlanButtonLabel
-                      : proPlanButtonLabel}
+                    {billingEnabled ? (billingLoading ? copy.billingLoading : proPlanButtonLabel) : proPlanButtonLabel}
                   </button>
                   {billingError ? (
                     <p className="mt-3 text-xs leading-5 text-danger">{billingError}</p>
