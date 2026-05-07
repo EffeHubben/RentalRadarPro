@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { hasPro } from "@/lib/subscription";
 import { ActiveFilters } from "@/components/dashboard/ActiveFilters";
 import { FilterPanel } from "@/components/dashboard/FilterPanel";
 import { ListingCard } from "@/components/dashboard/ListingCard";
@@ -204,6 +205,7 @@ function formatUpdatedAt(value: string | null, language: Language) {
 
 export default function DashboardPage() {
   const auth = useAuth();
+  const isProUser = hasPro(auth.user);
   const [filters, setFilters] = useState<ListingFilters>(() => createInitialFilters());
   const [language, setLanguage] = useState<Language>("nl");
   const [searchStarted, setSearchStarted] = useState(false);
@@ -803,6 +805,8 @@ export default function DashboardPage() {
               selectedProfileId={selectedProfileId}
               profileName={profileName}
               hasUnsavedProfileChanges={hasUnsavedProfileChanges}
+              isProUser={isProUser}
+              isAuthenticated={Boolean(auth.isAuthenticated)}
               onProfileNameChange={setProfileName}
               onSelectProfile={handleSelectProfile}
               onSaveProfile={handleSaveProfile}
@@ -1050,6 +1054,8 @@ export default function DashboardPage() {
                 onApplyProfile={handleApplyProfile}
                 onUpdateProfile={handleUpdateProfile}
                 onDeleteProfile={handleDeleteProfile}
+                isProUser={isProUser}
+                isAuthenticated={Boolean(auth.isAuthenticated)}
               />
             </motion.aside>
           </motion.div>

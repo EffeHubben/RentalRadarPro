@@ -183,6 +183,8 @@ export function FilterPanel({
   selectedProfileId,
   profileName,
   hasUnsavedProfileChanges,
+  isProUser,
+  isAuthenticated,
   onProfileNameChange,
   onSelectProfile,
   onSaveProfile,
@@ -201,6 +203,8 @@ export function FilterPanel({
   selectedProfileId: string;
   profileName: string;
   hasUnsavedProfileChanges: boolean;
+  isProUser: boolean;
+  isAuthenticated: boolean;
   onProfileNameChange: (name: string) => void;
   onSelectProfile: (profileId: string) => void;
   onSaveProfile: () => void;
@@ -307,6 +311,8 @@ export function FilterPanel({
         profileName={profileName}
         hasUnsavedChanges={hasUnsavedProfileChanges}
         language={language}
+        isProUser={isProUser}
+        isAuthenticated={isAuthenticated}
         onProfileNameChange={onProfileNameChange}
         onSelectProfile={onSelectProfile}
         onSaveNew={onSaveProfile}

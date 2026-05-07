@@ -32,6 +32,23 @@ function Reveal({
   );
 }
 
+function CheckIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-teal)]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="2 8 6 12 14 4" />
+    </svg>
+  );
+}
+
 export default function AccountPage() {
   const auth = useAuth();
   const { language, changeLanguage } = useLanguagePreference();
@@ -40,11 +57,7 @@ export default function AccountPage() {
   const [modalMode, setModalMode] = useState<AuthMode>("login");
   const [modalOpen, setModalOpen] = useState(false);
 
-  const accountItems = [
-    copy.savedSearches,
-    copy.listingProgress,
-    copy.preferences,
-  ];
+  const isPro = auth.user?.plan === "pro";
 
   function openAuth(mode: AuthMode) {
     setModalMode(mode);
@@ -122,6 +135,7 @@ export default function AccountPage() {
                   </div>
                 ) : (
                   <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+                    {/* Account info */}
                     <div className="rounded-[1.1rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
                       <div className="flex items-start justify-between gap-4">
                         <div>
@@ -160,9 +174,9 @@ export default function AccountPage() {
                           </div>
                           <div className="mt-2 flex items-center gap-2">
                             <span className="font-semibold text-[var(--color-text)]">
-                              {auth.user?.plan === "pro" ? copy.planPro : copy.planFree}
+                              {isPro ? copy.planPro : copy.planFree}
                             </span>
-                            {auth.user?.plan === "pro" ? (
+                            {isPro ? (
                               <span className="rounded-full bg-[var(--color-teal-soft)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-teal)]">
                                 {copy.planPro}
                               </span>
@@ -184,39 +198,65 @@ export default function AccountPage() {
                       </button>
                     </div>
 
-                    <div className="rounded-[1.1rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-                      <div className="text-sm font-semibold text-[var(--color-text)]">
-                        {copy.workspace}
+                    {/* Plan breakdown */}
+                    <div className="flex flex-col gap-4">
+                      {/* Free tier — always visible */}
+                      <div className="rounded-[1.1rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold text-[var(--color-text)]">
+                            {copy.freeIncludesTitle}
+                          </span>
+                          <span className="rs-chip rounded-full px-2.5 py-0.5 text-xs font-medium">
+                            {copy.planFree}
+                          </span>
+                        </div>
+                        <ul className="space-y-2">
+                          {copy.freeFeaturesList.map((feat) => (
+                            <li key={feat} className="flex items-start gap-2 text-xs leading-5 text-[var(--color-muted)]">
+                              <CheckIcon />
+                              {feat}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                        {accountItems.map((item, index) => (
-                          <motion.div
-                            key={item}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.28, delay: index * 0.06 }}
-                            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-page)] p-4 transition hover:-translate-y-0.5 hover:border-[var(--color-border-strong)] hover:shadow-[var(--shadow-soft)]"
-                          >
-                            <div className="mb-4 h-1.5 w-10 rounded-full bg-[var(--color-accent)]" />
-                            <div className="text-sm font-semibold text-[var(--color-text)]">{item}</div>
-                            <div className="mt-2 text-xs leading-5 text-[var(--color-muted)]">
-                              {copy.placeholder}
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                      {auth.user?.plan !== "pro" ? (
-                        <div className="mt-4 rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] p-4 shadow-[var(--shadow-premium)]">
-                          <div className="text-sm font-semibold text-[var(--color-text)]">
-                            {copy.upgradeTitle}
+
+                      {/* Pro tier */}
+                      {isPro ? (
+                        <div className="rounded-[1.1rem] border border-[var(--color-teal)]/30 bg-[var(--color-teal-soft)] p-5">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <span className="text-sm font-semibold text-[var(--color-text)]">
+                              {copy.proIncludesTitle}
+                            </span>
+                            <span className="rounded-full border border-[var(--color-teal)]/30 bg-[var(--color-surface)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-teal)]">
+                              {copy.planPro}
+                            </span>
                           </div>
-                          <p className="mt-2 text-xs leading-5 text-[var(--color-muted)]">
+                          <ul className="space-y-2">
+                            {copy.proFeatures.map((feat) => (
+                              <li key={feat} className="flex items-start gap-2 text-xs leading-5 text-[var(--color-muted)]">
+                                <CheckIcon />
+                                {feat}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : (
+                        <div className="rounded-[1.1rem] border border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] p-5 shadow-[var(--shadow-premium)]">
+                          <div className="mb-1 flex items-center justify-between gap-3">
+                            <span className="text-sm font-semibold text-[var(--color-text)]">
+                              {copy.upgradeTitle}
+                            </span>
+                            <span className="rounded-full border border-[var(--color-teal)]/30 bg-[var(--color-teal-soft)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-teal)]">
+                              {copy.planPro}
+                            </span>
+                          </div>
+                          <p className="mb-3 text-xs leading-5 text-[var(--color-muted)]">
                             {copy.upgradeBody}
                           </p>
-                          <ul className="mt-3 space-y-1.5">
+                          <ul className="space-y-2">
                             {copy.proFeatures.map((feat) => (
-                              <li key={feat} className="flex items-start gap-2 text-xs text-[var(--color-muted)]">
-                                <span className="shrink-0 text-[var(--color-teal)]">✓</span>
+                              <li key={feat} className="flex items-start gap-2 text-xs leading-5 text-[var(--color-muted)]">
+                                <CheckIcon />
                                 {feat}
                               </li>
                             ))}
@@ -229,7 +269,7 @@ export default function AccountPage() {
                             {copy.upgradeComingSoon}
                           </button>
                         </div>
-                      ) : null}
+                      )}
                     </div>
                   </div>
                 )}
@@ -238,20 +278,74 @@ export default function AccountPage() {
           </div>
         </section>
 
+        {/* Plan comparison for logged-out users */}
         {!auth.isAuthenticated ? (
           <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-            <div className="grid gap-4 md:grid-cols-3">
-              {accountItems.map((item, index) => (
-                <Reveal key={item} delay={index * 0.06}>
-                  <article className="rs-card-solid h-full rounded-2xl p-5">
-                    <div className="mb-4 h-2 w-12 rounded-full bg-[var(--color-accent)]" />
-                    <h2 className="text-lg font-semibold text-[var(--color-text)]">{item}</h2>
-                    <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-                      {copy.placeholder}
-                    </p>
-                  </article>
-                </Reveal>
-              ))}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Reveal delay={0}>
+                <article className="rs-card-solid h-full rounded-2xl p-6">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h2 className="text-base font-semibold text-[var(--color-text)]">
+                      {copy.freeIncludesTitle}
+                    </h2>
+                    <span className="rs-chip rounded-full px-2.5 py-0.5 text-xs font-medium">
+                      {copy.planFree}
+                    </span>
+                  </div>
+                  <ul className="space-y-2.5">
+                    {copy.freeFeaturesList.map((feat) => (
+                      <li key={feat} className="flex items-start gap-2 text-sm leading-5 text-[var(--color-muted)]">
+                        <CheckIcon />
+                        {feat}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => openAuth("register")}
+                      className="rs-primary-button h-10 rounded-lg px-4 text-sm font-semibold"
+                    >
+                      {copy.createAccount}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openAuth("login")}
+                      className="rs-control h-10 rounded-lg px-4 text-sm font-semibold"
+                    >
+                      {copy.signIn}
+                    </button>
+                  </div>
+                </article>
+              </Reveal>
+
+              <Reveal delay={0.06}>
+                <article className="rs-card-solid h-full rounded-2xl border border-[var(--color-border-strong)] p-6 shadow-[var(--shadow-premium)]">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h2 className="text-base font-semibold text-[var(--color-text)]">
+                      {copy.proIncludesTitle}
+                    </h2>
+                    <span className="rounded-full border border-[var(--color-teal)]/30 bg-[var(--color-teal-soft)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-teal)]">
+                      {copy.planPro}
+                    </span>
+                  </div>
+                  <ul className="space-y-2.5">
+                    {copy.proFeatures.map((feat) => (
+                      <li key={feat} className="flex items-start gap-2 text-sm leading-5 text-[var(--color-muted)]">
+                        <CheckIcon />
+                        {feat}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    disabled
+                    className="mt-6 inline-flex h-10 w-full cursor-not-allowed items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-sm font-semibold text-[var(--color-subtle)]"
+                  >
+                    {copy.upgradeComingSoon}
+                  </button>
+                </article>
+              </Reveal>
             </div>
           </section>
         ) : null}
