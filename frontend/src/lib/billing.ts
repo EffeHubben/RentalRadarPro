@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { buildApiUrl, getApiErrorMessage } from "@/lib/apiConfig";
 
 type BillingSessionResponse = {
@@ -38,6 +39,15 @@ export function createPortalSession(accessToken: string) {
   );
 }
 
+export async function createBillingSession(
+  mode: "checkout" | "portal",
+  accessToken: string,
+) {
+  return mode === "checkout"
+    ? createCheckoutSession(accessToken)
+    : createPortalSession(accessToken);
+}
+
 export async function fetchBillingConfig() {
   const response = await fetch(buildApiUrl("/billing/config"), {
     cache: "no-store",
@@ -48,4 +58,30 @@ export async function fetchBillingConfig() {
   }
 
   return response.json() as Promise<BillingConfigResponse>;
+}
+
+export function useBillingConfig() {
+  const [billingEnabled, setBillingEnabled] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetchBillingConfig()
+      .then((config) => {
+        if (!cancelled) {
+          setBillingEnabled(config.billing_enabled);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBillingEnabled(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { billingEnabled };
 }

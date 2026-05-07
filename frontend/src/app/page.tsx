@@ -3,12 +3,18 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { AuthModal } from "@/components/auth/AuthModal";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { createBillingSession, useBillingConfig } from "@/lib/billing";
+import { hasPro } from "@/lib/subscription";
 import { i18n, type Language } from "@/lib/i18n";
 import { useLanguagePreference } from "@/lib/useLanguagePreference";
 
 const onboardingStorageKey = "rental-radar-onboarding-complete-v1";
+type AuthMode = "login" | "register";
+type BillingMode = "checkout" | "portal";
 
 function Reveal({
   children,
@@ -131,13 +137,83 @@ function ProductPreview({ language }: { language: Language }) {
 }
 
 export default function HomePage() {
+  const auth = useAuth();
   const { language, changeLanguage } = useLanguagePreference();
   const [hasPreviousSearch, setHasPreviousSearch] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<AuthMode>("register");
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingError, setBillingError] = useState("");
+  const [pendingBillingMode, setPendingBillingMode] = useState<BillingMode | null>(null);
+  const { billingEnabled } = useBillingConfig();
   const copy = i18n[language].home;
+  const isPro = hasPro(auth.user);
 
   useEffect(() => {
     setHasPreviousSearch(window.localStorage.getItem(onboardingStorageKey) === "done");
   }, []);
+
+  function openAuth(mode: AuthMode) {
+    setModalMode(mode);
+    setModalOpen(true);
+  }
+
+  function closeAuth() {
+    setModalOpen(false);
+    setPendingBillingMode(null);
+  }
+
+  async function startBillingFlow(mode: BillingMode) {
+    setBillingError("");
+
+    if (!billingEnabled) {
+      setBillingError(copy.billingUnavailable);
+      return;
+    }
+
+    if (!auth.isAuthenticated || !auth.accessToken) {
+      setPendingBillingMode(mode);
+      openAuth(mode === "checkout" ? "register" : "login");
+      return;
+    }
+
+    setBillingLoading(true);
+
+    try {
+      const session = await createBillingSession(mode, auth.accessToken);
+      window.location.assign(session.url);
+    } catch (caughtError) {
+      setBillingError(
+        caughtError instanceof Error ? caughtError.message : copy.billingGenericError,
+      );
+    } finally {
+      setBillingLoading(false);
+    }
+  }
+
+  function handleAuthenticated() {
+    if (!pendingBillingMode) {
+      return;
+    }
+
+    const nextMode = pendingBillingMode;
+    setPendingBillingMode(null);
+    void startBillingFlow(nextMode);
+  }
+
+  const proPlanBadge = !billingEnabled
+    ? copy.proPlanComingSoon
+    : isPro
+      ? copy.proPlanCurrentPlan
+      : copy.proPlanBadge;
+  const proPlanButtonLabel = !billingEnabled
+    ? copy.proPlanComingSoon
+    : isPro
+      ? copy.proPlanManageCta
+      : copy.proPlanCta;
+  const proPlanButtonMode: BillingMode = isPro ? "portal" : "checkout";
+  const proPlanPrice = billingEnabled ? copy.proPlanPrice : copy.proPlanComingSoon;
+  const proPlanPriceSuffix = billingEnabled ? copy.proPlanPriceSuffix : "";
 
   return (
     <div className="min-h-screen bg-[var(--color-page)] text-[var(--color-text)]">
@@ -329,11 +405,14 @@ export default function HomePage() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-[var(--color-text)]">{copy.proPlanName}</h3>
                     <span className="rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--color-accent-strong)]">
-                      {copy.proPlanBadge}
+                      {proPlanBadge}
                     </span>
                   </div>
-                  <div className="mt-4">
-                    <span className="text-xl font-semibold text-[var(--color-muted)]">{copy.proPlanBadge}</span>
+                  <div className="mt-4 flex items-end gap-2">
+                    <span className="text-3xl font-bold text-[var(--color-text)]">{proPlanPrice}</span>
+                    {proPlanPriceSuffix ? (
+                      <span className="text-sm text-[var(--color-muted)]">{proPlanPriceSuffix}</span>
+                    ) : null}
                   </div>
                   <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{copy.proPlanDescription}</p>
                   <ul className="mt-5 flex-1 space-y-2">
@@ -346,11 +425,19 @@ export default function HomePage() {
                   </ul>
                   <button
                     type="button"
-                    disabled
-                    className="mt-6 inline-flex h-11 cursor-not-allowed items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-subtle)]"
+                    onClick={() => void startBillingFlow(proPlanButtonMode)}
+                    disabled={billingLoading || !billingEnabled}
+                    className="mt-6 inline-flex h-11 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-subtle)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {copy.proPlanCta}
+                    {billingEnabled
+                      ? billingLoading
+                        ? copy.billingLoading
+                        : proPlanButtonLabel
+                      : proPlanButtonLabel}
                   </button>
+                  {billingError ? (
+                    <p className="mt-3 text-xs leading-5 text-danger">{billingError}</p>
+                  ) : null}
                 </div>
               </Reveal>
             </div>
@@ -382,6 +469,13 @@ export default function HomePage() {
       </main>
 
       <SiteFooter language={language} />
+      <AuthModal
+        open={modalOpen}
+        initialMode={modalMode}
+        language={language}
+        onClose={closeAuth}
+        onAuthenticated={handleAuthenticated}
+      />
     </div>
   );
 }

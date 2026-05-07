@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
-import { createCheckoutSession, createPortalSession, fetchBillingConfig } from "@/lib/billing";
+import { createBillingSession, useBillingConfig } from "@/lib/billing";
 import { hasPro } from "@/lib/subscription";
 import { i18n } from "@/lib/i18n";
 import { useLanguagePreference } from "@/lib/useLanguagePreference";
@@ -60,7 +60,7 @@ export default function AccountPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingError, setBillingError] = useState("");
-  const [billingEnabled, setBillingEnabled] = useState(false);
+  const { billingEnabled } = useBillingConfig();
 
   const isPro = hasPro(auth.user);
 
@@ -68,12 +68,6 @@ export default function AccountPage() {
     setModalMode(mode);
     setModalOpen(true);
   }
-
-  useEffect(() => {
-    void fetchBillingConfig()
-      .then((config) => setBillingEnabled(config.billing_enabled))
-      .catch(() => setBillingEnabled(false));
-  }, []);
 
   async function redirectToBillingSession(mode: "checkout" | "portal") {
     setBillingError("");
@@ -91,10 +85,7 @@ export default function AccountPage() {
     setBillingLoading(true);
 
     try {
-      const session =
-        mode === "checkout"
-          ? await createCheckoutSession(auth.accessToken)
-          : await createPortalSession(auth.accessToken);
+      const session = await createBillingSession(mode, auth.accessToken);
 
       window.location.assign(session.url);
     } catch (caughtError) {
