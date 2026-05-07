@@ -71,6 +71,16 @@ class ListingResponse(ListingBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ListingPreviewResponse(BaseModel):
+    id: int
+    city: str | None = None
+    price: int | None = None
+    property_type: PropertyType = "unknown"
+    availability_status: AvailabilityStatus = "unknown"
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ListingsPageResponse(BaseModel):
     items: list[ListingResponse]
     total: int

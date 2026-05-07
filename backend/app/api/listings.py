@@ -11,7 +11,12 @@ from app.database.db import get_database_session
 from app.models.listing import Listing
 from app.models.user import User
 from app.services.duplicates import duplicate_sources_for_listings
-from app.schemas.listing import ListingCreate, ListingResponse, ListingsPageResponse
+from app.schemas.listing import (
+    ListingCreate,
+    ListingPreviewResponse,
+    ListingResponse,
+    ListingsPageResponse,
+)
 
 
 router = APIRouter(
@@ -349,15 +354,26 @@ def get_listings(
     )
 
 
-@router.get("/{listing_id}", response_model=ListingResponse)
+@router.get("/{listing_id}", response_model=ListingResponse | ListingPreviewResponse)
 def get_listing_by_id(
     listing_id: int,
+    current_user: User | None = Depends(get_optional_user),
     database: Session = Depends(get_database_session),
 ):
     listing = database.query(Listing).filter(Listing.id == listing_id).first()
 
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
+
+    if current_user is None or not is_pro(current_user):
+        preview_listing = _make_preview_listing(listing)
+        return ListingPreviewResponse(
+            id=preview_listing.id,
+            city=preview_listing.city,
+            price=preview_listing.price,
+            property_type=preview_listing.property_type,
+            availability_status=preview_listing.availability_status,
+        )
 
     return listing
 
