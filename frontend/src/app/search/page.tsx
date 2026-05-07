@@ -36,6 +36,7 @@ import {
 import type {
   Listing,
   ListingFilters,
+  ListingSort,
   ListingStatus,
   LocalListingWorkflowState,
   PropertyType,
@@ -755,8 +756,9 @@ export default function DashboardPage() {
           </aside>
 
           <section className="min-w-0">
+            {/* Result count + sort + active filters */}
             <div className="dashboard-shell mb-5 rounded-2xl p-4">
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="text-sm font-semibold text-[var(--color-text)]">
                     {loading
@@ -768,11 +770,6 @@ export default function DashboardPage() {
                       ? copy.scraper.resultsRecent
                       : copy.dashboard.autoRefresh}
                   </p>
-                  {newestFinishedAtLabel ? (
-                    <p className="dashboard-muted mt-1 text-xs">
-                      {copy.scraper.lastUpdated}: {newestFinishedAtLabel}
-                    </p>
-                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -782,7 +779,44 @@ export default function DashboardPage() {
                   {copy.dashboard.filters}
                 </button>
               </div>
-              <ActiveFilters filters={filters} onChange={setFilters} language={language} />
+
+              {/* Sort chips */}
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {(
+                  [
+                    { value: "best_match" as ListingSort, label: copy.filters.bestMatch },
+                    { value: "newest" as ListingSort, label: copy.filters.newest },
+                    { value: "cheapest" as ListingSort, label: copy.filters.cheapest },
+                    { value: "most_expensive" as ListingSort, label: copy.filters.mostExpensive },
+                  ]
+                ).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() =>
+                      setFilters((current) => ({
+                        ...current,
+                        sort: option.value,
+                        offset: 0,
+                      }))
+                    }
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      filters.sort === option.value
+                        ? "rs-chip-active"
+                        : "rs-chip hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              <ActiveFilters
+                filters={filters}
+                onChange={setFilters}
+                language={language}
+                onReset={resetFilters}
+              />
               <FilterDebugPanel
                 filters={filters}
                 serverCount={listings.length}
@@ -790,95 +824,84 @@ export default function DashboardPage() {
               />
             </div>
 
+            {/* Compact source bar — collapsed by default */}
             <motion.section
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               className="dashboard-shell mb-5 rounded-2xl p-4"
             >
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <div className="rs-subtle text-xs font-semibold uppercase tracking-[0.16em]">
-                    {copy.scraper.sourceOverview}
+              <details>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-0.5">
+                  <div className="flex flex-wrap items-center gap-3 text-xs">
+                    <span className="font-semibold text-[var(--color-text)]">
+                      {sourceHealthStats.onlineSources.length}{" "}
+                      <span className="rs-muted font-normal">{copy.scraper.activeSources}</span>
+                    </span>
+                    {newestFinishedAtLabel ? (
+                      <span className="rs-muted">
+                        {copy.scraper.lastUpdated}: {newestFinishedAtLabel}
+                      </span>
+                    ) : null}
                   </div>
-                  <p className="rs-muted mt-2 max-w-2xl text-xs leading-5">
-                    {copy.scraper.sourceOverviewDescription}
-                  </p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-xs sm:min-w-[24rem]">
-                  <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
-                    <div className="rs-subtle">{copy.scraper.sourcesOnline}</div>
-                    <div className="mt-1 text-lg font-semibold text-[var(--color-text)]">
-                      {sourceHealthStats.onlineSources.length}/{sourceHealthStats.automaticSources.length}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
-                    <div className="rs-subtle">{copy.scraper.listingsAddedToday}</div>
-                    <div className="mt-1 text-lg font-semibold text-[var(--color-text)]">
-                      {sourceHealthStats.listingsAddedToday}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
-                    <div className="rs-subtle">{copy.scraper.limitedManualSources}</div>
-                    <div className="mt-1 text-lg font-semibold text-[var(--color-text)]">
-                      {sourceHealthStats.limitedSources.length}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                  {automaticSourceCounts.map((item) => {
-                  const sourceFreshness = freshnessBySource.get(item.source_id);
-                  const freshnessState = sourceFreshness?.state ?? "never_scanned";
-                  const lastScan = item.last_scan_finished_at ?? sourceFreshness?.finished_at ?? null;
+                  <span className="rs-subtle shrink-0 text-xs font-semibold transition hover:text-[var(--color-text)]">
+                    {copy.scraper.viewSourceStatus} ›
+                  </span>
+                </summary>
 
-                  return (
-                    <div
-                      key={item.source_id}
-                      className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm font-semibold text-[var(--color-text)]">
-                          {item.display_name}
-                        </span>
-                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          freshnessState === "recent"
-                            ? "bg-[var(--color-teal-soft)] text-[var(--color-teal)]"
-                            : freshnessState === "stale"
-                              ? "bg-[var(--color-accent-soft)] text-[var(--color-accent-strong)]"
-                              : "bg-[var(--color-soft)] text-[var(--color-subtle)]"
-                        }`}
-                        >
-                          {copy.scraper.freshness[freshnessState]}
-                        </span>
-                      </div>
-                      <div className="rs-muted mt-2 flex items-center justify-between gap-3 text-xs">
-                        <span>{item.count} {copy.dashboard.results.toLowerCase()}</span>
-                        {lastScan ? <span>{formatUpdatedAt(lastScan, language)}</span> : null}
-                      </div>
-                    </div>
-                  );
-                })}
-                </div>
-                {limitedSourceCounts.length ? (
-                  <details className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] px-3 py-2">
-                    <summary className="cursor-pointer select-none text-xs font-semibold text-[var(--color-muted)]">
-                      {copy.scraper.limitedManualSources}: {limitedSourceCounts.length}
-                    </summary>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {limitedSourceCounts.map((item) => (
-                        <span
+                <div className="mt-4 space-y-3">
+                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    {automaticSourceCounts.map((item) => {
+                      const sourceFreshness = freshnessBySource.get(item.source_id);
+                      const freshnessState = sourceFreshness?.state ?? "never_scanned";
+                      const lastScan = item.last_scan_finished_at ?? sourceFreshness?.finished_at ?? null;
+
+                      return (
+                        <div
                           key={item.source_id}
-                          className="rs-chip rounded-full px-3 py-1.5 text-xs font-semibold"
-                          title={item.internal_reason ?? item.notes}
+                          className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3"
                         >
-                          {item.display_name}
-                        </span>
-                      ))}
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-sm font-semibold text-[var(--color-text)]">
+                              {item.display_name}
+                            </span>
+                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              freshnessState === "recent"
+                                ? "bg-[var(--color-teal-soft)] text-[var(--color-teal)]"
+                                : freshnessState === "stale"
+                                  ? "bg-[var(--color-accent-soft)] text-[var(--color-accent-strong)]"
+                                  : "bg-[var(--color-soft)] text-[var(--color-subtle)]"
+                            }`}>
+                              {copy.scraper.freshness[freshnessState]}
+                            </span>
+                          </div>
+                          <div className="rs-muted mt-2 flex items-center justify-between gap-3 text-xs">
+                            <span>{item.count} {copy.dashboard.results.toLowerCase()}</span>
+                            {lastScan ? <span>{formatUpdatedAt(lastScan, language)}</span> : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {limitedSourceCounts.length ? (
+                    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] px-3 py-2.5">
+                      <div className="mb-2 text-xs font-semibold text-[var(--color-muted)]">
+                        {copy.scraper.limitedManualSources} ({limitedSourceCounts.length})
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {limitedSourceCounts.map((item) => (
+                          <span
+                            key={item.source_id}
+                            className="rs-chip rounded-full px-3 py-1.5 text-xs font-semibold"
+                            title={item.internal_reason ?? item.notes}
+                          >
+                            {item.display_name}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </details>
-                ) : null}
-              </div>
+                  ) : null}
+                </div>
+              </details>
             </motion.section>
 
             {error ? (

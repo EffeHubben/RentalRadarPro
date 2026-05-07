@@ -190,19 +190,25 @@ export function ActiveFilters({
   filters,
   onChange,
   language,
+  onReset,
 }: {
   filters: ListingFilters;
   onChange: (filters: ListingFilters) => void;
   language: Language;
+  onReset?: () => void;
 }) {
   const activeFilters = getActiveFilters(filters, language);
   const copy = i18n[language].activeFilters;
+  const filtersCopy = i18n[language].filters;
+  const hasRemovableFilters = activeFilters.some(
+    (f) => f.key !== "showHiddenListings" && f.key !== "city",
+  );
 
   return (
     <div className="min-h-10">
       <AnimatePresence initial={false}>
         {activeFilters.length ? (
-          <motion.div layout className="flex flex-wrap gap-2">
+          <motion.div layout className="flex flex-wrap items-center gap-2">
             {activeFilters.map((filter) => (
               <motion.button
                 key={filter.key}
@@ -221,9 +227,22 @@ export function ActiveFilters({
                 }
                 className="rs-chip rounded-full px-3 py-1.5 text-xs font-medium transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
               >
-                {filter.label} <span className="rs-subtle ml-1">x</span>
+                {filter.label} <span className="rs-subtle ml-1">×</span>
               </motion.button>
             ))}
+            {onReset && hasRemovableFilters ? (
+              <motion.button
+                type="button"
+                layout
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={onReset}
+                className="rs-subtle px-1.5 py-1.5 text-xs font-semibold underline underline-offset-2 transition hover:text-[var(--color-text)]"
+              >
+                {filtersCopy.reset}
+              </motion.button>
+            ) : null}
           </motion.div>
         ) : (
           <motion.p
