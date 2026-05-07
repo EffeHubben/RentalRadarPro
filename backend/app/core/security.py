@@ -69,6 +69,22 @@ def decode_access_token(token: str) -> dict:
     return payload
 
 
+def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    database: Session = Depends(get_database_session),
+) -> User | None:
+    if credentials is None:
+        return None
+    try:
+        payload = decode_access_token(credentials.credentials)
+    except HTTPException:
+        return None
+    user_id = payload.get("sub")
+    if not user_id:
+        return None
+    return database.query(User).filter(User.id == int(user_id), User.is_active.is_(True)).first()
+
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     database: Session = Depends(get_database_session),

@@ -70,6 +70,15 @@ export type LocationPrecision =
   | "city"
   | "unknown";
 
+export type ListingsPage = {
+  items: Listing[];
+  total: number;
+  visible_count: number;
+  free_limit_applied: boolean;
+  requires_pro: boolean;
+  preview_fields_only: boolean;
+};
+
 export type ListingSort =
   | "best_match"
   | "newest"

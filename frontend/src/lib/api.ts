@@ -1,6 +1,6 @@
 import type {
-  Listing,
   ListingFilters,
+  ListingsPage,
   ScraperFreshness,
   ScraperResult,
   SourceInfo,
@@ -105,12 +105,16 @@ export function buildListingQueryParams(filters: ListingFilters): URLSearchParam
   return params;
 }
 
-export async function fetchListings(filters: ListingFilters): Promise<Listing[]> {
+export async function fetchListings(
+  filters: ListingFilters,
+  accessToken?: string | null,
+): Promise<ListingsPage> {
   const params = buildListingQueryParams(filters);
   const query = params.toString();
 
-  return request<Listing[]>(`/listings/${query ? `?${query}` : ""}`, {
+  return request<ListingsPage>(`/listings/${query ? `?${query}` : ""}`, {
     cache: "no-store",
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
   });
 }
 

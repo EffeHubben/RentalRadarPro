@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { ActiveFilters } from "@/components/dashboard/ActiveFilters";
 import { FilterPanel } from "@/components/dashboard/FilterPanel";
 import { ListingCard } from "@/components/dashboard/ListingCard";
@@ -38,6 +40,7 @@ import type {
   ListingFilters,
   ListingSort,
   ListingStatus,
+  ListingsPage,
   LocalListingWorkflowState,
   PropertyType,
   ScraperFreshness,
@@ -46,6 +49,54 @@ import type {
 } from "@/types/listing";
 
 const onboardingStorageKey = "rental-radar-onboarding-complete-v1";
+
+function PreviewBanner({
+  visibleCount,
+  totalCount,
+  isGuest,
+  banner,
+}: {
+  visibleCount: number;
+  totalCount: number;
+  isGuest: boolean;
+  banner: {
+    title: string;
+    body: string;
+    proUnlocks: string;
+    ctaGuest: string;
+    ctaFree: string;
+    visibleCountOf: string;
+    visibleCountSuffix: string;
+  };
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28 }}
+      className="mt-6 rounded-[1.5rem] border border-[var(--color-teal)]/30 bg-[var(--color-teal-soft)] p-5 shadow-[var(--shadow-soft)]"
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-[var(--color-text)]">{banner.title}</div>
+          <p className="rs-muted mt-1 text-sm leading-6">{banner.body}</p>
+          <p className="rs-subtle mt-1 text-xs">{banner.proUnlocks}</p>
+          <p className="mt-2 text-xs font-semibold text-[var(--color-teal)]">
+            {visibleCount} {banner.visibleCountOf} {totalCount} {banner.visibleCountSuffix}
+          </p>
+        </div>
+        <div className="shrink-0">
+          <Link
+            href={isGuest ? "/account" : "/#pricing"}
+            className="inline-block rounded-xl bg-[var(--color-teal)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            {isGuest ? banner.ctaGuest : banner.ctaFree}
+          </Link>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 function AnimatedValue({ value }: { value: string | number }) {
   return (
@@ -152,10 +203,11 @@ function formatUpdatedAt(value: string | null, language: Language) {
 }
 
 export default function DashboardPage() {
+  const auth = useAuth();
   const [filters, setFilters] = useState<ListingFilters>(() => createInitialFilters());
   const [language, setLanguage] = useState<Language>("nl");
   const [searchStarted, setSearchStarted] = useState(false);
-  const [listings, setListings] = useState<Listing[]>([]);
+  const [listingsPage, setListingsPage] = useState<ListingsPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scraperFreshness, setScraperFreshness] = useState<ScraperFreshness | null>(null);
@@ -169,6 +221,11 @@ export default function DashboardPage() {
   const [profileName, setProfileName] = useState("");
   const toastId = useRef(0);
   const copy = i18n[language];
+
+  const listings = useMemo(() => listingsPage?.items ?? [], [listingsPage]);
+  const freeLimitApplied = listingsPage?.free_limit_applied ?? false;
+  const requiresPro = listingsPage?.requires_pro ?? false;
+  const totalListings = listingsPage?.total ?? 0;
 
   useEffect(() => {
     const storedLanguage = window.localStorage.getItem("rental-radar-language");
@@ -210,13 +267,13 @@ export default function DashboardPage() {
   );
 
   const loadListings = useCallback(
-    async (nextFilters: ListingFilters) => {
+    async (nextFilters: ListingFilters, token: string | null) => {
       setLoading(true);
       setError(null);
 
       try {
-        const data = await fetchListings(nextFilters);
-        setListings(data);
+        const data = await fetchListings(nextFilters, token);
+        setListingsPage(data);
       } catch (caughtError) {
         const message =
           caughtError instanceof Error
@@ -246,11 +303,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
-      void loadListings(filters);
+      void loadListings(filters, auth.accessToken);
     }, 260);
 
     return () => window.clearTimeout(handle);
-  }, [filters, loadListings]);
+  }, [filters, loadListings, auth.accessToken]);
 
   useEffect(() => {
     if (!selectedListing) {
@@ -763,7 +820,11 @@ export default function DashboardPage() {
                   <div className="text-sm font-semibold text-[var(--color-text)]">
                     {loading
                       ? copy.dashboard.refreshing
-                      : `${visibleListings.length} ${copy.dashboard.found}`}
+                      : requiresPro
+                        ? `${visibleListings.length} ${copy.previewBanner.visibleCountOf} ${totalListings} ${copy.previewBanner.visibleCountSuffix}`
+                        : freeLimitApplied
+                          ? `${visibleListings.length} ${copy.previewBanner.visibleCountFree}`
+                          : `${visibleListings.length} ${copy.dashboard.found}`}
                   </div>
                   <p className="dashboard-muted mt-1 text-xs">
                     {scraperFreshness?.is_fresh
@@ -819,7 +880,7 @@ export default function DashboardPage() {
               />
               <FilterDebugPanel
                 filters={filters}
-                serverCount={listings.length}
+                serverCount={totalListings}
                 visibleCount={visibleListings.length}
               />
             </div>
@@ -923,6 +984,7 @@ export default function DashboardPage() {
                       language={language}
                       status={workflowStatusForListing(workflowState, listing)}
                       onStatusChange={handleStatusChange}
+                      previewOnly={Boolean(listingsPage?.preview_fields_only)}
                     />
                   ))}
                 </AnimatePresence>
@@ -930,6 +992,15 @@ export default function DashboardPage() {
             ) : (
               <EmptyState language={language} />
             )}
+
+            {!loading && requiresPro ? (
+              <PreviewBanner
+                visibleCount={listings.length}
+                totalCount={totalListings}
+                isGuest={!auth.user}
+                banner={copy.previewBanner}
+              />
+            ) : null}
           </section>
         </div>
 

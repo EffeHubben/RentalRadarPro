@@ -200,6 +200,85 @@ export function ListingImage(props: { listing: Listing; language: Language; larg
   return <ImageBlock {...props} />;
 }
 
+function PreviewListingCard({
+  listing,
+  index,
+  language,
+}: {
+  listing: Listing;
+  index: number;
+  language: Language;
+}) {
+  const copy = i18n[language].listing;
+
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: Math.min(index * 0.035, 0.28) }}
+      className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-soft)]"
+    >
+      <div className="flex h-56 flex-col items-center justify-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-soft)]">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            className="h-7 w-7 text-[var(--color-subtle)]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </div>
+        <div className="text-sm font-semibold text-[var(--color-muted)]">{copy.lockedPreview}</div>
+      </div>
+
+      <div className="space-y-4 p-5">
+        <div className="flex flex-wrap gap-2">
+          <Badge>{propertyTypeLabel(listing.property_type, language)}</Badge>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="rounded-lg bg-[var(--color-soft)] p-3">
+            <div className="rs-subtle">{copy.rent}</div>
+            <div className="mt-1 font-semibold text-[var(--color-accent-strong)]">
+              {formatPrice(listing.price, language)}
+            </div>
+          </div>
+          <div className="rounded-lg bg-[var(--color-soft)] p-3">
+            <div className="rs-subtle">{copy.location}</div>
+            <div className="mt-1 font-semibold text-[var(--color-text)]">
+              {listing.city ?? copy.cityUnknown}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] px-3 py-3">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            className="h-4 w-4 shrink-0 text-[var(--color-subtle)]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span className="rs-muted text-xs">{copy.lockedDetails}</span>
+        </div>
+      </div>
+    </motion.article>
+  );
+}
+
 type ListingCardProps = {
   listing: Listing;
   index: number;
@@ -208,6 +287,7 @@ type ListingCardProps = {
   language: Language;
   status: ListingStatus;
   onStatusChange: (listing: Listing, status: ListingStatus) => void;
+  previewOnly?: boolean;
 };
 
 export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function ListingCard(
@@ -219,6 +299,7 @@ export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function Li
     language,
     status,
     onStatusChange,
+    previewOnly,
   },
   ref,
 ) {
@@ -233,6 +314,10 @@ export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function Li
   const strongMatch = confidence >= 0.75 && !unavailable;
   const newListing = isNewListing(listing);
   const [hasLoadedRealImage, setHasLoadedRealImage] = useState(false);
+
+  if (previewOnly) {
+    return <PreviewListingCard listing={listing} index={index} language={language} />;
+  }
 
   return (
     <motion.article

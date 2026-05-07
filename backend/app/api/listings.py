@@ -5,10 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import and_, case, or_
 from sqlalchemy.orm import Session
 
+from app.core.security import get_optional_user
+from app.core.subscription import is_pro
 from app.database.db import get_database_session
 from app.models.listing import Listing
+from app.models.user import User
 from app.services.duplicates import duplicate_sources_for_listings
-from app.schemas.listing import ListingCreate, ListingResponse
+from app.schemas.listing import ListingCreate, ListingResponse, ListingsPageResponse
 
 
 router = APIRouter(
@@ -16,8 +19,57 @@ router = APIRouter(
     tags=["Listings"]
 )
 
+FREE_LISTING_LIMIT = 10
 
-@router.get("/", response_model=list[ListingResponse])
+
+def _make_preview_listing(listing: Listing) -> ListingResponse:
+    """Return a sanitized ListingResponse that reveals only preview-safe fields."""
+    now = datetime.utcnow()
+    return ListingResponse(
+        id=listing.id,
+        title="",
+        source="",
+        source_key=None,
+        url="#",
+        city=listing.city,
+        price=listing.price,
+        area_m2=None,
+        rooms=None,
+        property_type=listing.property_type,
+        private_kitchen=None,
+        private_bathroom=None,
+        private_toilet=None,
+        shared_laundry=None,
+        is_shared=None,
+        is_woningruil=False,
+        availability_status=listing.availability_status,
+        is_available=None,
+        confidence_score=None,
+        image_url=None,
+        description=None,
+        address_text=None,
+        street_name=None,
+        house_number=None,
+        postal_code=None,
+        latitude=None,
+        longitude=None,
+        location_precision="city",
+        location_confidence=0.0,
+        duplicate_key=None,
+        canonical_key=None,
+        duplicate_group_id=None,
+        source_count=1,
+        is_active=listing.is_active if listing.is_active is not None else True,
+        created_at=listing.created_at or now,
+        updated_at=listing.updated_at or now,
+        first_seen_at=listing.first_seen_at,
+        last_seen_at=listing.last_seen_at,
+        last_checked_at=None,
+        duplicate_sources=[],
+    )
+
+
+@router.get("/", response_model=ListingsPageResponse)
 def get_listings(
     request: Request,
     city: str | None = Query(default=None),
@@ -60,6 +112,7 @@ def get_listings(
     ] = Query(default="newest"),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    current_user: User | None = Depends(get_optional_user),
     database: Session = Depends(get_database_session),
 ):
     query = database.query(Listing)
@@ -262,20 +315,38 @@ def get_listings(
             Listing.created_at.desc(),
         )
 
-    listings = query.offset(offset).limit(limit).all()
-    duplicate_sources_by_group = duplicate_sources_for_listings(database, listings)
+    total = query.count()
+    user_is_pro = current_user is not None and is_pro(current_user)
+    free_limit_applied = not user_is_pro
 
-    for listing in listings:
-        listing.duplicate_sources = duplicate_sources_by_group.get(
-            listing.duplicate_group_id or "",
-            [],
-        )
-        if listing.duplicate_sources:
-            listing.source_count = max(listing.source_count or 1, len({
-                source["source"] for source in listing.duplicate_sources
-            }))
+    if free_limit_applied:
+        raw_listings = query.offset(0).limit(FREE_LISTING_LIMIT).all()
+    else:
+        raw_listings = query.offset(offset).limit(limit).all()
 
-    return listings
+    if free_limit_applied:
+        response_items = [_make_preview_listing(listing) for listing in raw_listings]
+    else:
+        duplicate_sources_by_group = duplicate_sources_for_listings(database, raw_listings)
+        for listing in raw_listings:
+            listing.duplicate_sources = duplicate_sources_by_group.get(
+                listing.duplicate_group_id or "",
+                [],
+            )
+            if listing.duplicate_sources:
+                listing.source_count = max(listing.source_count or 1, len({
+                    src["source"] for src in listing.duplicate_sources
+                }))
+        response_items = raw_listings
+
+    return ListingsPageResponse(
+        items=response_items,
+        total=total,
+        visible_count=len(response_items),
+        free_limit_applied=free_limit_applied,
+        requires_pro=free_limit_applied and total > FREE_LISTING_LIMIT,
+        preview_fields_only=free_limit_applied,
+    )
 
 
 @router.get("/{listing_id}", response_model=ListingResponse)

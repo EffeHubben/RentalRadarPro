@@ -69,3 +69,12 @@ class ListingResponse(ListingBase):
     duplicate_sources: list[DuplicateSource] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ListingsPageResponse(BaseModel):
+    items: list[ListingResponse]
+    total: int
+    visible_count: int
+    free_limit_applied: bool
+    requires_pro: bool
+    preview_fields_only: bool
