@@ -112,7 +112,7 @@ function PreviewLockedDialog({
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-md"
+      className="rs-modal-backdrop-soft fixed inset-0 z-50 flex items-center justify-center px-4 py-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -123,7 +123,7 @@ function PreviewLockedDialog({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 18, scale: 0.98 }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-hover)]"
+        className="rs-modal-panel w-full max-w-md rounded-2xl p-5"
         role="dialog"
         aria-modal="true"
         aria-labelledby="preview-locked-title"
@@ -155,7 +155,7 @@ function PreviewLockedDialog({
           </button>
           <Link
             href={isGuest ? "/account" : "/#pricing"}
-            className="rounded-xl bg-[var(--color-teal)] px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:opacity-90"
+            className="rounded-xl bg-[var(--color-teal)] px-4 py-2.5 text-center text-sm font-semibold text-[white] transition hover:opacity-90"
             onClick={onClose}
           >
             {isGuest ? copy.lockedCtaGuest : copy.lockedCtaFree}

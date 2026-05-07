@@ -23,6 +23,16 @@
   --color-teal-soft: rgba(36, 123, 114, 0.10);
   --color-danger-soft: rgba(220, 38, 38, 0.10);
   --color-hero-glow: rgba(181, 132, 47, 0.14);
+  --color-modal-backdrop: rgba(50, 42, 31, 0.34);
+  --color-modal-backdrop-soft: rgba(50, 42, 31, 0.28);
+  --color-modal-panel: #fffdf9;
+  --color-modal-panel-subtle: rgba(244, 240, 232, 0.72);
+  --color-modal-image-scrim: linear-gradient(
+    180deg,
+    rgba(255, 253, 249, 0) 0%,
+    rgba(255, 253, 249, 0.76) 58%,
+    #fffdf9 100%
+  );
   --shadow-premium: 0 18px 42px rgba(50, 42, 31, 0.08), 0 1px 2px rgba(50, 42, 31, 0.06);
   --shadow-soft: 0 10px 24px rgba(50, 42, 31, 0.07), 0 1px 2px rgba(50, 42, 31, 0.05);
   --shadow-hover: 0 18px 36px rgba(50, 42, 31, 0.11), 0 2px 6px rgba(50, 42, 31, 0.06);
@@ -49,6 +59,16 @@
   --color-teal-soft: rgba(108, 207, 195, 0.12);
   --color-danger-soft: rgba(248, 113, 113, 0.12);
   --color-hero-glow: rgba(215, 168, 79, 0.10);
+  --color-modal-backdrop: rgba(0, 0, 0, 0.74);
+  --color-modal-backdrop-soft: rgba(0, 0, 0, 0.58);
+  --color-modal-panel: #10131a;
+  --color-modal-panel-subtle: rgba(255, 255, 255, 0.045);
+  --color-modal-image-scrim: linear-gradient(
+    180deg,
+    rgba(16, 19, 26, 0) 0%,
+    rgba(16, 19, 26, 0.76) 58%,
+    #10131a 100%
+  );
   --shadow-premium: 0 18px 48px rgba(0, 0, 0, 0.28), 0 1px 2px rgba(0, 0, 0, 0.28);
   --shadow-soft: 0 12px 28px rgba(0, 0, 0, 0.24);
   --shadow-hover: 0 22px 54px rgba(0, 0, 0, 0.34);
@@ -186,6 +206,53 @@ img {
 
   .rs-primary-button:active {
     transform: translateY(1px) scale(0.99);
+  }
+
+  .rs-modal-backdrop {
+    background: var(--color-modal-backdrop);
+    backdrop-filter: blur(16px);
+  }
+
+  .rs-modal-backdrop-soft {
+    background: var(--color-modal-backdrop-soft);
+    backdrop-filter: blur(14px);
+  }
+
+  .rs-modal-panel {
+    border: 1px solid var(--color-border);
+    background:
+      radial-gradient(circle at 18% 0%, var(--color-accent-soft), transparent 16rem),
+      var(--color-modal-panel);
+    color: var(--color-text);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .rs-modal-section {
+    border: 1px solid var(--color-border);
+    background: var(--color-modal-panel-subtle);
+  }
+
+  .rs-modal-input {
+    width: 100%;
+    border-radius: 0.65rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    outline: none;
+    transition:
+      border-color 180ms ease,
+      background-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .rs-modal-input::placeholder {
+    color: var(--color-subtle);
+  }
+
+  .rs-modal-input:focus {
+    border-color: color-mix(in srgb, var(--color-accent) 70%, transparent);
+    background: var(--color-surface);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
   }
 
   .rs-theme-transition,

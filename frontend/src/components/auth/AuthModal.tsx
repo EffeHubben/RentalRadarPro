@@ -9,7 +9,7 @@ import { i18n, type Language } from "@/lib/i18n";
 type AuthMode = "login" | "register";
 
 function inputClass() {
-  return "h-11 w-full rounded-lg border border-white/10 bg-white/[0.055] px-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-brass/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-brass/20";
+  return "rs-modal-input h-11 px-3 text-sm";
 }
 
 export function AuthModal({
@@ -106,7 +106,7 @@ export function AuthModal({
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/74 px-4 py-6 backdrop-blur-md sm:py-10"
+          className="rs-modal-backdrop fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto px-4 py-6 sm:py-10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -117,26 +117,26 @@ export function AuthModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ type: "spring", damping: 26, stiffness: 220 }}
-            className="my-auto flex max-h-[calc(100dvh-3rem)] w-full max-w-md flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#10131a] shadow-premium"
+            className="rs-modal-panel my-auto flex max-h-[calc(100dvh-3rem)] w-full max-w-md flex-col overflow-hidden rounded-[1.5rem]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="border-b border-white/10 bg-[radial-gradient(circle_at_18%_0%,rgba(215,168,79,0.16),transparent_16rem),rgba(255,255,255,0.035)] p-5">
+            <div className="border-b border-[var(--color-border)] bg-[var(--color-modal-panel-subtle)] p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-xs font-semibold uppercase tracking-[0.18em] text-brass">
                     RentScout
                   </div>
-                  <h2 className="mt-2 text-2xl font-semibold text-white">
+                  <h2 className="mt-2 text-2xl font-semibold text-[var(--color-text)]">
                     {mode === "login" ? copy.loginTitle : copy.registerTitle}
                   </h2>
-                  <p className="mt-2 text-sm leading-5 text-white/50">
+                  <p className="mt-2 text-sm leading-5 text-[var(--color-muted)]">
                     {mode === "login" ? copy.loginSubtitle : copy.registerSubtitle}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="h-10 w-10 rounded-xl border border-white/10 bg-black/18 text-white/55 transition hover:border-white/24 hover:text-white"
+                  className="rs-control h-10 w-10 rounded-xl text-sm font-semibold"
                   aria-label={copy.continueAsGuest}
                 >
                   x
@@ -156,7 +156,7 @@ export function AuthModal({
                 >
                   {mode === "register" ? (
                     <label className="block">
-                      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-white/42">
+                      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-subtle)]">
                         {copy.displayName}
                       </span>
                       <input
@@ -169,7 +169,7 @@ export function AuthModal({
                   ) : null}
 
                   <label className="block">
-                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-white/42">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-subtle)]">
                       {copy.email}
                     </span>
                     <input
@@ -184,7 +184,7 @@ export function AuthModal({
                   </label>
 
                   <label className="block">
-                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-white/42">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-subtle)]">
                       {copy.password}
                     </span>
                     <input
@@ -200,7 +200,7 @@ export function AuthModal({
 
                   {mode === "register" ? (
                     <label className="block">
-                      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-white/42">
+                      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-subtle)]">
                         {copy.confirmPassword}
                       </span>
                       <input
@@ -239,14 +239,14 @@ export function AuthModal({
                 <button
                   type="button"
                   onClick={() => switchMode(mode === "login" ? "register" : "login")}
-                  className="h-10 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-semibold text-white/62 transition hover:border-white/24 hover:text-white"
+                  className="rs-control h-10 rounded-xl px-3 text-xs font-semibold"
                 >
                   {mode === "login" ? copy.switchToRegister : copy.switchToLogin}
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="h-10 rounded-xl border border-white/10 bg-black/18 px-3 text-xs font-semibold text-white/50 transition hover:border-white/24 hover:text-white"
+                  className="rs-control h-10 rounded-xl px-3 text-xs font-semibold"
                 >
                   {copy.continueAsGuest}
                 </button>
