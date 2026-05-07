@@ -99,6 +99,73 @@ function PreviewBanner({
   );
 }
 
+function PreviewLockedDialog({
+  isGuest,
+  language,
+  onClose,
+}: {
+  isGuest: boolean;
+  language: Language;
+  onClose: () => void;
+}) {
+  const copy = i18n[language].listing;
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-md"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 18, scale: 0.98 }}
+        transition={{ duration: 0.2 }}
+        className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-hover)]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="preview-locked-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 id="preview-locked-title" className="text-lg font-semibold text-[var(--color-text)]">
+              {copy.lockedPreview}
+            </h2>
+            <p className="rs-muted mt-2 text-sm leading-6">{copy.lockedDetails}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rs-control h-10 w-10 shrink-0 rounded-xl text-sm font-semibold"
+            aria-label={i18n[language].modal.close}
+          >
+            x
+          </button>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rs-control rounded-xl px-4 py-2.5 text-sm font-semibold"
+          >
+            {i18n[language].modal.close}
+          </button>
+          <Link
+            href={isGuest ? "/account" : "/#pricing"}
+            className="rounded-xl bg-[var(--color-teal)] px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:opacity-90"
+            onClick={onClose}
+          >
+            {isGuest ? copy.lockedCtaGuest : copy.lockedCtaFree}
+          </Link>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function AnimatedValue({ value }: { value: string | number }) {
   return (
     <motion.span
@@ -214,6 +281,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [scraperFreshness, setScraperFreshness] = useState<ScraperFreshness | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [previewLockedOpen, setPreviewLockedOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [workflowState, setWorkflowState] = useState<LocalListingWorkflowState>({});
@@ -336,7 +404,7 @@ export default function DashboardPage() {
     return Array.from(
       new Set([
         ...configuredSources.map((source) => source.display_name),
-        ...listings.map((listing) => listing.source),
+        ...listings.map((listing) => listing.source).filter(Boolean),
       ]),
     ).sort();
   }, [configuredSources, listings]);
@@ -989,6 +1057,7 @@ export default function DashboardPage() {
                       status={workflowStatusForListing(workflowState, listing)}
                       onStatusChange={handleStatusChange}
                       previewOnly={Boolean(listingsPage?.preview_fields_only)}
+                      onPreviewLocked={() => setPreviewLockedOpen(true)}
                     />
                   ))}
                 </AnimatePresence>
@@ -1075,6 +1144,15 @@ export default function DashboardPage() {
         note={selectedListingNote}
         onNoteChange={handleNoteChange}
       />
+      <AnimatePresence>
+        {previewLockedOpen ? (
+          <PreviewLockedDialog
+            isGuest={!auth.user}
+            language={language}
+            onClose={() => setPreviewLockedOpen(false)}
+          />
+        ) : null}
+      </AnimatePresence>
     </main>
     </div>
   );

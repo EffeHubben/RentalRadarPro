@@ -28,13 +28,8 @@ function ImageBlock({
   const height = large ? "h-72 sm:h-[28rem]" : "h-56";
   const copy = i18n[language].listing;
   const [failed, setFailed] = useState(false);
-  const imageUrl = listing.image_url?.trim() ?? "";
-  const imageHost = imageUrl ? safeImageHost(imageUrl) : "";
-  const hasUsableImage =
-    Boolean(imageUrl) &&
-    !blockedImageHosts.has(imageHost) &&
-    !imageUrl.toLowerCase().includes("photo_waiting") &&
-    !imageUrl.toLowerCase().includes("placeholder");
+  const imageUrl = getUsableImageUrl(listing);
+  const hasUsableImage = Boolean(imageUrl);
 
   useEffect(() => {
     setFailed(false);
@@ -92,6 +87,22 @@ function ImageBlock({
 }
 
 const blockedImageHosts = new Set(["b.static.nbo.nl"]);
+
+function getUsableImageUrl(listing: Listing) {
+  const imageUrl = listing.image_url?.trim() ?? "";
+  const imageHost = imageUrl ? safeImageHost(imageUrl) : "";
+
+  if (
+    !imageUrl ||
+    blockedImageHosts.has(imageHost) ||
+    imageUrl.toLowerCase().includes("photo_waiting") ||
+    imageUrl.toLowerCase().includes("placeholder")
+  ) {
+    return "";
+  }
+
+  return imageUrl;
+}
 
 function safeImageHost(imageUrl: string) {
   try {
@@ -204,45 +215,77 @@ function PreviewListingCard({
   listing,
   index,
   language,
+  onLockedClick,
 }: {
   listing: Listing;
   index: number;
   language: Language;
+  onLockedClick: () => void;
 }) {
   const copy = i18n[language].listing;
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageUrl = getUsableImageUrl(listing);
+  const showImage = Boolean(imageUrl) && !imageFailed;
 
   return (
     <motion.article
       layout
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.992 }}
       transition={{ duration: 0.35, delay: Math.min(index * 0.035, 0.28) }}
-      className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-soft)]"
+      onClick={onLockedClick}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onLockedClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      className="group cursor-pointer overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-soft)] outline-none transition duration-300 hover:-translate-y-1 hover:border-[var(--color-border-strong)] hover:shadow-[var(--shadow-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-teal)]"
     >
-      <div className="flex h-56 flex-col items-center justify-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-soft)]">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-          <svg
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            className="h-7 w-7 text-[var(--color-subtle)]"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
+      <div className="relative h-56 overflow-hidden border-b border-[var(--color-border)] bg-[var(--color-soft)]">
+        {showImage ? (
+          <motion.img
+            key={imageUrl}
+            src={imageUrl}
+            alt=""
+            initial={{ opacity: 0, scale: 1.015 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.35 }}
+            onError={() => setImageFailed(true)}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"
+          />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-3">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                className="h-7 w-7 text-[var(--color-subtle)]"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <div className="text-sm font-semibold text-[var(--color-muted)]">
+              {copy.lockedPreview}
+            </div>
+          </div>
+        )}
+        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+          <Badge>{propertyTypeLabel(listing.property_type, language)}</Badge>
         </div>
-        <div className="text-sm font-semibold text-[var(--color-muted)]">{copy.lockedPreview}</div>
       </div>
 
       <div className="space-y-4 p-5">
-        <div className="flex flex-wrap gap-2">
-          <Badge>{propertyTypeLabel(listing.property_type, language)}</Badge>
-        </div>
-
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-lg bg-[var(--color-soft)] p-3">
             <div className="rs-subtle">{copy.rent}</div>
@@ -288,6 +331,7 @@ type ListingCardProps = {
   status: ListingStatus;
   onStatusChange: (listing: Listing, status: ListingStatus) => void;
   previewOnly?: boolean;
+  onPreviewLocked?: () => void;
 };
 
 export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function ListingCard(
@@ -300,11 +344,25 @@ export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function Li
     status,
     onStatusChange,
     previewOnly,
+    onPreviewLocked,
   },
   ref,
 ) {
-  const summary = createSummary(listing);
   const copy = i18n[language].listing;
+  const [hasLoadedRealImage, setHasLoadedRealImage] = useState(false);
+
+  if (previewOnly) {
+    return (
+      <PreviewListingCard
+        listing={listing}
+        index={index}
+        language={language}
+        onLockedClick={onPreviewLocked ?? (() => onToast(copy.lockedDetails, "info"))}
+      />
+    );
+  }
+
+  const summary = createSummary(listing);
   const confidence = listing.confidence_score ?? 0.45;
   const lowConfidence = confidence < 0.45;
   const unavailable =
@@ -313,11 +371,6 @@ export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function Li
     listing.availability_status === "reserved";
   const strongMatch = confidence >= 0.75 && !unavailable;
   const newListing = isNewListing(listing);
-  const [hasLoadedRealImage, setHasLoadedRealImage] = useState(false);
-
-  if (previewOnly) {
-    return <PreviewListingCard listing={listing} index={index} language={language} />;
-  }
 
   return (
     <motion.article

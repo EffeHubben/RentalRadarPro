@@ -77,12 +77,13 @@ class ListingPreviewResponse(BaseModel):
     price: int | None = None
     property_type: PropertyType = "unknown"
     availability_status: AvailabilityStatus = "unknown"
+    image_url: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ListingsPageResponse(BaseModel):
-    items: list[ListingResponse]
+    items: list[ListingResponse | ListingPreviewResponse]
     total: int
     visible_count: int
     free_limit_applied: bool

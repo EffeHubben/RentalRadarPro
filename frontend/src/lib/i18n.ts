@@ -466,7 +466,9 @@ export const i18n = {
       notAvailable: "N/A",
       location: "Locatie",
       lockedPreview: "Details beschikbaar met Pro",
-      lockedDetails: "Foto's, adres, kamers en meer zijn zichtbaar met Pro",
+      lockedDetails: "Upgrade naar Pro om foto's, adres, bron, link en volledige details te bekijken.",
+      lockedCtaGuest: "Inloggen of account maken",
+      lockedCtaFree: "Bekijk Pro",
     },
     workflow: {
       title: "Mijn voortgang",
@@ -1183,7 +1185,9 @@ export const i18n = {
       notAvailable: "N/A",
       location: "Location",
       lockedPreview: "Details available with Pro",
-      lockedDetails: "Photos, address, rooms and more visible with Pro",
+      lockedDetails: "Upgrade to Pro to view photos, address, source, link and full details.",
+      lockedCtaGuest: "Log in or create account",
+      lockedCtaFree: "View Pro",
     },
     workflow: {
       title: "My progress",

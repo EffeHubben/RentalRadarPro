@@ -29,8 +29,17 @@ export function compactText(value: string | null | undefined, maxLength: number)
     : normalized;
 }
 
-export function cleanTitle(value: string) {
+export function cleanTitle(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
   const normalized = value.replace(/\s+/g, " ").trim();
+
+  if (!normalized) {
+    return "";
+  }
+
   const noisyPatterns = [
     /\bmeer op onze site\b/gi,
     /\bte huur:\s*/gi,
@@ -71,9 +80,17 @@ export function cleanTitle(value: string) {
 
 export function createSummary(listing: Listing, maxLength = 155) {
   const title = cleanTitle(listing.title);
-  const sourceText = listing.description || title;
+  const rawTitle = typeof listing.title === "string" ? listing.title : "";
+  const sourceText = typeof listing.description === "string" && listing.description.trim()
+    ? listing.description
+    : title;
+
+  if (!sourceText) {
+    return "";
+  }
+
   const withoutDuplicateTitle = sourceText
-    .replace(listing.title, "")
+    .replace(rawTitle, "")
     .replace(title, "")
     .replace(/meer op onze site/gi, "")
     .replace(/vraag een bezichtiging aan via de link onderaan deze advertentie!?/gi, "")
@@ -97,7 +114,13 @@ export function descriptionSections(description: string | null, language: Langua
 }
 
 export function listingDate(listing: Listing, language: Language = "nl") {
-  const date = new Date(listing.first_seen_at ?? listing.created_at);
+  const dateValue = listing.first_seen_at ?? listing.created_at;
+
+  if (!dateValue) {
+    return i18n[language].listing.recentlySeen;
+  }
+
+  const date = new Date(dateValue);
 
   if (Number.isNaN(date.getTime())) {
     return i18n[language].listing.recentlySeen;

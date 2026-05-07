@@ -50,7 +50,7 @@ def _make_preview_listing(listing: Listing) -> ListingResponse:
         availability_status=listing.availability_status,
         is_available=None,
         confidence_score=None,
-        image_url=None,
+        image_url=listing.image_url,
         description=None,
         address_text=None,
         street_name=None,
@@ -330,7 +330,17 @@ def get_listings(
         raw_listings = query.offset(offset).limit(limit).all()
 
     if free_limit_applied:
-        response_items = [_make_preview_listing(listing) for listing in raw_listings]
+        response_items = [
+            ListingPreviewResponse(
+                id=preview_listing.id,
+                city=preview_listing.city,
+                price=preview_listing.price,
+                property_type=preview_listing.property_type,
+                availability_status=preview_listing.availability_status,
+                image_url=preview_listing.image_url,
+            )
+            for preview_listing in (_make_preview_listing(listing) for listing in raw_listings)
+        ]
     else:
         duplicate_sources_by_group = duplicate_sources_for_listings(database, raw_listings)
         for listing in raw_listings:
@@ -373,6 +383,7 @@ def get_listing_by_id(
             price=preview_listing.price,
             property_type=preview_listing.property_type,
             availability_status=preview_listing.availability_status,
+            image_url=preview_listing.image_url,
         )
 
     return listing
