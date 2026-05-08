@@ -7,7 +7,12 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
-import { createBillingSession, useBillingConfig } from "@/lib/billing";
+import {
+  createBillingSession,
+  formatProPlanPrice,
+  formatProPlanPriceSuffix,
+  useBillingConfig,
+} from "@/lib/billing";
 import { hasPro } from "@/lib/subscription";
 import { i18n, type Language } from "@/lib/i18n";
 import { useLanguagePreference } from "@/lib/useLanguagePreference";
@@ -145,7 +150,12 @@ export default function HomePage() {
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingError, setBillingError] = useState("");
   const [pendingBillingMode, setPendingBillingMode] = useState<BillingMode | null>(null);
-  const { billingEnabled } = useBillingConfig();
+  const {
+    billingEnabled,
+    monthlyPriceAmount,
+    monthlyPriceCurrency,
+    monthlyPriceInterval,
+  } = useBillingConfig();
   const copy = i18n[language].home;
   const isPro = hasPro(auth.user);
 
@@ -214,8 +224,12 @@ export default function HomePage() {
         ? copy.proPlanManageCta
         : copy.proPlanCta;
   const proPlanButtonMode: BillingMode = isPro ? "portal" : "checkout";
-  const proPlanPrice = billingEnabled ? copy.proPlanPrice : copy.proPlanComingSoon;
-  const proPlanPriceSuffix = billingEnabled ? copy.proPlanPriceSuffix : "";
+  const proPlanPrice = billingEnabled
+    ? formatProPlanPrice(language, monthlyPriceAmount, monthlyPriceCurrency)
+    : copy.proPlanComingSoon;
+  const proPlanPriceSuffix = billingEnabled
+    ? formatProPlanPriceSuffix(language, monthlyPriceInterval)
+    : "";
 
   return (
     <div className="min-h-screen bg-[var(--color-page)] text-[var(--color-text)]">

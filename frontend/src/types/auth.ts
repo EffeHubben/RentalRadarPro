@@ -13,6 +13,7 @@ export type AuthUser = {
   plan: string;
   subscription_status: string;
   subscription_current_period_end: string | null;
+  subscription_cancel_at_period_end: boolean;
 };
 
 export type AuthResponse = {

@@ -134,6 +134,9 @@ def apply_subscription_state(user: User, subscription: Any) -> None:
     user.subscription_current_period_end = timestamp_to_datetime(
         stripe_value(subscription, "current_period_end")
     )
+    user.subscription_cancel_at_period_end = bool(
+        stripe_value(subscription, "cancel_at_period_end", False)
+    )
     user.plan = "pro" if subscription_status in PRO_SUBSCRIPTION_STATUSES else "free"
 
 
@@ -170,11 +173,42 @@ def clear_subscription_state(user: User, subscription: Any) -> None:
     user.subscription_current_period_end = timestamp_to_datetime(
         stripe_value(subscription, "current_period_end")
     )
+    user.subscription_cancel_at_period_end = False
+
+
+def get_billing_price_snapshot() -> dict[str, Any]:
+    snapshot: dict[str, Any] = {
+        "monthly_price_amount": None,
+        "monthly_price_currency": None,
+        "monthly_price_interval": None,
+    }
+
+    if not billing_is_configured():
+        return snapshot
+
+    try:
+        stripe = get_stripe()
+        price = stripe.Price.retrieve(
+            require_setting(settings.stripe_price_id_pro, "STRIPE_PRICE_ID_PRO"),
+            expand=["product"],
+        )
+    except Exception:
+        logger.exception("billing_price_lookup_failed")
+        return snapshot
+
+    recurring = stripe_value(price, "recurring") or {}
+    snapshot["monthly_price_amount"] = stripe_value(price, "unit_amount")
+    snapshot["monthly_price_currency"] = stripe_value(price, "currency")
+    snapshot["monthly_price_interval"] = stripe_value(recurring, "interval")
+    return snapshot
 
 
 @router.get("/config")
 def get_billing_config():
-    return {"billing_enabled": billing_is_configured()}
+    return {
+        "billing_enabled": billing_is_configured(),
+        **get_billing_price_snapshot(),
+    }
 
 
 @router.post("/create-checkout-session")

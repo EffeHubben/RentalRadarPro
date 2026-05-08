@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -270,6 +271,18 @@ export function AuthModal({
                       </div>
                     ) : null}
                   </label>
+
+                  {mode === "login" ? (
+                    <div className="flex justify-end">
+                      <Link
+                        href="/reset-password"
+                        onClick={onClose}
+                        className="text-xs font-semibold text-[var(--color-accent-strong)] transition hover:text-[var(--color-text)]"
+                      >
+                        {copy.forgotPassword}
+                      </Link>
+                    </div>
+                  ) : null}
 
                   {mode === "register" ? (
                     <label className="block">

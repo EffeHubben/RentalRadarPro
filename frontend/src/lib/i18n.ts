@@ -162,7 +162,7 @@ export const i18n = {
       proPlanName: "Pro",
       proPlanBadge: "Pro",
       proPlanComingSoon: "Binnenkort",
-      proPlanPrice: "€9,99",
+      proPlanPrice: "€19,99",
       proPlanPriceSuffix: "/ maand",
       proPlanCurrentPlan: "Huidig plan",
       proPlanDescription: "Voor woningzoekers die elke voorsprong nodig hebben.",
@@ -577,6 +577,7 @@ export const i18n = {
       passwordInvalid:
         "Gebruik minimaal 8 tekens met een hoofdletter, kleine letter, cijfer en speciaal teken.",
       passwordsDoNotMatch: "De wachtwoorden komen niet overeen.",
+      forgotPassword: "Wachtwoord vergeten?",
       genericError: "Er ging iets mis. Probeer het opnieuw.",
     },
     modal: {
@@ -903,7 +904,7 @@ export const i18n = {
       proPlanName: "Pro",
       proPlanBadge: "Pro",
       proPlanComingSoon: "Coming soon",
-      proPlanPrice: "€9.99",
+      proPlanPrice: "€19.99",
       proPlanPriceSuffix: "/ month",
       proPlanCurrentPlan: "Current plan",
       proPlanDescription: "For renters who need every advantage.",
@@ -1318,6 +1319,7 @@ export const i18n = {
       passwordInvalid:
         "Use at least 8 characters with an uppercase letter, lowercase letter, number, and special character.",
       passwordsDoNotMatch: "The passwords do not match.",
+      forgotPassword: "Forgot password?",
       genericError: "Something went wrong. Try again.",
     },
     modal: {

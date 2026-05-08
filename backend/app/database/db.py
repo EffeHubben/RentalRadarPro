@@ -79,6 +79,7 @@ USER_COLUMN_MIGRATIONS = {
     "stripe_customer_id": "ALTER TABLE users ADD COLUMN stripe_customer_id VARCHAR(255)",
     "stripe_subscription_id": "ALTER TABLE users ADD COLUMN stripe_subscription_id VARCHAR(255)",
     "subscription_current_period_end": "ALTER TABLE users ADD COLUMN subscription_current_period_end DATETIME",
+    "subscription_cancel_at_period_end": "ALTER TABLE users ADD COLUMN subscription_cancel_at_period_end BOOLEAN NOT NULL DEFAULT 0",
     "email_verified": "ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT 0",
     "email_verification_token_hash": "ALTER TABLE users ADD COLUMN email_verification_token_hash VARCHAR(128)",
     "email_verification_sent_at": "ALTER TABLE users ADD COLUMN email_verification_sent_at DATETIME",

@@ -25,6 +25,7 @@ class User(Base):
     stripe_customer_id = Column(String(255), nullable=True)
     stripe_subscription_id = Column(String(255), nullable=True)
     subscription_current_period_end = Column(DateTime, nullable=True)
+    subscription_cancel_at_period_end = Column(Boolean, nullable=False, default=False, server_default="0")
     email_verified = Column(Boolean, nullable=False, default=False, server_default="0")
     email_verification_token_hash = Column(String(128), nullable=True, index=True)
     email_verification_sent_at = Column(DateTime, nullable=True)

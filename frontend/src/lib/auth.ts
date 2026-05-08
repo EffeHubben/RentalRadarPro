@@ -80,3 +80,42 @@ export function confirmPasswordReset(token: string, password: string) {
     body: JSON.stringify({ token, password }),
   });
 }
+
+export function updateProfile(accessToken: string, payload: {
+  display_name?: string;
+  preferred_language?: "nl" | "en";
+}) {
+  return authRequest<{ ok: boolean; message: string }>("/auth/profile", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+export function changeEmailAddress(
+  accessToken: string,
+  payload: { new_email: string; current_password: string },
+) {
+  return authRequest<{ ok: boolean; message: string }>("/auth/change-email", {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+export function changePassword(
+  accessToken: string,
+  payload: { current_password: string; new_password: string },
+) {
+  return authRequest<{ ok: boolean; message: string }>("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}

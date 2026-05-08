@@ -22,6 +22,8 @@ from app.models.user import RefreshToken, User
 from app.schemas.auth import (
     AuthResponse,
     AuthUserResponse,
+    ChangeEmailRequest,
+    ChangePasswordRequest,
     LoginRequest,
     LogoutResponse,
     MessageResponse,
@@ -29,6 +31,7 @@ from app.schemas.auth import (
     RefreshResponse,
     RegisterRequest,
     ResetPasswordRequest,
+    UpdateProfileRequest,
 )
 from app.services.email import (
     EmailUserContext,
@@ -88,6 +91,24 @@ def create_refresh_token_record(
     return refresh_token
 
 
+def rotate_current_session(
+    request: Request,
+    response: Response,
+    database: Session,
+    user: User,
+) -> None:
+    existing_refresh_token = request.cookies.get(settings.auth_refresh_cookie_name)
+
+    if existing_refresh_token:
+        database.query(RefreshToken).filter(
+            RefreshToken.token_hash == hash_refresh_token(existing_refresh_token),
+            RefreshToken.revoked_at.is_(None),
+        ).update({"revoked_at": datetime.utcnow()}, synchronize_session=False)
+
+    refresh_token = create_refresh_token_record(request, database, user)
+    set_refresh_cookie(response, refresh_token)
+
+
 def issue_email_verification_token(user: User) -> tuple[str, str, datetime]:
     token = create_one_time_token()
     token_hash = hash_token(token)
@@ -98,7 +119,7 @@ def issue_email_verification_token(user: User) -> tuple[str, str, datetime]:
     user.email_verification_token_hash = token_hash
     user.email_verification_sent_at = sent_at
     user.email_verification_expires_at = expires_at
-    return token, f"email_verification:user:{user.id}:{int(sent_at.timestamp())}", expires_at
+    return token, f"email_verification:user:{user.id}:{sent_at.strftime('%Y%m%d%H%M%S%f')}", expires_at
 
 
 def issue_password_reset_token(user: User) -> tuple[str, str, datetime]:
@@ -111,7 +132,7 @@ def issue_password_reset_token(user: User) -> tuple[str, str, datetime]:
     user.password_reset_token_hash = token_hash
     user.password_reset_sent_at = sent_at
     user.password_reset_expires_at = expires_at
-    return token, f"password_reset:user:{user.id}:{int(sent_at.timestamp())}", expires_at
+    return token, f"password_reset:user:{user.id}:{sent_at.strftime('%Y%m%d%H%M%S%f')}", expires_at
 
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
@@ -370,6 +391,128 @@ def confirm_password_reset(
 
     database.commit()
     return MessageResponse(ok=True, message="Password reset completed")
+
+
+@router.patch("/profile", response_model=MessageResponse)
+def update_profile(
+    payload: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+    database: Session = Depends(get_database_session),
+):
+    current_user.display_name = payload.display_name.strip() if payload.display_name else None
+    current_user.preferred_language = payload.preferred_language
+    database.commit()
+
+    return MessageResponse(ok=True, message="Profile updated")
+
+
+@router.post("/change-email", response_model=MessageResponse)
+def change_email(
+    payload: ChangeEmailRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    database: Session = Depends(get_database_session),
+):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect",
+        )
+
+    new_email_normalized = normalize_email(payload.new_email)
+
+    if new_email_normalized == current_user.email_normalized:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New email address must be different from your current email",
+        )
+
+    existing_user = (
+        database.query(User)
+        .filter(User.email_normalized == new_email_normalized, User.id != current_user.id)
+        .first()
+    )
+
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists",
+        )
+
+    current_user.email = payload.new_email.strip()
+    current_user.email_normalized = new_email_normalized
+    current_user.email_verified = False
+
+    verification_token: str | None = None
+    verification_event_key: str | None = None
+
+    if settings.email_verification_enabled:
+        verification_token, verification_event_key, _ = issue_email_verification_token(current_user)
+    else:
+        current_user.email_verification_token_hash = None
+        current_user.email_verification_sent_at = None
+        current_user.email_verification_expires_at = None
+
+    database.commit()
+    database.refresh(current_user)
+
+    if settings.email_verification_enabled and verification_token and verification_event_key:
+        background_tasks.add_task(
+            send_email_verification_email,
+            EmailUserContext.from_user(current_user),
+            verification_token,
+            verification_event_key,
+        )
+        logger.info("email_verification_email_queued user_id=%s reason=email_change", current_user.id)
+        return MessageResponse(
+            ok=True,
+            message="Email address updated. Check your inbox to verify the new address",
+        )
+
+    return MessageResponse(ok=True, message="Email address updated")
+
+
+@router.post("/change-password", response_model=MessageResponse)
+def change_password(
+    payload: ChangePasswordRequest,
+    request: Request,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    database: Session = Depends(get_database_session),
+):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect",
+        )
+
+    password_error = password_strength_error(payload.new_password)
+    if password_error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=password_error,
+        )
+
+    if verify_password(payload.new_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from your current password",
+        )
+
+    current_user.password_hash = hash_password(payload.new_password)
+    current_user.password_reset_token_hash = None
+    current_user.password_reset_sent_at = None
+    current_user.password_reset_expires_at = None
+
+    database.query(RefreshToken).filter(
+        RefreshToken.user_id == current_user.id,
+        RefreshToken.revoked_at.is_(None),
+    ).update({"revoked_at": datetime.utcnow()}, synchronize_session=False)
+
+    rotate_current_session(request, response, database, current_user)
+    database.commit()
+
+    return MessageResponse(ok=True, message="Password updated")
 
 
 @router.get("/me", response_model=AuthUserResponse)
