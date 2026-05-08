@@ -7,6 +7,13 @@ from pydantic import BaseModel, ConfigDict, Field
 PropertyType = Literal["studio", "apartment", "room", "house", "parking", "unknown"]
 AvailabilityStatus = Literal["available", "under_option", "reserved", "rented", "unknown"]
 LocationPrecision = Literal["exact_address", "street", "postcode", "city", "unknown"]
+HouseSubType = Literal[
+    "terraced_house", "corner_house", "semi_detached_house", "detached_house",
+    "family_house", "townhouse", "bungalow", "villa", "other_house",
+]
+ApartmentSubType = Literal[
+    "maisonette", "penthouse", "ground_floor_apartment", "upstairs_apartment",
+]
 
 
 class DuplicateSource(BaseModel):
@@ -28,6 +35,7 @@ class ListingBase(BaseModel):
     rooms: int | None = None
 
     property_type: PropertyType = "unknown"
+    property_type_sub: str | None = None
     private_kitchen: bool | None = None
     private_bathroom: bool | None = None
     private_toilet: bool | None = None

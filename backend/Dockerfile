@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && python -m playwright install --with-deps chrome
 
 COPY app ./app
+COPY scripts ./scripts
 
 RUN mkdir -p /data
 VOLUME ["/data"]

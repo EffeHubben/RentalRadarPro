@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import type { ListingFilters } from "@/types/listing";
 import { i18n, type Language } from "@/lib/i18n";
-import { propertyTypeLabel } from "./helpers";
+import { houseSubtypeLabel, propertyTypeLabel } from "./helpers";
 
 type FilterPill = {
   key: keyof ListingFilters;
@@ -94,6 +94,13 @@ export function getActiveFilters(filters: ListingFilters, language: Language): F
     pills.push({
       key: "propertyTypes",
       label: filters.propertyTypes.map((type) => propertyTypeLabel(type, language)).join(", "),
+      resetValue: [],
+    });
+  }
+  if (filters.houseSubtypes.length) {
+    pills.push({
+      key: "houseSubtypes",
+      label: filters.houseSubtypes.map((s) => houseSubtypeLabel(s, language) ?? s).join(", "),
       resetValue: [],
     });
   }

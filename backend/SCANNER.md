@@ -187,3 +187,30 @@ Confirm recent listing inserts/updates:
 cd backend
 sqlite3 rental_radar_pro.db "select source_key,source,title,first_seen_at,last_checked_at from listings order by first_seen_at desc limit 10;"
 ```
+
+## Post-deploy repair scripts
+
+After deploying a build that includes `backend/scripts`, run these from the VPS:
+
+Dry run first:
+
+```bash
+cd /home/rentscout/RentalRadarPro
+docker compose exec -T backend python scripts/reclassify_listings.py
+docker compose exec -T backend python scripts/repair_listing_locations.py
+```
+
+Apply only after reviewing the dry-run output:
+
+```bash
+cd /home/rentscout/RentalRadarPro
+docker compose exec -T backend python scripts/reclassify_listings.py --apply
+docker compose exec -T backend python scripts/repair_listing_locations.py --apply
+```
+
+`repair_listing_locations.py` is conservative by design:
+
+- it trusts stored precise address text and URL city slugs before titles
+- it never scans the full description as a rewrite signal
+- it only writes city-level fallback coordinates when the target city is reliable
+- if a row looks like a bad Breda fallback but the real city is still uncertain, it clears low-precision location data instead of inventing a new city

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
@@ -48,6 +50,12 @@ class Listing(Base):
     source_count = Column(Integer, nullable=False, default=1)
 
     is_active = Column(Boolean, default=True)
+
+    @property
+    def property_type_sub(self) -> str | None:
+        from app.services.listing_quality import infer_property_subtype, normalize_space
+        combined = normalize_space(f"{self.title or ''} {self.description or ''}").lower()
+        return infer_property_subtype(combined, self.property_type or "unknown")
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

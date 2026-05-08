@@ -9,6 +9,7 @@ export type Listing = {
   area_m2: number | null;
   rooms: number | null;
   property_type: PropertyType;
+  property_type_sub: string | null;
   private_kitchen: boolean | null;
   private_bathroom: boolean | null;
   private_toilet: boolean | null;
@@ -48,6 +49,23 @@ export type PropertyType =
   | "house"
   | "parking"
   | "unknown";
+
+export type HouseSubType =
+  | "terraced_house"
+  | "corner_house"
+  | "semi_detached_house"
+  | "detached_house"
+  | "family_house"
+  | "townhouse"
+  | "bungalow"
+  | "villa"
+  | "other_house";
+
+export type ApartmentSubType =
+  | "maisonette"
+  | "penthouse"
+  | "ground_floor_apartment"
+  | "upstairs_apartment";
 
 export type AvailabilityStatus =
   | "available"
@@ -115,6 +133,7 @@ export type SearchProfileFilters = {
   min_rooms: string;
   property_type: PropertyType | "";
   property_types: PropertyType[];
+  house_subtypes?: HouseSubType[];
   private_kitchen: boolean | null;
   private_bathroom: boolean | null;
   private_toilet: boolean | null;
@@ -156,6 +175,7 @@ export type ListingFilters = {
   minRooms: string;
   propertyType: PropertyType | "";
   propertyTypes: PropertyType[];
+  houseSubtypes: HouseSubType[];
   privateKitchen: boolean | null;
   privateBathroom: boolean | null;
   privateToilet: boolean | null;

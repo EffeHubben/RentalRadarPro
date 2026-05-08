@@ -769,6 +769,21 @@ export const i18n = {
       parking: "Parkeren",
       unknown: "Onbekend",
     },
+    houseSubtypes: {
+      terraced_house: "Rijtjeshuis",
+      corner_house: "Hoekhuis",
+      semi_detached_house: "Twee-onder-een-kap",
+      detached_house: "Vrijstaand",
+      family_house: "Eengezinswoning",
+      townhouse: "Herenhuis",
+      bungalow: "Bungalow",
+      villa: "Villa",
+      other_house: "Woning",
+    },
+    houseSubtypesFilter: {
+      allHouses: "Alle woningtypes",
+      selectSubtype: "Woningtype",
+    },
   },
   en: {
     site: {
@@ -1531,6 +1546,21 @@ export const i18n = {
       house: "House",
       parking: "Parking",
       unknown: "Unknown",
+    },
+    houseSubtypes: {
+      terraced_house: "Terraced house",
+      corner_house: "Corner house",
+      semi_detached_house: "Semi-detached",
+      detached_house: "Detached",
+      family_house: "Family house",
+      townhouse: "Townhouse",
+      bungalow: "Bungalow",
+      villa: "Villa",
+      other_house: "House",
+    },
+    houseSubtypesFilter: {
+      allHouses: "All house types",
+      selectSubtype: "House type",
     },
   },
 } as const;

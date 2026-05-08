@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import type {
+  HouseSubType,
   ListingFilters,
   ListingSort,
   PropertyType,
@@ -265,21 +266,51 @@ export function FilterPanel({
   }
 
   function updatePropertyType(value: ListingFilters["propertyType"]) {
-    onChange({ ...filters, propertyType: value, propertyTypes: [], offset: 0 });
+    const houseSubtypes = value === "house" ? filters.houseSubtypes : [];
+    onChange({ ...filters, propertyType: value, propertyTypes: [], houseSubtypes, offset: 0 });
   }
 
   function togglePropertyType(type: PropertyType) {
     const propertyTypes = filters.propertyTypes.includes(type)
       ? filters.propertyTypes.filter((selectedType) => selectedType !== type)
       : [...filters.propertyTypes, type];
+    const houseSelected = propertyTypes.includes("house");
+    const houseSubtypes = houseSelected ? filters.houseSubtypes : [];
 
     onChange({
       ...filters,
       propertyType: "",
       propertyTypes,
+      houseSubtypes,
       offset: 0,
     });
   }
+
+  function toggleHouseSubtype(subtype: HouseSubType) {
+    const houseSubtypes = filters.houseSubtypes.includes(subtype)
+      ? filters.houseSubtypes.filter((s) => s !== subtype)
+      : [...filters.houseSubtypes, subtype];
+    onChange({ ...filters, houseSubtypes, offset: 0 });
+  }
+
+  const houseActive =
+    filters.propertyType === "house" || filters.propertyTypes.includes("house");
+
+  const houseSubtypeOptions: Array<{ value: HouseSubType; label: string }> = (
+    [
+      "terraced_house",
+      "corner_house",
+      "semi_detached_house",
+      "detached_house",
+      "family_house",
+      "townhouse",
+      "bungalow",
+      "villa",
+    ] as HouseSubType[]
+  ).map((subtype) => ({
+    value: subtype,
+    label: i18n[language].houseSubtypes[subtype],
+  }));
 
   return (
     <motion.div
@@ -423,6 +454,33 @@ export function FilterPanel({
           </div>
           <p className="rs-subtle mt-2 text-xs leading-5">{copy.propertyTypesHelp}</p>
         </div>
+
+        {houseActive && (
+          <div>
+            <FieldLabel>{i18n[language].houseSubtypesFilter.selectSubtype}</FieldLabel>
+            <div className="flex flex-wrap gap-2">
+              {houseSubtypeOptions.map((option) => {
+                const active = filters.houseSubtypes.includes(option.value);
+                return (
+                  <motion.button
+                    key={option.value}
+                    type="button"
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => toggleHouseSubtype(option.value)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      active
+                        ? "rs-chip-active"
+                        : "rs-chip hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
+                    }`}
+                  >
+                    {option.label}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-3">
           <label className="block">
             <FieldLabel>{copy.minArea}</FieldLabel>

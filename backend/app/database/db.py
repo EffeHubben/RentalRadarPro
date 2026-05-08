@@ -260,7 +260,7 @@ def migrate_geocode_cache_table() -> None:
         )
 
 
-def create_database_tables() -> None:
+def create_database_tables(*, run_backfills: bool = True) -> None:
     from app.models import email_delivery, geocode, listing, scan_history, user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
@@ -268,9 +268,10 @@ def create_database_tables() -> None:
     migrate_scan_history_table()
     migrate_geocode_cache_table()
     migrate_users_table()
-    backfill_existing_listing_locations()
-    backfill_existing_listing_availability()
-    backfill_existing_listing_duplicates()
+    if run_backfills:
+        backfill_existing_listing_locations()
+        backfill_existing_listing_availability()
+        backfill_existing_listing_duplicates()
 
 
 def backfill_existing_listing_locations(limit: int = 500) -> None:

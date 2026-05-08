@@ -464,9 +464,18 @@ export default function DashboardPage() {
         return false;
       }
 
+      if (
+        filters.houseSubtypes.length > 0 &&
+        listing.property_type === "house" &&
+        !filters.houseSubtypes.includes(listing.property_type_sub as import("@/types/listing").HouseSubType)
+      ) {
+        return false;
+      }
+
       return true;
     });
   }, [
+    filters.houseSubtypes,
     filters.propertyTypes,
     filters.showHiddenListings,
     filters.status,

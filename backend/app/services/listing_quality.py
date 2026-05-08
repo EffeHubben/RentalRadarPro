@@ -50,6 +50,22 @@ KNOWN_CITY_NAMES = [
     "Zevenbergen",
 ]
 
+# House compound terms: checked first via word-boundary regex so that words like
+# "slaapkamer" or "woonkamer" never trigger the "room" classification.
+_HOUSE_COMPOUND_RE = re.compile(
+    r"\b(?:"
+    r"rijtjeshuis|tussenwoning|rijwoning|hoekwoning|hoekhuis|hoekpand"
+    r"|twee-onder-een-kap|2-onder-1-kap|halfvrijstaand|geschakelde\s+woning"
+    r"|vrijstaande?\s+woning|vrijstaand\s+huis|woonhuis|herenhuis|grachtenpand"
+    r"|eengezinswoning|gezinswoning|bungalow|villa"
+    r")\b",
+    re.IGNORECASE,
+)
+# Generic house words matched as whole tokens (not as substrings of e.g. "huurwoning").
+_HUIS_WONING_RE = re.compile(r"\b(?:huis|woning|house)\b", re.IGNORECASE)
+# "kamer" matched as a whole word: does NOT match slaapkamer / woonkamer / eetkamer.
+_KAMER_WORD_RE = re.compile(r"\b(?:kamer|studentenkamer)\b", re.IGNORECASE)
+
 PROPERTY_TYPE_KEYWORDS = {
     "parking": [
         "parkeerplaats",
@@ -59,9 +75,33 @@ PROPERTY_TYPE_KEYWORDS = {
         "stalling",
     ],
     "studio": ["studio", "studiowoning"],
-    "apartment": ["appartement", "apartment", "flat", "maisonnette"],
-    "room": ["kamer", "room", "studentenkamer", "woonruimte"],
-    "house": ["huis", "woning", "eengezinswoning", "house", "tussenwoning"],
+    # House keyword list intentionally mirrors _HOUSE_COMPOUND_RE for keyword-based paths.
+    "house": [
+        "woonhuis", "eengezinswoning", "gezinswoning", "tussenwoning",
+        "rijtjeshuis", "hoekwoning", "hoekhuis", "twee-onder-een-kap",
+        "2-onder-1-kap", "halfvrijstaand", "herenhuis", "bungalow", "villa",
+    ],
+    "apartment": ["appartement", "apartment", "flat", "maisonnette", "penthouse"],
+    # "woonruimte" and "room" (EN) are safe substrings; "kamer" is handled via _KAMER_WORD_RE.
+    "room": ["woonruimte", "room"],
+}
+
+HOUSE_SUBTYPE_KEYWORDS: dict[str, list[str]] = {
+    "terraced_house": ["rijtjeshuis", "tussenwoning", "rijwoning"],
+    "corner_house": ["hoekwoning", "hoekhuis", "hoekpand"],
+    "semi_detached_house": ["twee-onder-een-kap", "2-onder-1-kap", "halfvrijstaand", "geschakelde woning"],
+    "detached_house": ["vrijstaand", "vrijstaande woning", "vrijstaand huis"],
+    "family_house": ["eengezinswoning", "gezinswoning"],
+    "townhouse": ["herenhuis", "grachtenpand"],
+    "bungalow": ["bungalow"],
+    "villa": ["villa"],
+}
+
+APARTMENT_SUBTYPE_KEYWORDS: dict[str, list[str]] = {
+    "maisonette": ["maisonnette", "maisonette"],
+    "penthouse": ["penthouse"],
+    "ground_floor_apartment": ["begane grond", "parterre", "gelijkvloers"],
+    "upstairs_apartment": ["bovenwoning"],
 }
 
 PRIVATE_KITCHEN_KEYWORDS = [
@@ -228,11 +268,39 @@ def clean_listing_title(title: str) -> str:
 
 
 def infer_property_type(combined_text: str) -> str:
+    # 1. House compound terms win unconditionally — prevents "slaapkamer" triggering "room".
+    if _HOUSE_COMPOUND_RE.search(combined_text):
+        return "house"
+
+    # 2. Parking / studio / apartment by substring (these don't have problematic compounds).
     for property_type, keywords in PROPERTY_TYPE_KEYWORDS.items():
-        if includes_any(combined_text, keywords):
+        if property_type in {"parking", "studio", "apartment", "room"} and includes_any(combined_text, keywords):
             return property_type
 
+    # 3. Generic house words as whole tokens (after studio/apartment have been tried).
+    if _HUIS_WONING_RE.search(combined_text):
+        return "house"
+
+    # 4. "kamer" as a whole word only — never matches inside slaapkamer / woonkamer.
+    if _KAMER_WORD_RE.search(combined_text):
+        return "room"
+
     return "unknown"
+
+
+def infer_property_subtype(combined_text: str, main_type: str) -> str | None:
+    """Return a sub-classification for house and apartment listings."""
+    if main_type == "house":
+        for subtype, keywords in HOUSE_SUBTYPE_KEYWORDS.items():
+            if includes_any(combined_text, keywords):
+                return subtype
+        return "other_house"
+    if main_type == "apartment":
+        for subtype, keywords in APARTMENT_SUBTYPE_KEYWORDS.items():
+            if includes_any(combined_text, keywords):
+                return subtype
+        return None
+    return None
 
 
 def infer_private_feature(
@@ -279,17 +347,26 @@ def extract_city_from_text(text: str, requested_city: str) -> str | None:
 
 
 def infer_listing_city(title: str, description: str, requested_city: str, scraped_city: str | None) -> str:
+    # Title is short and focused — any city found there is trustworthy.
     title_city = extract_city_from_text(title, requested_city)
-
     if title_city:
         return title_city
 
-    description_city = extract_city_from_text(description, requested_city)
+    # scraped_city comes from the scraper directly; requested_city is the scanner's
+    # target. Both are more authoritative than an incidental mention in a long
+    # description (e.g. "formerly in Breda" on a Rotterdam listing).
+    authoritative = normalize_space(scraped_city) or normalize_space(requested_city)
+    if authoritative:
+        return authoritative
 
-    if description_city:
-        return description_city
+    # Fall back to description only when no other signal exists, and even then
+    # only look for the requested_city (not arbitrary cities) to stay conservative.
+    if requested_city:
+        desc_city = extract_city_from_text(description, requested_city)
+        if desc_city == normalize_space(requested_city):
+            return desc_city
 
-    return normalize_space(scraped_city) or normalize_space(requested_city)
+    return ""
 
 
 def calculate_confidence_score(

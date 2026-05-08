@@ -10,7 +10,7 @@ import {
   featureLabel,
   formatPrice,
   listingDate,
-  propertyTypeLabel,
+  listingTypeLabel,
 } from "./helpers";
 import { ListingStatusControl, StatusBadge } from "./ListingStatusControl";
 
@@ -281,7 +281,7 @@ function PreviewListingCard({
           </div>
         )}
         <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-          <Badge>{propertyTypeLabel(listing.property_type, language)}</Badge>
+          <Badge>{listingTypeLabel(listing.property_type, listing.property_type_sub, language)}</Badge>
         </div>
       </div>
 
@@ -393,7 +393,7 @@ export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function Li
           onImageStateChange={setHasLoadedRealImage}
         />
         <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-          <Badge>{propertyTypeLabel(listing.property_type, language)}</Badge>
+          <Badge>{listingTypeLabel(listing.property_type, listing.property_type_sub, language)}</Badge>
           {newListing ? <Badge accent>{copy.newBadge}</Badge> : null}
           {strongMatch ? <Badge accent>{copy.strongMatch}</Badge> : null}
           {unavailable ? (

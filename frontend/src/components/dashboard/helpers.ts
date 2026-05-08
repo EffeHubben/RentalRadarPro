@@ -1,8 +1,25 @@
-import type { Listing, ListingFilters, PropertyType } from "@/types/listing";
+import type { Listing, ListingFilters, PropertyType, HouseSubType } from "@/types/listing";
 import { i18n, type Language } from "@/lib/i18n";
 
 export function propertyTypeLabel(type: PropertyType, language: Language) {
   return i18n[language].propertyTypes[type];
+}
+
+export function houseSubtypeLabel(subtype: string | null | undefined, language: Language): string | null {
+  if (!subtype) return null;
+  const subtypes = i18n[language].houseSubtypes;
+  return (subtypes as Record<string, string>)[subtype] ?? null;
+}
+
+export function listingTypeLabel(
+  propertyType: PropertyType,
+  propertySub: string | null | undefined,
+  language: Language,
+): string {
+  if (propertyType === "house" && propertySub && propertySub !== "other_house") {
+    return houseSubtypeLabel(propertySub, language) ?? propertyTypeLabel(propertyType, language);
+  }
+  return propertyTypeLabel(propertyType, language);
 }
 
 export function formatPrice(price: number | null, language: Language = "nl") {
@@ -146,6 +163,7 @@ export function createInitialFilters(): ListingFilters {
     minRooms: "",
     propertyType: "",
     propertyTypes: [],
+    houseSubtypes: [],
     privateKitchen: null,
     privateBathroom: null,
     privateToilet: null,
