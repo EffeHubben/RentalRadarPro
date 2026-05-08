@@ -130,12 +130,13 @@ def update_existing_listing(
     existing_listing: Listing,
     scraped_listing,
     listing_metadata: dict,
+    source_key: str,
     city: str,
     now: datetime,
 ) -> None:
     existing_listing.title = scraped_listing.title or existing_listing.title
     existing_listing.source = scraped_listing.source or existing_listing.source
-    existing_listing.source_key = listing_metadata.pop("source_key", None) or existing_listing.source_key
+    existing_listing.source_key = source_key or existing_listing.source_key
     existing_listing.city = listing_metadata.pop("city", None) or scraped_listing.city or city
     existing_listing.last_seen_at = now
     existing_listing.last_checked_at = now
@@ -261,6 +262,42 @@ def add_location_quality_boost(listing_metadata: dict, location_metadata: dict) 
 
     boost = boost_by_precision.get(location_metadata.get("location_precision"), 0.0)
     listing_metadata["confidence_score"] = round(min(1.0, confidence_score + boost), 2)
+
+
+LISTING_CREATION_RESERVED_KEYS = {
+    "source_key",
+    "title",
+    "source",
+    "url",
+    "city",
+    "price",
+    "area_m2",
+    "rooms",
+    "image_url",
+    "description",
+    "availability_status",
+    "is_available",
+    "address_text",
+    "street_name",
+    "house_number",
+    "postal_code",
+    "latitude",
+    "longitude",
+    "location_precision",
+    "location_confidence",
+    "is_active",
+    "first_seen_at",
+    "last_seen_at",
+    "last_checked_at",
+}
+
+
+def strip_reserved_listing_metadata(listing_metadata: dict) -> dict:
+    return {
+        key: value
+        for key, value in listing_metadata.items()
+        if key not in LISTING_CREATION_RESERVED_KEYS
+    }
 
 
 @router.post("/run", dependencies=[Depends(require_admin)])
@@ -470,6 +507,7 @@ def run_scrapers(
             location_metadata = build_location_metadata(database, scraped_listing, city)
             add_location_quality_boost(listing_metadata, location_metadata)
             listing_metadata.update(location_metadata)
+            listing_metadata.pop("source_key", None)
 
             existing_listing = database.query(Listing).filter(
                 Listing.url == scraped_listing.url
@@ -483,6 +521,7 @@ def run_scrapers(
                     existing_listing=existing_listing,
                     scraped_listing=scraped_listing,
                     listing_metadata=listing_metadata,
+                    source_key=source.source_key,
                     city=city,
                     now=now,
                 )
@@ -491,35 +530,48 @@ def run_scrapers(
                 database.commit()
                 continue
 
+            listing_city = listing_metadata.pop("city", None) or scraped_listing.city or city
+            availability_status = listing_metadata.pop(
+                "availability_status",
+                scraped_listing.availability_status,
+            )
+            is_available = listing_metadata.pop("is_available", scraped_listing.is_available)
+            address_text = listing_metadata.pop("address_text", scraped_listing.address_text)
+            street_name = listing_metadata.pop("street_name", scraped_listing.street_name)
+            house_number = listing_metadata.pop("house_number", scraped_listing.house_number)
+            postal_code = listing_metadata.pop("postal_code", scraped_listing.postal_code)
+            latitude = listing_metadata.pop("latitude", None)
+            longitude = listing_metadata.pop("longitude", None)
+            location_precision = listing_metadata.pop("location_precision", "unknown")
+            location_confidence = listing_metadata.pop("location_confidence", 0.0)
+            listing_extra_metadata = strip_reserved_listing_metadata(listing_metadata)
+
             listing = Listing(
                 title=scraped_listing.title,
                 source=scraped_listing.source,
                 source_key=source.source_key,
                 url=scraped_listing.url,
-                city=listing_metadata.pop("city", None) or scraped_listing.city or city,
+                city=listing_city,
                 price=scraped_listing.price,
                 area_m2=scraped_listing.area_m2,
                 rooms=scraped_listing.rooms,
                 image_url=scraped_listing.image_url,
                 description=scraped_listing.description,
-                availability_status=listing_metadata.pop(
-                    "availability_status",
-                    scraped_listing.availability_status,
-                ),
-                is_available=listing_metadata.pop("is_available", scraped_listing.is_available),
-                address_text=listing_metadata.pop("address_text", scraped_listing.address_text),
-                street_name=listing_metadata.pop("street_name", scraped_listing.street_name),
-                house_number=listing_metadata.pop("house_number", scraped_listing.house_number),
-                postal_code=listing_metadata.pop("postal_code", scraped_listing.postal_code),
-                latitude=listing_metadata.pop("latitude", None),
-                longitude=listing_metadata.pop("longitude", None),
-                location_precision=listing_metadata.pop("location_precision", "unknown"),
-                location_confidence=listing_metadata.pop("location_confidence", 0.0),
+                availability_status=availability_status,
+                is_available=is_available,
+                address_text=address_text,
+                street_name=street_name,
+                house_number=house_number,
+                postal_code=postal_code,
+                latitude=latitude,
+                longitude=longitude,
+                location_precision=location_precision,
+                location_confidence=location_confidence,
                 is_active=True,
                 first_seen_at=now,
                 last_seen_at=now,
                 last_checked_at=now,
-                **listing_metadata,
+                **listing_extra_metadata,
             )
 
             database.add(listing)
