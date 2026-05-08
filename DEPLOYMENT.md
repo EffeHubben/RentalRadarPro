@@ -237,6 +237,32 @@ docker compose ps
 curl http://127.0.0.1:8000/health
 ```
 
+## Post-Deploy Smoke Test
+
+After a production deploy, run the smoke test script from the repository root:
+
+```bash
+bash scripts/smoke-test.sh
+```
+
+By default it checks:
+
+- `https://rentscout.nl`
+- `https://rentscout.nl/privacy`
+- `https://rentscout.nl/terms`
+- `https://rentscout.nl/contact`
+- `https://api.rentscout.nl/health`
+- `https://api.rentscout.nl/api/billing/config`
+- `https://api.rentscout.nl/api/listings/?limit=1`
+
+You can override the base URLs if needed:
+
+```bash
+WEB_BASE_URL=https://rentscout.nl API_BASE_URL=https://api.rentscout.nl bash scripts/smoke-test.sh
+```
+
+The script prints a pass/fail line for each endpoint and exits non-zero if any check fails.
+
 ## Registration Bot Protection
 
 Registration now supports Cloudflare Turnstile in a feature-flagged way.
