@@ -8,6 +8,7 @@ import {
   cleanTitle,
   createSummary,
   featureLabel,
+  formatArea,
   formatPrice,
   listingDate,
   listingTypeLabel,
@@ -80,7 +81,7 @@ function ImageBlock({
           </svg>
         </div>
         <div className="text-sm font-semibold text-[var(--color-text)]">{copy.noPhoto}</div>
-        <div className="rs-muted mt-1 text-xs">{copy.imagePendingHint}</div>
+        <div className="rs-muted mt-1 max-w-52 text-xs leading-5">{copy.imagePendingHint}</div>
       </div>
     </motion.div>
   );
@@ -440,7 +441,7 @@ export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function Li
           <div className="rounded-lg bg-[var(--color-soft)] p-3">
             <div className="rs-subtle">{copy.area}</div>
             <div className="mt-1 font-semibold text-[var(--color-text)]">
-              {listing.area_m2 ? `${listing.area_m2} m2` : copy.notAvailable}
+              {formatArea(listing.area_m2, language)}
             </div>
           </div>
           <div className="rounded-lg bg-[var(--color-soft)] p-3">
@@ -453,6 +454,7 @@ export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function Li
 
         <div className="flex flex-wrap gap-2">
           {hasLoadedRealImage ? <Badge>{copy.photoAvailable}</Badge> : null}
+          {!hasLoadedRealImage ? <Badge muted>{copy.mediaAtSource}</Badge> : null}
           {wasSeenRecently(listing) ? <Badge>{copy.recentlySeen}</Badge> : null}
         </div>
 

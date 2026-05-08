@@ -16,7 +16,12 @@ from app.models.scan_history import ScanHistory
 from app.scrapers.base import detect_availability_status
 from app.services.duplicates import assign_duplicate_metadata, refresh_duplicate_group
 from app.scrapers.generic_sources import SourceBlockedError
-from app.services.listing_quality import ListingQualityInput, build_listing_quality
+from app.services.listing_quality import (
+    ListingQualityInput,
+    build_listing_quality,
+    clean_listing_description,
+    clean_listing_title,
+)
 from app.services.scanner_reliability import (
     source_listing_signature,
     sanitize_scraped_listing,
@@ -134,7 +139,16 @@ def update_existing_listing(
     city: str,
     now: datetime,
 ) -> None:
-    existing_listing.title = scraped_listing.title or existing_listing.title
+    clean_title = clean_listing_title(
+        scraped_listing.title or existing_listing.title or "",
+        address_text=scraped_listing.address_text,
+        street_name=scraped_listing.street_name,
+        house_number=scraped_listing.house_number,
+        city=listing_metadata.get("city") or scraped_listing.city or city,
+    )
+    clean_description = clean_listing_description(scraped_listing.description, clean_title)
+
+    existing_listing.title = clean_title or scraped_listing.title or existing_listing.title
     existing_listing.source = scraped_listing.source or existing_listing.source
     existing_listing.source_key = source_key or existing_listing.source_key
     existing_listing.city = listing_metadata.pop("city", None) or scraped_listing.city or city
@@ -148,7 +162,7 @@ def update_existing_listing(
         "area_m2": scraped_listing.area_m2,
         "rooms": scraped_listing.rooms,
         "image_url": scraped_listing.image_url,
-        "description": scraped_listing.description,
+        "description": clean_description or scraped_listing.description,
         "availability_status": scraped_listing.availability_status,
         "is_available": scraped_listing.is_available,
         "address_text": scraped_listing.address_text,
@@ -545,9 +559,17 @@ def run_scrapers(
             location_precision = listing_metadata.pop("location_precision", "unknown")
             location_confidence = listing_metadata.pop("location_confidence", 0.0)
             listing_extra_metadata = strip_reserved_listing_metadata(listing_metadata)
+            clean_title = clean_listing_title(
+                scraped_listing.title,
+                address_text=address_text,
+                street_name=street_name,
+                house_number=house_number,
+                city=listing_city,
+            )
+            clean_description = clean_listing_description(scraped_listing.description, clean_title)
 
             listing = Listing(
-                title=scraped_listing.title,
+                title=clean_title or scraped_listing.title,
                 source=scraped_listing.source,
                 source_key=source.source_key,
                 url=scraped_listing.url,
@@ -556,7 +578,7 @@ def run_scrapers(
                 area_m2=scraped_listing.area_m2,
                 rooms=scraped_listing.rooms,
                 image_url=scraped_listing.image_url,
-                description=scraped_listing.description,
+                description=clean_description or scraped_listing.description,
                 availability_status=availability_status,
                 is_available=is_available,
                 address_text=address_text,

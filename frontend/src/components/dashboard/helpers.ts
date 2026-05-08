@@ -34,8 +34,18 @@ export function formatPrice(price: number | null, language: Language = "nl") {
   }).format(price);
 }
 
+export function formatArea(area: number | null | undefined, language: Language = "nl") {
+  if (!area) {
+    return i18n[language].listing.notAvailable;
+  }
+
+  return `${new Intl.NumberFormat(language === "nl" ? "nl-NL" : "en-GB", {
+    maximumFractionDigits: 0,
+  }).format(area)} m²`;
+}
+
 export function compactText(value: string | null | undefined, maxLength: number) {
-  const normalized = value?.replace(/\s+/g, " ").trim() ?? "";
+  const normalized = cleanDisplayText(value);
 
   if (!normalized) {
     return "";
@@ -46,12 +56,42 @@ export function compactText(value: string | null | undefined, maxLength: number)
     : normalized;
 }
 
+export function cleanDisplayText(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  let cleaned = value.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+
+  if (!cleaned) {
+    return "";
+  }
+
+  const rawPatterns = [
+    /\b[a-z][a-z0-9_]*\.[a-z0-9_.]+\b/gi,
+    /\b(?:price_condition|price_type|rental_price|object_type|available_from|service_costs|deposit)\b\s*[:=]?\s*/gi,
+    /\b(?:per_month|per month|p\/m|pm)\b/gi,
+    /\b(?:null|undefined|none|nan)\b/gi,
+  ];
+
+  for (const pattern of rawPatterns) {
+    cleaned = cleaned.replace(pattern, " ");
+  }
+
+  return cleaned
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/(?:^|\s)[|•]{1,2}(?:\s|$)/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/^[,.:|\-\s]+|[,.:|\-\s]+$/g, "")
+    .trim();
+}
+
 export function cleanTitle(value: unknown) {
   if (typeof value !== "string") {
     return "";
   }
 
-  const normalized = value.replace(/\s+/g, " ").trim();
+  const normalized = cleanDisplayText(value);
 
   if (!normalized) {
     return "";
@@ -92,7 +132,7 @@ export function cleanTitle(value: unknown) {
     return title;
   }, denoised || normalized);
 
-  return compactText(cleaned, 78);
+  return compactText(cleaned, 86);
 }
 
 export function createSummary(listing: Listing, maxLength = 155) {
@@ -106,7 +146,7 @@ export function createSummary(listing: Listing, maxLength = 155) {
     return "";
   }
 
-  const withoutDuplicateTitle = sourceText
+  const withoutDuplicateTitle = cleanDisplayText(sourceText)
     .replace(rawTitle, "")
     .replace(title, "")
     .replace(/meer op onze site/gi, "")
@@ -119,13 +159,24 @@ export function createSummary(listing: Listing, maxLength = 155) {
   return compactText(withoutDuplicateTitle || sourceText, maxLength);
 }
 
+export function createListingSubtitle(listing: Listing, language: Language = "nl") {
+  const parts = [
+    [listing.postal_code, listing.city].filter(Boolean).join(" "),
+    formatPrice(listing.price, language),
+    listing.area_m2 ? formatArea(listing.area_m2, language) : "",
+  ].filter((part) => part && part !== i18n[language].listing.priceUnknown);
+
+  return parts.join(" · ");
+}
+
 export function descriptionSections(description: string | null, language: Language = "nl") {
-  if (!description?.trim()) {
+  const cleaned = cleanDisplayText(description);
+
+  if (!cleaned) {
     return [i18n[language].listing.fullDescriptionUnavailable];
   }
 
-  const normalized = description.replace(/\s+/g, " ").trim();
-  const chunks = normalized.match(/.{1,320}(?:\s|$)/g) ?? [normalized];
+  const chunks = cleaned.match(/.{1,320}(?:\s|$)/g) ?? [cleaned];
 
   return chunks.map((chunk) => chunk.trim()).filter(Boolean).slice(0, 5);
 }

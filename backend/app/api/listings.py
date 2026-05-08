@@ -12,6 +12,7 @@ from app.database.db import get_database_session
 from app.models.listing import Listing
 from app.models.user import User
 from app.services.duplicates import duplicate_sources_for_listings
+from app.services.listing_quality import clean_listing_description, clean_listing_title
 from app.schemas.listing import (
     ListingCreate,
     ListingPreviewResponse,
@@ -36,7 +37,22 @@ def _listing_source_id(listing: Listing) -> str:
 
 
 def _listing_quality_score(listing: Listing) -> float:
-    return float(listing.confidence_score or 0.0)
+    score = float(listing.confidence_score or 0.0)
+    if listing.image_url:
+        score += 0.035
+    if clean_listing_title(listing.title or ""):
+        score += 0.025
+    if clean_listing_description(listing.description, listing.title):
+        score += 0.025
+    if listing.price is not None:
+        score += 0.025
+    if listing.area_m2 is not None:
+        score += 0.02
+    if listing.city:
+        score += 0.02
+    if listing.location_precision in {"exact_address", "street", "postcode"}:
+        score += 0.03
+    return min(score, 1.0)
 
 
 def _diversify_best_match_listings(
@@ -445,12 +461,12 @@ def get_listings(
         query = query.order_by(
             case((Listing.is_active.is_(True), 0), else_=1),
             availability_rank,
-            case((Listing.image_url.is_(None), 1), (Listing.image_url == "", 1), else_=0),
             case((Listing.is_woningruil.is_(True), 1), else_=0),
             case((Listing.property_type == "parking", 1), else_=0),
             location_rank,
             case((Listing.confidence_score.is_(None), 1), else_=0),
             Listing.confidence_score.desc(),
+            case((Listing.image_url.is_(None), 1), (Listing.image_url == "", 1), else_=0),
             selected_property_rank,
             *preference_ranks,
             case((Listing.price.is_(None), 1), else_=0),

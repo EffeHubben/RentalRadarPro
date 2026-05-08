@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fastapi.testclient import TestClient
 
-from app.api.listings import _diversify_best_match_listings
+from app.api.listings import _diversify_best_match_listings, _listing_quality_score
 from app.database.db import SessionLocal, create_database_tables
 from app.main import app
 from app.models.listing import Listing
@@ -442,3 +442,19 @@ def test_best_match_source_diversity_does_not_promote_clearly_weaker_listings() 
     reranked = _diversify_best_match_listings(listings)
 
     assert reranked[-1].source_key == "funda"
+
+
+def test_best_match_quality_score_softly_prefers_photo_when_otherwise_comparable() -> None:
+    with_photo = make_ranked_listing(1, "funda", 0.82)
+    without_photo = make_ranked_listing(2, "pararius", 0.82)
+    with_photo.image_url = "https://example.com/photo.jpg"
+
+    assert _listing_quality_score(with_photo) > _listing_quality_score(without_photo)
+
+
+def test_best_match_quality_score_keeps_stronger_no_photo_listing_ahead() -> None:
+    strong_without_photo = make_ranked_listing(1, "funda", 0.88)
+    weaker_with_photo = make_ranked_listing(2, "pararius", 0.78)
+    weaker_with_photo.image_url = "https://example.com/photo.jpg"
+
+    assert _listing_quality_score(strong_without_photo) > _listing_quality_score(weaker_with_photo)

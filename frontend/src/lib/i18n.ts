@@ -463,8 +463,9 @@ export const i18n = {
     },
     listing: {
       imagePending: "Afbeelding volgt",
-      imagePendingHint: "Bekijk de bron voor extra media.",
-      noPhoto: "Geen foto beschikbaar",
+      imagePendingHint: "Deze bron gaf media niet direct door aan RentScout. Open de originele advertentie voor foto's.",
+      noPhoto: "Foto's niet beschikbaar in RentScout",
+      mediaAtSource: "Media mogelijk bij bron",
       shared: "Gedeeld",
       houseSwap: "Woningruil",
       sharedLaundry: "Wasruimte gedeeld",
@@ -1244,8 +1245,9 @@ export const i18n = {
     },
     listing: {
       imagePending: "Image coming soon",
-      imagePendingHint: "Open the source for more media.",
-      noPhoto: "No photo available",
+      imagePendingHint: "This source did not provide media directly to RentScout. Open the original listing for photos.",
+      noPhoto: "Photos unavailable in RentScout",
+      mediaAtSource: "Media may be on source",
       shared: "Shared",
       houseSwap: "Home swap",
       sharedLaundry: "Shared laundry",

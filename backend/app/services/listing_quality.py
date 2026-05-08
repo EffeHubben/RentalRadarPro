@@ -198,6 +198,8 @@ AVAILABLE_SIGNALS = [
     "available from",
 ]
 MESSY_TITLE_PATTERNS = [
+    r"\b[a-z][a-z0-9_]*\.[a-z0-9_.]+\b",
+    r"\b(?:price_condition|price_type|rental_price|object_type|available_from)\b",
     r"\bmeer op onze site\b",
     r"\bte huur:\s*",
     r"\bnieuw!\s*",
@@ -207,6 +209,13 @@ MESSY_TITLE_PATTERNS = [
     r"\bappartement gevonden in [^,.]+,\s*nu beschikbaar voor.*$",
     r"\bstudio gevonden in [^,.]+,\s*nu beschikbaar voor.*$",
     r"\b(?:marktplaats|funda|ikwilhuren|mvgm)\s*[-|:]\s*",
+]
+
+RAW_METADATA_PATTERNS = [
+    r"\b[a-z][a-z0-9_]*\.[a-z0-9_.]+\b",
+    r"\b(?:price_condition|price_type|rental_price|object_type|available_from|service_costs|deposit)\b\s*[:=]?\s*",
+    r"\b(?:per_month|per month|p/m|pm)\b",
+    r"\b(?:null|undefined|none|nan)\b",
 ]
 
 
@@ -227,6 +236,24 @@ def normalize_space(value: str | None) -> str:
     return " ".join((value or "").replace("\xa0", " ").split()).strip()
 
 
+def clean_listing_text(value: str | None) -> str:
+    cleaned = normalize_space(value)
+
+    if not cleaned:
+        return ""
+
+    cleaned = cleaned.replace("€ ", "€")
+    cleaned = re.sub(r"\s+([,.;:!?])", r"\1", cleaned)
+
+    for pattern in RAW_METADATA_PATTERNS:
+        cleaned = re.sub(pattern, " ", cleaned, flags=re.IGNORECASE)
+
+    cleaned = re.sub(r"(?:^|\s)[|•]{1,2}(?:\s|$)", " ", cleaned)
+    cleaned = re.sub(r"\s*[-|:]\s*[-|:]\s*", " - ", cleaned)
+    cleaned = normalize_space(cleaned)
+    return cleaned.strip(" ,-:|")
+
+
 def includes_any(text: str, keywords: list[str]) -> bool:
     return any(keyword in text for keyword in keywords)
 
@@ -244,8 +271,31 @@ def phrase_positions(text: str, phrases: list[str]) -> list[int]:
     return positions
 
 
-def clean_listing_title(title: str) -> str:
-    cleaned = normalize_space(title)
+def clean_listing_title(
+    title: str,
+    *,
+    address_text: str | None = None,
+    street_name: str | None = None,
+    house_number: str | None = None,
+    city: str | None = None,
+) -> str:
+    cleaned = clean_listing_text(title)
+
+    address_candidate = normalize_space(address_text)
+    street_candidate = normalize_space(
+        " ".join(part for part in [street_name, house_number] if normalize_space(part))
+    )
+    city_candidate = normalize_space(city)
+
+    if address_candidate:
+        clean_address = clean_listing_text(address_candidate)
+        if city_candidate and city_candidate.lower() not in clean_address.lower():
+            clean_address = f"{clean_address}, {city_candidate}"
+        if len(clean_address) >= 8:
+            return clean_address[:96]
+
+    if street_candidate and city_candidate:
+        return f"{street_candidate}, {city_candidate}"[:96]
 
     for pattern in MESSY_TITLE_PATTERNS:
         cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE).strip(" ,-:|")
@@ -264,7 +314,62 @@ def clean_listing_title(title: str) -> str:
         if marker in cleaned and cleaned.index(marker) > 18:
             cleaned = cleaned.split(marker)[0].strip(" ,-:|")
 
-    return cleaned or normalize_space(title)
+    cleaned = re.sub(r"\b(.{8,64})\b(?:\s*[-|,]\s*\1\b)+", r"\1", cleaned, flags=re.IGNORECASE)
+    return cleaned or clean_listing_text(title)
+
+
+def clean_listing_description(description: str | None, title: str | None = None) -> str:
+    cleaned = clean_listing_text(description)
+    clean_title = clean_listing_title(title or "")
+
+    if not cleaned:
+        return ""
+
+    noise_patterns = [
+        r"\bmeer op onze site\b",
+        r"\bvraag een bezichtiging aan via de link onderaan deze advertentie!?\b",
+        r"\bgevonden voor\s*€\s*[0-9][0-9.,]*\b",
+        r"\b(?:bekijk|lees)\s+meer\s+op\s+de\s+website\s+van\s+de\s+aanbieder\b",
+    ]
+
+    for pattern in noise_patterns:
+        cleaned = re.sub(pattern, " ", cleaned, flags=re.IGNORECASE)
+
+    if clean_title:
+        cleaned = re.sub(re.escape(clean_title), " ", cleaned, flags=re.IGNORECASE)
+
+    sentences = re.split(r"(?<=[.!?])\s+", normalize_space(cleaned))
+    useful_sentences = []
+    seen = set()
+
+    for sentence in sentences:
+        sentence = clean_listing_text(sentence)
+        if not sentence or len(sentence) < 12:
+            continue
+        key = sentence.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        useful_sentences.append(sentence)
+
+    return normalize_space(" ".join(useful_sentences) or cleaned)
+
+
+def clean_listing_summary(
+    title: str | None,
+    description: str | None,
+    *,
+    max_length: int = 220,
+) -> str:
+    cleaned = clean_listing_description(description, title)
+    if not cleaned:
+        cleaned = clean_listing_title(title or "")
+
+    if len(cleaned) <= max_length:
+        return cleaned
+
+    truncated = cleaned[: max_length - 1].rsplit(" ", 1)[0].strip()
+    return f"{truncated}..."
 
 
 def infer_property_type(combined_text: str) -> str:
@@ -392,7 +497,7 @@ def calculate_confidence_score(
     if city:
         score += 0.06
     if image_url:
-        score += 0.14
+        score += 0.09
     if area_m2 is not None:
         score += 0.12
     if property_type != "unknown":
@@ -403,8 +508,10 @@ def calculate_confidence_score(
         score += 0.06
 
     cleaned_title = clean_listing_title(title)
-    if len(cleaned_title) < 8 or cleaned_title.lower() != normalize_space(title).lower():
+    if len(cleaned_title) < 8:
         score -= 0.08
+    elif cleaned_title.lower() != clean_listing_text(title).lower():
+        score -= 0.03
     if is_woningruil:
         score -= 0.12
     if availability_status in {"rented", "under_option", "reserved"}:

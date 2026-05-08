@@ -24,6 +24,10 @@ os.environ.setdefault("JWT_SECRET_KEY", "test-loc-prop-secret-at-least-32-bytes"
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.services.listing_quality import (
+    clean_listing_description,
+    clean_listing_summary,
+    clean_listing_text,
+    clean_listing_title,
     infer_listing_city,
     infer_property_subtype,
     infer_property_type,
@@ -87,6 +91,51 @@ def test_city_empty_when_no_signals_and_no_requested() -> None:
         scraped_city=None,
     )
     assert city == ""
+
+
+# ---------------------------------------------------------------------------
+# presentation cleanup
+# ---------------------------------------------------------------------------
+
+
+def test_clean_listing_text_removes_raw_source_tokens() -> None:
+    cleaned = clean_listing_text(
+        "Appartement price_condition.per_month rental_price: 2200 per_month"
+    )
+
+    assert "price_condition" not in cleaned
+    assert "rental_price" not in cleaned
+    assert "per_month" not in cleaned
+
+
+def test_clean_listing_title_prefers_address_when_available() -> None:
+    cleaned = clean_listing_title(
+        "price_condition.per_month Appartement gevonden in Rotterdam",
+        address_text="Hertekade 253",
+        city="Rotterdam",
+    )
+
+    assert cleaned == "Hertekade 253, Rotterdam"
+
+
+def test_clean_listing_description_removes_duplicate_title_and_junk() -> None:
+    cleaned = clean_listing_description(
+        "Hertekade 253 Hertekade 253 price_condition.per_month Ruim appartement met balkon.",
+        "Hertekade 253",
+    )
+
+    assert "price_condition" not in cleaned
+    assert cleaned == "Ruim appartement met balkon."
+
+
+def test_clean_listing_summary_falls_back_cleanly() -> None:
+    summary = clean_listing_summary(
+        "Nieuw: Apartment price_condition.per_month",
+        "price_condition.per_month",
+    )
+
+    assert "price_condition" not in summary
+    assert summary
 
 
 # ---------------------------------------------------------------------------

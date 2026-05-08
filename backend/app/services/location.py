@@ -660,14 +660,24 @@ def geocode_query_nominatim(
 def geocode_location(database: Session, parts: AddressParts) -> dict | None:
     city = parts.city
     queries: list[tuple[str, str, float]] = []
+    address_text = normalize_space(parts.address_text)
+    postal_code = normalize_space(parts.postal_code)
+
+    if address_text and postal_code and city:
+        if city.lower() in address_text.lower():
+            query = f"{address_text} {postal_code}"
+        else:
+            query = f"{address_text} {postal_code} {city}"
+        precision = "exact_address" if parts.house_number or re.search(r"\b\d+[a-z]?\b", address_text, re.IGNORECASE) else "street"
+        queries.append((query, precision, 0.9 if precision == "exact_address" else 0.78))
 
     if parts.street_name and parts.house_number and city:
         street_address = f"{parts.street_name} {parts.house_number}"
 
-        if parts.postal_code:
+        if postal_code:
             queries.append(
                 (
-                    f"{street_address} {parts.postal_code} {city}",
+                    f"{street_address} {postal_code} {city}",
                     "exact_address",
                     0.92,
                 )
@@ -675,14 +685,14 @@ def geocode_location(database: Session, parts: AddressParts) -> dict | None:
 
         queries.append((f"{street_address} {city}", "exact_address", 0.82))
 
-    if parts.postal_code and city:
+    if postal_code and city:
         if parts.house_number:
-            queries.append((f"{parts.postal_code} {parts.house_number}", "exact_address", 0.88))
-        queries.append((f"{parts.postal_code} {city}", "postcode", 0.72))
+            queries.append((f"{postal_code} {parts.house_number}", "exact_address", 0.88))
+        queries.append((f"{postal_code} {city}", "postcode", 0.72))
 
-    if parts.address_text:
+    if address_text:
         queries.append((
-            parts.address_text.replace(", Nederland", ""),
+            address_text.replace(", Nederland", ""),
             parts.location_precision,
             parts.location_confidence,
         ))

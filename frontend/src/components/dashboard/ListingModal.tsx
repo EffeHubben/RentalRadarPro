@@ -6,10 +6,12 @@ import type { Listing, ListingStatus } from "@/types/listing";
 import { i18n, type Language } from "@/lib/i18n";
 import {
   cleanTitle,
+  createListingSubtitle,
   createSummary,
   descriptionSections,
+  formatArea,
   formatPrice,
-  propertyTypeLabel,
+  listingTypeLabel,
 } from "./helpers";
 import { ListingImage, PrivacyBadges } from "./ListingCard";
 import { ListingLocationMap } from "./ListingLocationMap";
@@ -72,6 +74,8 @@ export function ListingModal({
   const copy = i18n[language].modal;
   const listingCopy = i18n[language].listing;
   const workflowCopy = i18n[language].workflow;
+  const summary = listing ? createSummary(listing, 260) : "";
+  const subtitle = listing ? createListingSubtitle(listing, language) : "";
 
   return (
     <AnimatePresence>
@@ -103,7 +107,7 @@ export function ListingModal({
                 >
                   <div className="mb-3 flex flex-wrap gap-2">
                     <span className="rounded-full border border-brass/25 bg-brass/12 px-3 py-1 text-xs font-semibold text-brass">
-                      {propertyTypeLabel(listing.property_type, language)}
+                      {listingTypeLabel(listing.property_type, listing.property_type_sub, language)}
                     </span>
                     {listing.is_shared ? (
                       <span className="rs-chip rounded-full px-3 py-1 text-xs font-semibold">
@@ -134,7 +138,7 @@ export function ListingModal({
                         {cleanTitle(listing.title)}
                       </h2>
                       <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--color-muted)]">
-                        {createSummary(listing, 220)}
+                        {subtitle || summary || listingCopy.noSummary}
                       </p>
                     </div>
                     <button
@@ -153,7 +157,7 @@ export function ListingModal({
                 <div className="space-y-5">
                   <Section title={copy.about}>
                     <p className="text-sm leading-6 text-[var(--color-muted)]">
-                      {createSummary(listing, 260)}
+                      {summary || listingCopy.noSummary}
                     </p>
                   </Section>
 
@@ -228,10 +232,7 @@ export function ListingModal({
                         label={copy.city}
                         value={listing.city ?? listingCopy.unknown}
                       />
-                      <DetailBlock
-                        label={listingCopy.area}
-                        value={listing.area_m2 ? `${listing.area_m2} m2` : listingCopy.notAvailable}
-                      />
+                      <DetailBlock label={listingCopy.area} value={formatArea(listing.area_m2, language)} />
                       <DetailBlock label={listingCopy.rooms} value={listing.rooms ?? listingCopy.notAvailable} />
                     </div>
                   </Section>
@@ -245,9 +246,18 @@ export function ListingModal({
                       <div className="flex items-center justify-between gap-3">
                         <span>{copy.propertyType}</span>
                         <span className="font-semibold text-[var(--color-text)]">
-                          {propertyTypeLabel(listing.property_type, language)}
+                          {listingTypeLabel(listing.property_type, listing.property_type_sub, language)}
                         </span>
                       </div>
+                      {!listing.image_url ? (
+                        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-modal-panel-subtle)] px-3 py-2 text-xs leading-5 text-[var(--color-muted)]">
+                          <span className="font-semibold text-[var(--color-text)]">
+                            {listingCopy.noPhoto}
+                          </span>
+                          <br />
+                          {listingCopy.imagePendingHint}
+                        </div>
+                      ) : null}
                     </div>
                   </Section>
 
