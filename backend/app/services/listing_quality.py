@@ -174,19 +174,21 @@ INDEPENDENT_SIGNALS = [
     "independent",
 ]
 RENTED_SIGNALS = [
-    "verhuurd onder voorbehoud",
     "verhuurd",
     "niet beschikbaar",
     "rented",
     "unavailable",
+    "let",
 ]
 UNDER_OPTION_SIGNALS = [
     "onder optie",
     "under option",
 ]
 RESERVED_SIGNALS = [
+    "verhuurd onder voorbehoud",
     "gereserveerd",
     "reserved",
+    "let agreed",
 ]
 AVAILABLE_SIGNALS = [
     "beschikbaar vanaf",
@@ -316,6 +318,45 @@ def clean_listing_title(
 
     cleaned = re.sub(r"\b(.{8,64})\b(?:\s*[-|,]\s*\1\b)+", r"\1", cleaned, flags=re.IGNORECASE)
     return cleaned or clean_listing_text(title)
+
+
+def build_display_title(
+    title: str | None,
+    *,
+    address_text: str | None = None,
+    street_name: str | None = None,
+    house_number: str | None = None,
+    city: str | None = None,
+    property_type: str | None = None,
+) -> str:
+    cleaned = clean_listing_title(
+        title or "",
+        address_text=address_text,
+        street_name=street_name,
+        house_number=house_number,
+        city=city,
+    )
+
+    if cleaned and len(cleaned) >= 6:
+        return cleaned
+
+    property_type_labels = {
+        "apartment": "Apartment",
+        "house": "House",
+        "studio": "Studio",
+        "room": "Room",
+        "parking": "Parking",
+    }
+    city_candidate = normalize_space(city)
+    type_label = property_type_labels.get(property_type or "")
+
+    if type_label and city_candidate:
+        return f"{type_label} in {city_candidate}"
+
+    if city_candidate:
+        return city_candidate
+
+    return clean_listing_text(title) or "Rental listing"
 
 
 def clean_listing_description(description: str | None, title: str | None = None) -> str:
@@ -558,16 +599,20 @@ def build_listing_quality(data: ListingQualityInput) -> dict:
     rented_positions = phrase_positions(combined_text, RENTED_SIGNALS)
     available_positions = phrase_positions(combined_text, AVAILABLE_SIGNALS)
 
-    if rented_positions and (
+    if reserved_positions and (
+        not available_positions or min(reserved_positions) <= min(available_positions)
+    ):
+        availability_status = "reserved"
+        is_available = False
+    elif under_option_positions and (
+        not available_positions or min(under_option_positions) <= min(available_positions)
+    ):
+        availability_status = "under_option"
+        is_available = False
+    elif rented_positions and (
         not available_positions or min(rented_positions) < min(available_positions)
     ):
         availability_status = "rented"
-        is_available = False
-    elif under_option_positions:
-        availability_status = "under_option"
-        is_available = False
-    elif reserved_positions:
-        availability_status = "reserved"
         is_available = False
     elif available_positions:
         availability_status = "available"

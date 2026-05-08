@@ -63,7 +63,7 @@ def test_sanitize_scraped_listing_normalizes_url_and_quality_fields() -> None:
     assert listing.price is None
     assert listing.area_m2 is None
     assert listing.rooms is None
-    assert listing.image_url == "https://example.com/image.jpg"
+    assert listing.image_url == "https://example.com/image.jpg?cache=1"
     assert listing.address_text == "Markendaalseweg 10"
     assert listing.street_name == "Markendaalseweg"
     assert listing.house_number == "10"

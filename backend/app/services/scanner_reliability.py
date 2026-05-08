@@ -120,8 +120,27 @@ def normalize_listing_url(url: str | None) -> str | None:
 
 
 def normalize_optional_url(url: str | None) -> str | None:
-    normalized = normalize_listing_url(url)
-    return normalized
+    raw_url = normalize_space(url)
+    if not raw_url:
+        return None
+
+    parsed = urlsplit(raw_url)
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
+        return None
+
+    scheme = parsed.scheme.lower()
+    hostname = parsed.hostname.lower() if parsed.hostname else ""
+
+    if not hostname:
+        return None
+
+    port = parsed.port
+    if (scheme == "http" and port == 80) or (scheme == "https" and port == 443):
+        port = None
+
+    netloc = hostname if port is None else f"{hostname}:{port}"
+    path = re.sub(r"/{2,}", "/", parsed.path or "/")
+    return urlunsplit((scheme, netloc, path, parsed.query, ""))
 
 
 def normalize_city(city: str | None, fallback_city: str) -> str:

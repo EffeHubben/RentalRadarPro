@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from urllib.parse import quote_plus, urljoin, urlparse, urlunparse
 
@@ -5,9 +7,13 @@ from bs4 import BeautifulSoup
 
 from app.scrapers.base import (
     ScrapedListing,
-    extract_area_from_text,
+    detect_availability_status,
+    extract_listing_image,
     extract_price_from_text,
+    extract_area_from_text,
     extract_rooms_from_text,
+    parse_postcode_city,
+    split_street_and_number,
 )
 from app.services.browser_fetcher import fetch_page_with_browser
 
@@ -76,50 +82,31 @@ def is_probable_listing_url(url: str, config: GenericSourceConfig) -> bool:
     return any(marker in parsed.path for marker in config.listing_path_markers)
 
 
-def surrounding_text(element, max_depth: int = 7) -> str:
+def listing_container_for_link(element, max_depth: int = 8):
     current = element
-    best_text = ""
+    best_candidate = element
+    best_text_length = 0
 
     for _ in range(max_depth):
         if current is None:
             break
 
         text = current.get_text(" ", strip=True)
+        if len(text) > best_text_length:
+            best_candidate = current
+            best_text_length = len(text)
 
-        if len(text) > len(best_text):
-            best_text = text
-
-        if "€" in text and len(text) > 24:
-            return text
-
-        current = current.parent
-
-    return best_text
-
-
-def image_url_for(element, base_url: str) -> str | None:
-    current = element
-
-    for _ in range(7):
-        if current is None:
-            break
-
-        image = current.find("img") if hasattr(current, "find") else None
-
-        if image:
-            src = (
-                image.get("src")
-                or image.get("data-src")
-                or image.get("data-lazy")
-                or image.get("srcset", "").split(" ")[0]
-            )
-
-            if src:
-                return urljoin(base_url, src)
+        if "€" in text and (
+            "m²" in text
+            or "m2" in text.lower()
+            or "slaapkamer" in text.lower()
+            or "kamer" in text.lower()
+        ):
+            return current
 
         current = current.parent
 
-    return None
+    return best_candidate
 
 
 def title_from_link(text: str, url: str, fallback: str) -> str:
@@ -161,31 +148,55 @@ def fetch_generic_source_listings(
 
         full_url = canonicalize_url(urljoin(search_url, href))
 
-        if full_url in seen_urls:
-            continue
-
-        if not is_probable_listing_url(full_url, config):
+        if full_url in seen_urls or not is_probable_listing_url(full_url, config):
             continue
 
         text = link.get_text(" ", strip=True)
-        context = surrounding_text(link)
+        container = listing_container_for_link(link)
+        context = container.get_text(" ", strip=True) if container else text
         combined = f"{text} {context} {full_url}".lower()
 
         if any(marker in combined for marker in NON_LISTING_MARKERS):
             continue
 
         seen_urls.add(full_url)
+        postal_code, parsed_city = parse_postcode_city(context)
+        address_line = None
+        street_name = None
+        house_number = None
+
+        if postal_code and parsed_city:
+            address_line = next(
+                (
+                    line.strip()
+                    for line in context.split("  ")
+                    if postal_code.replace(" ", "") in line.replace(" ", "")
+                ),
+                None,
+            )
+
+        if text:
+            street_name, house_number = split_street_and_number(title_from_link(text, full_url, ""))
+
+        availability_status, is_available = detect_availability_status(context)
+
         listings.append(
             ScrapedListing(
                 title=title_from_link(text or context, full_url, f"{config.display_name} rental"),
                 source=config.display_name,
                 url=full_url,
-                city=requested_city,
+                city=parsed_city or requested_city,
                 price=extract_price_from_text(context),
                 area_m2=extract_area_from_text(context),
                 rooms=extract_rooms_from_text(context),
-                image_url=image_url_for(link, search_url),
+                image_url=extract_listing_image(soup, search_url, element=container or link),
                 description=context[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                address_text=address_line,
+                street_name=street_name,
+                house_number=house_number,
+                postal_code=postal_code,
             )
         )
 

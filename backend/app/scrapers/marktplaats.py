@@ -1,11 +1,22 @@
-from bs4 import BeautifulSoup
+from __future__ import annotations
+
 from urllib.parse import quote_plus, urljoin, urlparse, urlunparse
+
+from bs4 import BeautifulSoup
 
 from app.scrapers.base import (
     ScrapedListing,
+    availability_from_schema,
+    clean_image_url,
     extract_area_from_text,
+    extract_json_ld_objects,
+    extract_listing_image,
     extract_price_from_text,
     extract_rooms_from_text,
+    is_listing_photo_url,
+    parse_area_m2,
+    parse_price,
+    parse_room_count,
 )
 from app.scrapers.generic_sources import SourceBlockedError
 from app.services.browser_fetcher import fetch_page_with_browser
@@ -89,11 +100,7 @@ def is_marktplaats_listing_url(url: str) -> bool:
 
 def is_relevant_listing(title: str, description: str, url: str) -> bool:
     combined_text = f"{title} {description} {url}".lower()
-
-    if any(keyword in combined_text for keyword in UNWANTED_KEYWORDS):
-        return False
-
-    return True
+    return not any(keyword in combined_text for keyword in UNWANTED_KEYWORDS)
 
 
 def clean_title(text: str, url: str = "") -> str:
@@ -118,54 +125,83 @@ def clean_title(text: str, url: str = "") -> str:
         return cleaned[:140]
 
     parts = url.strip("/").split("/")
-
     if parts:
-        slug = parts[-1]
-        words = slug.replace("-", " ").title()
-        return words[:140]
+        return parts[-1].replace("-", " ").title()[:140]
 
     return "Rental listing"
 
 
-def get_surrounding_text(element, max_depth: int = 8) -> str:
+def listing_container_for_link(element, max_depth: int = 8):
     current = element
-    best_text = ""
+    best = element
+    best_length = 0
 
     for _ in range(max_depth):
         if current is None:
             break
 
         text = current.get_text(" ", strip=True)
-
-        if len(text) > len(best_text):
-            best_text = text
+        if len(text) > best_length:
+            best = current
+            best_length = len(text)
 
         if "€" in text and len(text) > 20:
-            return text
+            return current
 
         current = current.parent
 
-    return best_text
+    return best
 
 
-def get_image_url(element, base_url: str) -> str | None:
-    current = element
+def listings_from_json_ld(soup: BeautifulSoup, search_url: str, requested_city: str) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
 
-    for _ in range(8):
-        if current is None:
-            break
+    for item in extract_json_ld_objects(soup):
+        if item.get("@type") != "ItemList":
+            continue
 
-        image = current.find("img") if hasattr(current, "find") else None
+        for element in item.get("itemListElement", []):
+            payload = element.get("item") if isinstance(element, dict) else None
 
-        if image:
-            src = image.get("src") or image.get("data-src")
+            if not isinstance(payload, dict):
+                continue
 
-            if src:
-                return urljoin(base_url, src)
+            full_url = canonicalize_url(urljoin(search_url, payload.get("url", "")))
 
-        current = current.parent
+            if not is_marktplaats_listing_url(full_url):
+                continue
 
-    return None
+            title = clean_title(payload.get("name", ""), full_url)
+            description = payload.get("description", "")
+
+            if not is_relevant_listing(title, description, full_url):
+                continue
+
+            offers = payload.get("offers", {}) if isinstance(payload.get("offers"), dict) else {}
+            availability_status, is_available = availability_from_schema(offers.get("availability"))
+            image_url = clean_image_url(payload.get("image"), search_url)
+            if not is_listing_photo_url(image_url):
+                image_url = None
+
+            listings.append(
+                ScrapedListing(
+                    title=title,
+                    source=SOURCE_NAME,
+                    url=full_url,
+                    city=requested_city,
+                    price=parse_price(offers.get("price")) or extract_price_from_text(description),
+                    area_m2=parse_area_m2(payload.get("floorSize")) or extract_area_from_text(description),
+                    rooms=parse_room_count(payload.get("numberOfRooms")) or extract_rooms_from_text(
+                        f"{title} {description}"
+                    ),
+                    image_url=image_url,
+                    description=description[:1500],
+                    availability_status=availability_status,
+                    is_available=is_available,
+                )
+            )
+
+    return listings
 
 
 def fetch_marktplaats_listings(city: str = "Breda") -> list[ScrapedListing]:
@@ -176,17 +212,22 @@ def fetch_marktplaats_listings(city: str = "Breda") -> list[ScrapedListing]:
     successful_fetches = 0
 
     for index, search_url in enumerate(search_urls):
-        html = fetch_page_with_browser(
-            search_url,
-            debug_name=f"marktplaats_{index + 1}",
-        )
+        html = fetch_page_with_browser(search_url, debug_name=f"marktplaats_{index + 1}")
 
         if not html:
             continue
 
         successful_fetches += 1
-
         soup = BeautifulSoup(html, "html.parser")
+        structured = listings_from_json_ld(soup, search_url, requested_city)
+
+        if structured:
+            for listing in structured:
+                if listing.url in seen_urls:
+                    continue
+                seen_urls.add(listing.url)
+                listings.append(listing)
+            continue
 
         for link in soup.find_all("a", href=True):
             href = link.get("href")
@@ -195,37 +236,29 @@ def fetch_marktplaats_listings(city: str = "Breda") -> list[ScrapedListing]:
             if not href:
                 continue
 
-            full_url = urljoin(search_url, href)
-            full_url = canonicalize_url(full_url)
+            full_url = canonicalize_url(urljoin(search_url, href))
 
-            if not is_marktplaats_listing_url(full_url):
+            if not is_marktplaats_listing_url(full_url) or full_url in seen_urls:
                 continue
 
-            if full_url in seen_urls:
-                continue
-
-            surrounding_text = get_surrounding_text(link)
+            container = listing_container_for_link(link)
+            surrounding_text = container.get_text(" ", strip=True) if container else text
             title = clean_title(text, full_url)
-            price = extract_price_from_text(surrounding_text)
-            area_m2 = extract_area_from_text(surrounding_text)
-            rooms = extract_rooms_from_text(surrounding_text)
-            image_url = get_image_url(link, search_url)
 
             if not is_relevant_listing(title, surrounding_text, full_url):
                 continue
 
             seen_urls.add(full_url)
-
             listings.append(
                 ScrapedListing(
                     title=title,
                     source=SOURCE_NAME,
                     url=full_url,
                     city=requested_city,
-                    price=price,
-                    area_m2=area_m2,
-                    rooms=rooms,
-                    image_url=image_url,
+                    price=extract_price_from_text(surrounding_text),
+                    area_m2=extract_area_from_text(surrounding_text),
+                    rooms=extract_rooms_from_text(surrounding_text),
+                    image_url=extract_listing_image(soup, search_url, element=container or link),
                     description=surrounding_text[:1500],
                 )
             )

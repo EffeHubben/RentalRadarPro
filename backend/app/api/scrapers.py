@@ -19,8 +19,8 @@ from app.scrapers.generic_sources import SourceBlockedError
 from app.services.listing_quality import (
     ListingQualityInput,
     build_listing_quality,
+    build_display_title,
     clean_listing_description,
-    clean_listing_title,
 )
 from app.services.scanner_reliability import (
     source_listing_signature,
@@ -80,7 +80,30 @@ def create_source_summary(source_id: str, source_name: str, manual_search_url: s
         "manual_search_url": manual_search_url,
         "failure_type": None,
         "skip_reasons": {},
+        "detail_pages_fetched": 0,
+        "images_found": 0,
+        "missing_image": 0,
+        "missing_area": 0,
+        "missing_rooms": 0,
+        "availability_known": 0,
+        "unavailable_detected": 0,
+        "malformed_skipped": 0,
     }
+
+
+def update_source_quality_summary(source_summary: dict, scraped_listing) -> None:
+    diagnostics = scraped_listing.scrape_diagnostics or {}
+    source_summary["detail_pages_fetched"] += int(diagnostics.get("detail_pages_fetched", 0))
+    source_summary["images_found"] += 1 if scraped_listing.image_url else 0
+    source_summary["missing_image"] += 0 if scraped_listing.image_url else 1
+    source_summary["missing_area"] += 0 if scraped_listing.area_m2 is not None else 1
+    source_summary["missing_rooms"] += 0 if scraped_listing.rooms is not None else 1
+    source_summary["availability_known"] += (
+        1 if scraped_listing.availability_status not in {None, "", "unknown"} else 0
+    )
+    source_summary["unavailable_detected"] += (
+        1 if scraped_listing.availability_status in {"rented", "reserved", "under_option"} else 0
+    )
 
 
 def record_scan_history(
@@ -139,12 +162,13 @@ def update_existing_listing(
     city: str,
     now: datetime,
 ) -> None:
-    clean_title = clean_listing_title(
+    clean_title = build_display_title(
         scraped_listing.title or existing_listing.title or "",
         address_text=scraped_listing.address_text,
         street_name=scraped_listing.street_name,
         house_number=scraped_listing.house_number,
         city=listing_metadata.get("city") or scraped_listing.city or city,
+        property_type=listing_metadata.get("property_type") or existing_listing.property_type,
     )
     clean_description = clean_listing_description(scraped_listing.description, clean_title)
 
@@ -474,6 +498,7 @@ def run_scrapers(
                     source_summary["skip_reasons"][skip_reason] = (
                         source_summary["skip_reasons"].get(skip_reason, 0) + 1
                     )
+                source_summary["malformed_skipped"] += 1
                 logger.info(
                     "scan_listing_skipped source=%s source_name=%s city=%s reason=%s",
                     source.source_key,
@@ -484,6 +509,7 @@ def run_scrapers(
                 continue
 
             scraped_listing = sanitized_listing
+            update_source_quality_summary(source_summary, scraped_listing)
 
             if scraped_listing.url in seen_urls:
                 duplicate_count += 1
@@ -559,12 +585,13 @@ def run_scrapers(
             location_precision = listing_metadata.pop("location_precision", "unknown")
             location_confidence = listing_metadata.pop("location_confidence", 0.0)
             listing_extra_metadata = strip_reserved_listing_metadata(listing_metadata)
-            clean_title = clean_listing_title(
+            clean_title = build_display_title(
                 scraped_listing.title,
                 address_text=address_text,
                 street_name=street_name,
                 house_number=house_number,
                 city=listing_city,
+                property_type=listing_metadata.get("property_type"),
             )
             clean_description = clean_listing_description(scraped_listing.description, clean_title)
 
@@ -639,7 +666,7 @@ def run_scrapers(
             finished_at=finished_at,
         )
         logger.info(
-            "scan_finished source=%s source_name=%s city=%s status=%s scraped=%s created=%s updated=%s skipped=%s duplicates=%s duration_ms=%s",
+            "scan_finished source=%s source_name=%s city=%s status=%s scraped=%s created=%s updated=%s skipped=%s duplicates=%s detail_pages_fetched=%s images_found=%s missing_image=%s missing_area=%s missing_rooms=%s unavailable_detected=%s duration_ms=%s",
             source.source_key,
             source.display_name,
             city,
@@ -649,6 +676,12 @@ def run_scrapers(
             source_summary["updated_count"],
             source_summary["skipped_count"],
             source_summary["duplicate_count"],
+            source_summary["detail_pages_fetched"],
+            source_summary["images_found"],
+            source_summary["missing_image"],
+            source_summary["missing_area"],
+            source_summary["missing_rooms"],
+            source_summary["unavailable_detected"],
             source_summary["duration_ms"],
         )
 

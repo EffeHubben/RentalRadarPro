@@ -1,13 +1,22 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+import logging
+import re
+from urllib.parse import quote, urljoin, urlparse, urlunparse
+
 from bs4 import BeautifulSoup
 import requests
-from urllib.parse import quote, urljoin, urlparse, urlunparse
 
 from app.scrapers.base import (
     ScrapedListing,
     detect_availability_status,
+    extract_listing_image,
     extract_area_from_text,
     extract_price_from_text,
     extract_rooms_from_text,
+    parse_postcode_city,
+    split_street_and_number,
 )
 from app.scrapers.generic_sources import SourceBlockedError
 from app.services.browser_fetcher import fetch_page_with_browser
@@ -16,6 +25,21 @@ from app.services.browser_fetcher import fetch_page_with_browser
 SOURCE_NAME = "Ik wil huren"
 DETAIL_TIMEOUT_SECONDS = 10
 MAX_DETAIL_FETCHES_PER_RUN = 8
+logger = logging.getLogger("rentscout.scrapers.ikwilhuren")
+
+
+@dataclass(frozen=True)
+class ListingDetail:
+    description: str = ""
+    image_url: str | None = None
+    availability_status: str = "unknown"
+    is_available: bool | None = None
+    price: int | None = None
+    area_m2: int | None = None
+    rooms: int | None = None
+    address_text: str | None = None
+    postal_code: str | None = None
+    city: str | None = None
 
 
 def normalize_city(city: str) -> str:
@@ -34,160 +58,82 @@ def canonicalize_url(url: str) -> str:
 
 def is_ikwilhuren_listing_url(url: str) -> bool:
     parsed = urlparse(url.lower())
-
-    if "ikwilhuren.nu" not in parsed.netloc:
-        return False
-
-    return parsed.path.startswith("/object/")
+    return "ikwilhuren.nu" in parsed.netloc and parsed.path.startswith("/object/")
 
 
-def is_obvious_non_listing(text: str, url: str) -> bool:
-    combined_text = f"{text} {url}".lower()
-    blocked = [
-        "veelgestelde vragen",
-        "gebruikersvoorwaarden",
-        "privacy",
-        "contact",
-        "disclaimer",
-        "inloggen",
-    ]
-    return any(keyword in combined_text for keyword in blocked)
+def clean_title(text: str, address_line: str | None, city: str | None) -> str:
+    title = " ".join(text.split()).strip()
+    title = re.sub(r"^(appartement|eengezinswoning|woning|studio|kamer|huis)\s+", "", title, flags=re.IGNORECASE)
+
+    if title and city:
+        return f"{title}, {city}"[:140]
+
+    if address_line:
+        return address_line[:140]
+
+    return title[:140] or "Ik wil huren woning"
 
 
-def clean_title(text: str, url: str) -> str:
-    title = " ".join(text.split())
-    prefixes = ["Te huur ", "Verhuurd ", "Gereserveerd ", "Verhuurd onder voorbehoud "]
+def parse_card(card, search_url: str, requested_city: str) -> ScrapedListing | None:
+    link = card.select_one("a.stretched-link[href]")
 
-    for prefix in prefixes:
-        if title.startswith(prefix):
-            title = title[len(prefix) :]
-
-    if len(title) >= 5:
-        return title[:140]
-
-    slug = url.strip("/").split("/")[-1]
-    return slug.replace("-", " ").title()[:140] or "Ik wil huren woning"
-
-
-def get_surrounding_text(element, max_depth: int = 8) -> str:
-    current = element
-    best_text = ""
-
-    for _ in range(max_depth):
-        if current is None:
-            break
-
-        text = current.get_text(" ", strip=True)
-
-        if len(text) > len(best_text):
-            best_text = text
-
-        if "€" in text and ("m²" in text or "m2" in text.lower() or "slaapkamer" in text.lower()):
-            return text
-
-        current = current.parent
-
-    return best_text
-
-
-def get_image_url(element, base_url: str) -> str | None:
-    current = element
-
-    for _ in range(8):
-        if current is None:
-            break
-
-        image = current.find("img") if hasattr(current, "find") else None
-
-        if image:
-            src = (
-                image.get("src")
-                or image.get("data-src")
-                or image.get("data-lazy")
-                or image.get("data-original")
-                or image.get("srcset", "").split(" ")[0]
-            )
-
-            if src:
-                return urljoin(base_url, src)
-
-        current = current.parent
-
-    return None
-
-
-def image_from_style(style: str, base_url: str) -> str | None:
-    if not style:
+    if link is None:
         return None
 
-    marker = "url("
-    lower_style = style.lower()
+    full_url = canonicalize_url(urljoin(search_url, link.get("href", "")))
 
-    if marker not in lower_style:
+    if not is_ikwilhuren_listing_url(full_url):
         return None
 
-    start = lower_style.find(marker) + len(marker)
-    end = lower_style.find(")", start)
+    title_text = link.get_text(" ", strip=True)
+    property_prefix_match = re.match(
+        r"^(appartement|eengezinswoning|woning|studio|kamer|huis)\b",
+        title_text.strip(),
+        flags=re.IGNORECASE,
+    )
+    property_prefix = property_prefix_match.group(1) if property_prefix_match else ""
+    address_span = link.find_parent(class_="card-body").find("span", string=re.compile(r"\d{4}\s?[A-Z]{2}", re.IGNORECASE))
+    address_line = " ".join(address_span.get_text(" ", strip=True).split()) if address_span else ""
+    postal_code, parsed_city = parse_postcode_city(address_line)
+    city = parsed_city or requested_city
+    street_text = re.sub(r"^(appartement|eengezinswoning|woning|studio|kamer|huis)\s+", "", title_text, flags=re.IGNORECASE).strip(" ,-")
+    street_name, house_number = split_street_and_number(street_text)
+    badge = card.select_one(".badge")
+    badge_text = badge.get_text(" ", strip=True) if badge else ""
+    info_block = card.select_one(".small")
+    info_text = info_block.get_text(" ", strip=True) if info_block else ""
+    facts_block = card.select_one(".dotted-spans")
+    facts_text = facts_block.get_text(" ", strip=True) if facts_block else ""
+    combined = " ".join(part for part in [badge_text, info_text, facts_text] if part).strip()
+    availability_status, is_available = detect_availability_status(combined)
+    image_url = extract_listing_image(BeautifulSoup(str(card), "html.parser"), search_url)
+    address_text = None
 
-    if end == -1:
-        return None
+    if street_text and city:
+        address_text = f"{street_text}, {city}"
+        if postal_code:
+            address_text = f"{street_text}, {postal_code} {city}"
 
-    raw_url = style[start:end].strip(" '\"")
-    return urljoin(base_url, raw_url) if raw_url else None
-
-
-def is_real_image_url(url: str | None) -> bool:
-    if not url:
-        return False
-
-    lowered = url.lower()
-    blocked_markers = [
-        "logo",
-        "placeholder",
-        "photo_waiting",
-        "icon",
-        "spinner",
-        "data:image/svg",
-    ]
-
-    return not any(marker in lowered for marker in blocked_markers)
-
-
-def extract_main_image_from_soup(soup: BeautifulSoup, base_url: str) -> str | None:
-    meta_selectors = [
-        ("meta", {"property": "og:image"}),
-        ("meta", {"name": "twitter:image"}),
-    ]
-
-    for tag_name, attrs in meta_selectors:
-        meta = soup.find(tag_name, attrs=attrs)
-        content = meta.get("content") if meta else None
-
-        if is_real_image_url(content):
-            return urljoin(base_url, content)
-
-    for image in soup.find_all("img"):
-        src = (
-            image.get("src")
-            or image.get("data-src")
-            or image.get("data-lazy")
-            or image.get("data-original")
-            or image.get("srcset", "").split(" ")[0]
-        )
-
-        if is_real_image_url(src):
-            return urljoin(base_url, src)
-
-    for element in soup.find_all(style=True):
-        image_url = image_from_style(element.get("style", ""), base_url)
-
-        if is_real_image_url(image_url):
-            return image_url
-
-    return None
+    return ScrapedListing(
+        title=clean_title(title_text, address_text, city),
+        source=SOURCE_NAME,
+        url=full_url,
+        city=city,
+        price=extract_price_from_text(facts_text),
+        area_m2=extract_area_from_text(facts_text),
+        rooms=extract_rooms_from_text(facts_text),
+        image_url=image_url,
+        description=" ".join(part for part in [property_prefix, info_text, facts_text] if part)[:1500],
+        availability_status=availability_status,
+        is_available=is_available,
+        address_text=address_text,
+        street_name=street_name,
+        house_number=house_number,
+        postal_code=postal_code,
+    )
 
 
-def fetch_listing_detail(url: str) -> tuple[str, str | None, str, bool | None]:
+def fetch_listing_detail(url: str) -> ListingDetail:
     try:
         response = requests.get(
             url,
@@ -201,14 +147,41 @@ def fetch_listing_detail(url: str) -> tuple[str, str | None, str, bool | None]:
         )
         response.raise_for_status()
     except requests.RequestException:
-        return "", None, "unknown", None
+        return ListingDetail()
 
     soup = BeautifulSoup(response.text, "html.parser")
     detail_text = soup.get_text(" ", strip=True)
-    image_url = extract_main_image_from_soup(soup, url)
+    postal_code, city = parse_postcode_city(detail_text)
     availability_status, is_available = detect_availability_status(detail_text)
 
-    return detail_text, image_url, availability_status, is_available
+    return ListingDetail(
+        description=detail_text[:3000],
+        image_url=extract_listing_image(soup, url),
+        availability_status=availability_status,
+        is_available=is_available,
+        price=extract_price_from_text(detail_text),
+        area_m2=extract_area_from_text(detail_text),
+        rooms=extract_rooms_from_text(detail_text),
+        postal_code=postal_code,
+        city=city,
+    )
+
+
+def merge_detail_data(listing: ScrapedListing, detail: ListingDetail, fetched: bool) -> ScrapedListing:
+    listing.image_url = listing.image_url or detail.image_url
+    listing.price = listing.price or detail.price
+    listing.area_m2 = listing.area_m2 or detail.area_m2
+    listing.rooms = listing.rooms or detail.rooms
+    listing.description = " ".join(part for part in [listing.description, detail.description] if part)[:1500]
+
+    if detail.availability_status != "unknown":
+        listing.availability_status = detail.availability_status
+        listing.is_available = detail.is_available
+
+    if fetched:
+        listing.scrape_diagnostics["detail_pages_fetched"] = 1
+
+    return listing
 
 
 def fetch_ikwilhuren_listings(city: str = "Breda") -> list[ScrapedListing]:
@@ -220,79 +193,48 @@ def fetch_ikwilhuren_listings(city: str = "Breda") -> list[ScrapedListing]:
         raise SourceBlockedError("Source returned no usable HTML or appears blocked.")
 
     soup = BeautifulSoup(html, "html.parser")
-    listings = []
-    seen_urls = set()
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
     detail_fetches = 0
 
-    for link in soup.find_all("a", href=True):
-        href = link.get("href")
-        text = link.get_text(" ", strip=True)
+    for card in soup.select(".card.card-woning"):
+        listing = parse_card(card, search_url, requested_city)
 
-        if not href:
+        if listing is None or listing.url in seen_urls:
             continue
 
-        full_url = canonicalize_url(urljoin(search_url, href))
+        seen_urls.add(listing.url)
+        listing.scrape_diagnostics["images_found"] = 1 if listing.image_url else 0
+        listing.scrape_diagnostics["missing_image"] = 0 if listing.image_url else 1
+        listing.scrape_diagnostics["missing_area"] = 0 if listing.area_m2 else 1
+        listing.scrape_diagnostics["missing_rooms"] = 0 if listing.rooms else 1
 
-        if not is_ikwilhuren_listing_url(full_url):
-            continue
-
-        if full_url in seen_urls:
-            continue
-
-        surrounding_text = get_surrounding_text(link)
-
-        if is_obvious_non_listing(surrounding_text or text, full_url):
-            continue
-
-        title = clean_title(text or surrounding_text, full_url)
-        seen_urls.add(full_url)
-        image_url = get_image_url(link, search_url)
-        detail_text = ""
-        detail_availability_status = "unknown"
-        detail_is_available = None
-        overview_availability_status, overview_is_available = detect_availability_status(
-            f"{title} {surrounding_text}"
-        )
-        should_fetch_detail = (
+        needs_detail = (
             detail_fetches < MAX_DETAIL_FETCHES_PER_RUN
             and (
-                not is_real_image_url(image_url)
-                or overview_availability_status == "unknown"
+                not listing.image_url
+                or listing.area_m2 is None
+                or listing.rooms is None
+                or listing.availability_status == "unknown"
             )
         )
 
-        if should_fetch_detail:
-            (
-                detail_text,
-                detail_image_url,
-                detail_availability_status,
-                detail_is_available,
-            ) = fetch_listing_detail(full_url)
+        if needs_detail:
+            detail = fetch_listing_detail(listing.url)
             detail_fetches += 1
-            image_url = detail_image_url or image_url
+            listing = merge_detail_data(listing, detail, fetched=True)
 
-        combined_description = f"{surrounding_text} {detail_text}".strip()
-        availability_status = (
-            detail_availability_status
-            if detail_availability_status != "unknown"
-            else overview_availability_status
-        )
-        is_available = detail_is_available if detail_is_available is not None else overview_is_available
+        listing.scrape_diagnostics["images_found"] = 1 if listing.image_url else 0
+        listing.scrape_diagnostics["missing_image"] = 0 if listing.image_url else 1
+        listing.scrape_diagnostics["missing_area"] = 0 if listing.area_m2 else 1
+        listing.scrape_diagnostics["missing_rooms"] = 0 if listing.rooms else 1
 
-        listings.append(
-            ScrapedListing(
-                title=title,
-                source=SOURCE_NAME,
-                url=full_url,
-                city=requested_city,
-                price=extract_price_from_text(surrounding_text),
-                area_m2=extract_area_from_text(surrounding_text),
-                rooms=extract_rooms_from_text(surrounding_text),
-                image_url=image_url if is_real_image_url(image_url) else None,
-                description=combined_description[:1500],
-                availability_status=availability_status,
-                is_available=is_available,
-            )
-        )
+        listings.append(listing)
 
+    logger.info(
+        "ikwilhuren_scrape city=%s listings_found=%s detail_pages_fetched=%s",
+        requested_city,
+        len(listings),
+        detail_fetches,
+    )
     return listings
