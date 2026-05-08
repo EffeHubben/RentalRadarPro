@@ -71,11 +71,7 @@ def next_due_from_scan(source, latest_scan: ScanHistory | None) -> str | None:
     return next_due_at.isoformat()
 
 
-@router.get("/")
-def get_sources(
-    city: str | None = Query(default=None),
-    database: Session = Depends(get_database_session),
-):
+def build_sources_payloads(database: Session, city: str | None = None) -> list[dict]:
     payloads = []
     for source in RENTAL_SOURCES:
         payload = source_payload(source, city=city)
@@ -112,3 +108,11 @@ def get_sources(
         payloads.append(payload)
 
     return payloads
+
+
+@router.get("/")
+def get_sources(
+    city: str | None = Query(default=None),
+    database: Session = Depends(get_database_session),
+):
+    return build_sources_payloads(database, city=city)
