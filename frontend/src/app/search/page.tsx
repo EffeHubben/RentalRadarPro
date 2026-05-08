@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { hasPro } from "@/lib/subscription";
 import { ActiveFilters } from "@/components/dashboard/ActiveFilters";
+import { ExternalSourcesPanel } from "@/components/dashboard/ExternalSourcesPanel";
 import { FilterPanel } from "@/components/dashboard/FilterPanel";
 import { ListingCard } from "@/components/dashboard/ListingCard";
 import { ListingModal } from "@/components/dashboard/ListingModal";
@@ -658,7 +659,7 @@ export default function DashboardPage() {
     | "allowShared"
     | "allowSharedLaundry"
   >) {
-    const city = values.city.trim() || "Breda";
+    const city = values.city.trim();
     const selectedPropertyTypes = values.propertyTypes.filter(
       (type): type is PropertyType => ["studio", "apartment", "room", "house"].includes(type),
     );
@@ -749,6 +750,28 @@ export default function DashboardPage() {
               <p className="dashboard-muted mt-3 max-w-2xl text-sm leading-6">
                 {copy.dashboard.subtitle}
               </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="rs-chip-active rounded-full px-3 py-1.5 text-xs font-semibold">
+                  {filters.city.trim()
+                    ? `${copy.dashboard.scopeCity}: ${filters.city}`
+                    : copy.dashboard.scopeAllNetherlands}
+                </span>
+                {filters.city.trim() ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFilters((current) => ({
+                        ...current,
+                        city: "",
+                        offset: 0,
+                      }))
+                    }
+                    className="rs-control rounded-full px-3 py-1.5 text-xs font-semibold"
+                  >
+                    {copy.dashboard.scopeAllNetherlands}
+                  </button>
+                ) : null}
+              </div>
               {selectedProfile ? (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <span className="rs-chip-active rounded-full px-3 py-1.5 text-xs font-semibold">
@@ -1075,6 +1098,31 @@ export default function DashboardPage() {
                 banner={copy.previewBanner}
               />
             ) : null}
+
+            {!loading && visibleListings.length <= 5 ? (
+              <motion.section
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="dashboard-shell mt-6 rounded-2xl p-5"
+              >
+                <div className="text-sm font-semibold text-[var(--color-text)]">
+                  {copy.dashboard.lowResultsTitle}
+                </div>
+                <ul className="rs-muted mt-3 space-y-2 text-sm leading-6">
+                  <li>• {copy.dashboard.lowResultsTip1}</li>
+                  <li>• {copy.dashboard.lowResultsTip2}</li>
+                  <li>• {copy.dashboard.lowResultsTip3}</li>
+                  <li>• {copy.dashboard.lowResultsTip4}</li>
+                </ul>
+              </motion.section>
+            ) : null}
+
+            <ExternalSourcesPanel
+              sources={configuredSources}
+              city={filters.city}
+              language={language}
+              isProUser={isProUser}
+            />
           </section>
         </div>
 

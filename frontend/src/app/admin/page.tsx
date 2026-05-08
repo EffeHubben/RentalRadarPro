@@ -9,6 +9,8 @@ import { ToastStack, type Toast } from "@/components/dashboard/ToastStack";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import {
+  type AdminCoverageResponse,
+  fetchAdminCoverage,
   fetchAdminEmailDeliveries,
   fetchAdminOverview,
   fetchAdminSources,
@@ -659,6 +661,7 @@ export default function AdminPage() {
   const [usersTotal, setUsersTotal] = useState(0);
   const [deliveries, setDeliveries] = useState<AdminEmailDelivery[]>([]);
   const [sources, setSources] = useState<SourceInfo[]>([]);
+  const [coverage, setCoverage] = useState<AdminCoverageResponse | null>(null);
   const [deliveriesAvailable, setDeliveriesAvailable] = useState(true);
   const [deliveryStatusLimited, setDeliveryStatusLimited] = useState(true);
   const [deliveryTypes, setDeliveryTypes] = useState<string[]>([]);
@@ -758,6 +761,11 @@ export default function AdminPage() {
     setLoadingSources(true);
     try {
       setSources(await fetchAdminSources(auth.accessToken));
+      try {
+        setCoverage(await fetchAdminCoverage(auth.accessToken));
+      } catch {
+        setCoverage(null);
+      }
     } finally {
       setLoadingSources(false);
     }
@@ -1270,6 +1278,67 @@ export default function AdminPage() {
                             {sources.length}
                           </span>
                         </div>
+
+                        {coverage ? (
+                          <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-subtle)]">
+                                Listings by city
+                              </div>
+                              <ul className="mt-2 max-h-60 space-y-1 overflow-y-auto text-sm text-[var(--color-muted)]">
+                                {coverage.listings_by_city.length ? (
+                                  coverage.listings_by_city.map((entry) => (
+                                    <li key={entry.city} className="flex items-center justify-between gap-3">
+                                      <span className="truncate text-[var(--color-text)]">{entry.city}</span>
+                                      <span className="font-semibold">{entry.count}</span>
+                                    </li>
+                                  ))
+                                ) : (
+                                  <li className="text-[var(--color-subtle)]">No listings yet.</li>
+                                )}
+                              </ul>
+                            </div>
+                            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-subtle)]">
+                                Listings by source
+                              </div>
+                              <ul className="mt-2 max-h-60 space-y-1 overflow-y-auto text-sm text-[var(--color-muted)]">
+                                {coverage.listings_by_source.length ? (
+                                  coverage.listings_by_source.map((entry) => (
+                                    <li key={entry.source} className="flex items-center justify-between gap-3">
+                                      <span className="truncate text-[var(--color-text)]">{entry.source}</span>
+                                      <span className="font-semibold">{entry.count}</span>
+                                    </li>
+                                  ))
+                                ) : (
+                                  <li className="text-[var(--color-subtle)]">No listings yet.</li>
+                                )}
+                              </ul>
+                            </div>
+                            {coverage.failed_source_city_combos.length ? (
+                              <div className="rounded-2xl border border-danger/30 bg-[var(--color-danger-soft)] p-4 lg:col-span-2">
+                                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-danger">
+                                  Recent failed source/city combos
+                                </div>
+                                <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto text-xs text-[var(--color-muted)]">
+                                  {coverage.failed_source_city_combos.map((entry) => (
+                                    <li
+                                      key={`${entry.source_id}|${entry.city}|${entry.status}`}
+                                      className="flex items-center justify-between gap-3"
+                                    >
+                                      <span className="truncate text-[var(--color-text)]">
+                                        {entry.source_id} · {entry.city}
+                                      </span>
+                                      <span className="font-semibold">
+                                        {entry.status} ×{entry.count}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
 
                         {sources.length ? (
                           <div className="mt-5 mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">

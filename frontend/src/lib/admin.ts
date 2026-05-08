@@ -106,3 +106,21 @@ export function fetchAdminEmailDeliveries(
 export function fetchAdminSources(accessToken: string) {
   return adminRequest<AdminSourcesResponse>("/admin/sources", accessToken);
 }
+
+export type AdminCoverageEntry = { city?: string; source?: string; count: number };
+
+export type AdminCoverageResponse = {
+  listings_by_city: Array<{ city: string; count: number }>;
+  listings_by_source: Array<{ source: string; count: number }>;
+  failed_source_city_combos: Array<{
+    source_id: string;
+    city: string;
+    status: string;
+    count: number;
+    last_finished_at: string | null;
+  }>;
+};
+
+export function fetchAdminCoverage(accessToken: string) {
+  return adminRequest<AdminCoverageResponse>("/admin/coverage", accessToken);
+}
