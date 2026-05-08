@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     auth_access_token_minutes: int = 15
     auth_refresh_token_days: int = 30
     auth_refresh_cookie_name: str = "rental_radar_refresh_token"
+    auth_refresh_cookie_path: str = "/api/auth"
     auth_cookie_secure: bool = False
     refresh_cookie_secure: bool | None = None
     refresh_cookie_samesite: str = "lax"
@@ -70,6 +71,9 @@ class Settings(BaseSettings):
             self.frontend_origin,
         ]:
             normalized_origin = normalize_origin(origin)
+
+            if normalized_origin == "*":
+                continue
 
             if normalized_origin and normalized_origin not in origins:
                 origins.append(normalized_origin)

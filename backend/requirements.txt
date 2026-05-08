@@ -13,3 +13,5 @@ PyJWT
 email-validator
 stripe
 resend
+pytest
+httpx

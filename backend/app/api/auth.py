@@ -107,6 +107,7 @@ def enforce_registration_bot_check(payload: RegisterRequest, request: Request) -
 
 
 def set_refresh_cookie(response: Response, token: str) -> None:
+    clear_legacy_refresh_cookie(response)
     response.set_cookie(
         key=settings.auth_refresh_cookie_name,
         value=token,
@@ -114,11 +115,25 @@ def set_refresh_cookie(response: Response, token: str) -> None:
         httponly=True,
         secure=settings.refresh_cookie_secure_enabled,
         samesite=settings.refresh_cookie_samesite,
-        path="/",
+        path=settings.auth_refresh_cookie_path,
     )
 
 
 def clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=settings.auth_refresh_cookie_name,
+        httponly=True,
+        secure=settings.refresh_cookie_secure_enabled,
+        samesite=settings.refresh_cookie_samesite,
+        path=settings.auth_refresh_cookie_path,
+    )
+    clear_legacy_refresh_cookie(response)
+
+
+def clear_legacy_refresh_cookie(response: Response) -> None:
+    if settings.auth_refresh_cookie_path == "/":
+        return
+
     response.delete_cookie(
         key=settings.auth_refresh_cookie_name,
         httponly=True,
