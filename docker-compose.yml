@@ -12,6 +12,8 @@ services:
   backend:
     build:
       context: ./backend
+    env_file:
+      - .env
     environment: *backend-environment
     ports:
       - "8000:8000"
@@ -21,6 +23,8 @@ services:
   scanner:
     build:
       context: ./backend
+    env_file:
+      - .env
     environment: *backend-environment
     command: ["python", "-m", "app.services.scanner", "--city", "Breda", "--continuous", "--sleep-seconds", "300"]
     depends_on:
