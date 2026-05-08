@@ -230,6 +230,37 @@ export default function HomePage() {
   const proPlanPriceSuffix = billingEnabled
     ? formatProPlanPriceSuffix(language, monthlyPriceInterval)
     : "";
+  const freePlanButtonLabel = !auth.isAuthenticated
+    ? copy.startSearch
+    : isPro
+      ? copy.startSearchPro
+      : copy.proPlanCta;
+  const freePlanButtonAction = !auth.isAuthenticated
+    ? () => openAuth("register")
+    : isPro
+      ? () => window.location.assign("/search")
+      : () => void startBillingFlow("checkout");
+  const heroPrimaryLabel = !auth.isAuthenticated
+    ? copy.startSearch
+    : isPro
+      ? copy.startSearchPro
+      : copy.proPlanCta;
+  const heroPrimaryAction = !auth.isAuthenticated
+    ? () => openAuth("register")
+    : isPro
+      ? () => window.location.assign("/search")
+      : () => void startBillingFlow("checkout");
+  const finalCtaLabel = !auth.isAuthenticated
+    ? copy.startSearch
+    : isPro
+      ? copy.startSearchPro
+      : copy.proPlanCta;
+  const finalCtaHref = !auth.isAuthenticated || isPro ? "/search" : undefined;
+  const finalCtaAction = !auth.isAuthenticated
+    ? () => openAuth("register")
+    : isPro
+      ? () => window.location.assign("/search")
+      : () => void startBillingFlow("checkout");
 
   return (
     <div className="min-h-screen bg-[var(--color-page)] text-[var(--color-text)]">
@@ -271,12 +302,13 @@ export default function HomePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.45, delay: 0.15 }}
               >
-                <Link
-                  href="/search?setup=1"
+                <button
+                  type="button"
+                  onClick={heroPrimaryAction}
                   className="rs-primary-button inline-flex h-12 items-center rounded-lg px-5 text-sm font-semibold"
                 >
-                  {copy.startSearch}
-                </Link>
+                  {heroPrimaryLabel}
+                </button>
                 {hasPreviousSearch ? (
                   <Link
                     href="/search"
@@ -407,12 +439,22 @@ export default function HomePage() {
                       </li>
                     ))}
                   </ul>
-                  <Link
-                    href="/search?setup=1"
-                    className="rs-primary-button mt-6 inline-flex h-11 items-center justify-center rounded-lg px-5 text-sm font-semibold"
-                  >
-                    {copy.freePlanCta}
-                  </Link>
+                  {isPro ? (
+                    <Link
+                      href="/search"
+                      className="rs-primary-button mt-6 inline-flex h-11 items-center justify-center rounded-lg px-5 text-sm font-semibold"
+                    >
+                      {copy.startSearchPro}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={freePlanButtonAction}
+                      className="rs-primary-button mt-6 inline-flex h-11 items-center justify-center rounded-lg px-5 text-sm font-semibold"
+                    >
+                      {freePlanButtonLabel}
+                    </button>
+                  )}
                 </div>
               </Reveal>
 
@@ -439,14 +481,23 @@ export default function HomePage() {
                       </li>
                     ))}
                   </ul>
-                  <button
-                    type="button"
-                    onClick={() => void startBillingFlow(proPlanButtonMode)}
-                    disabled={billingLoading || !billingEnabled}
-                    className="mt-6 inline-flex h-11 items-center justify-center rounded-lg border border-brass/40 bg-brass px-5 text-sm font-semibold text-ink shadow-[0_12px_28px_rgba(215,168,79,0.24)] transition hover:bg-brass/90 hover:shadow-[0_16px_34px_rgba(215,168,79,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-elevated)] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {billingEnabled ? (billingLoading ? copy.billingLoading : proPlanButtonLabel) : proPlanButtonLabel}
-                  </button>
+                  {isPro ? (
+                    <Link
+                      href="/search"
+                      className="mt-6 inline-flex h-11 items-center justify-center rounded-lg border border-brass/40 bg-brass px-5 text-sm font-semibold text-ink shadow-[0_12px_28px_rgba(215,168,79,0.24)] transition hover:bg-brass/90 hover:shadow-[0_16px_34px_rgba(215,168,79,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-elevated)]"
+                    >
+                      {copy.startSearchPro}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void startBillingFlow(proPlanButtonMode)}
+                      disabled={billingLoading || !billingEnabled}
+                      className="mt-6 inline-flex h-11 items-center justify-center rounded-lg border border-brass/40 bg-brass px-5 text-sm font-semibold text-ink shadow-[0_12px_28px_rgba(215,168,79,0.24)] transition hover:bg-brass/90 hover:shadow-[0_16px_34px_rgba(215,168,79,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-elevated)] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {billingEnabled ? (billingLoading ? copy.billingLoading : proPlanButtonLabel) : proPlanButtonLabel}
+                    </button>
+                  )}
                   {billingError ? (
                     <p className="mt-3 text-xs leading-5 text-danger">{billingError}</p>
                   ) : null}
@@ -468,12 +519,22 @@ export default function HomePage() {
                     {copy.finalCtaBody}
                   </p>
                 </div>
-                <Link
-                  href="/search?setup=1"
-                  className="rs-primary-button inline-flex h-12 shrink-0 items-center justify-center rounded-lg px-5 text-sm font-semibold"
-                >
-                  {copy.startSearch}
-                </Link>
+                {finalCtaHref ? (
+                  <Link
+                    href={finalCtaHref}
+                    className="rs-primary-button inline-flex h-12 shrink-0 items-center justify-center rounded-lg px-5 text-sm font-semibold"
+                  >
+                    {finalCtaLabel}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={finalCtaAction}
+                    className="rs-primary-button inline-flex h-12 shrink-0 items-center justify-center rounded-lg px-5 text-sm font-semibold"
+                  >
+                    {finalCtaLabel}
+                  </button>
+                )}
               </div>
             </div>
           </Reveal>

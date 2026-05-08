@@ -31,6 +31,7 @@ export const i18n = {
       subtitle:
         "RentScout verzamelt huuradvertenties uit meerdere bronnen, helpt je sneller vergelijken en bewaart je voortgang op een plek.",
       startSearch: "Gratis proberen",
+      startSearchPro: "Ga naar dashboard",
       continueSearch: "Vorige zoektocht openen",
       learnMore: "Meer over RentScout",
       viewPlans: "Bekijk plannen",
@@ -773,6 +774,7 @@ export const i18n = {
       subtitle:
         "RentScout brings rental listings from multiple sources into one focused workspace, helping you compare faster and track your progress.",
       startSearch: "Try for free",
+      startSearchPro: "Go to dashboard",
       continueSearch: "Continue previous search",
       learnMore: "Learn more",
       viewPlans: "View plans",
