@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 DEFAULT_CORS_ORIGINS = [
@@ -16,6 +16,11 @@ def normalize_origin(origin: str) -> str:
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+    )
+
     app_name: str = "RentScout"
     database_url: str = "sqlite:///./rental_radar_pro.db"
     max_rent: int = 1000
@@ -37,6 +42,9 @@ class Settings(BaseSettings):
     stripe_price_id_pro: str | None = None
     billing_success_url: str | None = None
     billing_cancel_url: str | None = None
+    resend_api_key: str | None = None
+    email_from: str | None = None
+    app_public_url: str | None = None
 
     @property
     def token_secret_key(self) -> str:
@@ -61,9 +69,5 @@ class Settings(BaseSettings):
                 origins.append(normalized_origin)
 
         return origins
-
-    class Config:
-        env_file = ".env"
-
 
 settings = Settings()

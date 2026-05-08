@@ -1,7 +1,8 @@
+import logging
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -9,9 +10,16 @@ from app.core.config import settings
 from app.core.security import get_current_user
 from app.database.db import get_database_session
 from app.models.user import User
+from app.services.email import (
+    EmailUserContext,
+    send_payment_failed_email,
+    send_pro_activated_email,
+    send_subscription_canceled_email,
+)
 
 
 router = APIRouter(prefix="/api/billing", tags=["Billing"])
+logger = logging.getLogger("rentscout.billing")
 
 PRO_SUBSCRIPTION_STATUSES = {"active", "trialing"}
 FREE_SUBSCRIPTION_STATUSES = {"canceled", "incomplete_expired", "unpaid"}
@@ -236,6 +244,7 @@ def create_portal_session(
 @router.post("/webhook")
 async def stripe_webhook(
     request: Request,
+    background_tasks: BackgroundTasks,
     database: Session = Depends(get_database_session),
 ):
     stripe = get_stripe()
@@ -252,6 +261,7 @@ async def stripe_webhook(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Stripe webhook") from exc
 
     event_type = stripe_value(event, "type")
+    event_id = stripe_value(event, "id")
     data_object = stripe_value(stripe_value(event, "data") or {}, "object")
 
     if event_type == "checkout.session.completed":
@@ -259,20 +269,57 @@ async def stripe_webhook(
         subscription_id = stripe_value(data_object, "subscription")
 
         if user and subscription_id:
+            previous_plan = user.plan
             subscription = stripe.Subscription.retrieve(subscription_id)
             apply_subscription_state(user, subscription)
+
+            if previous_plan != "pro" and user.plan == "pro" and event_id:
+                background_tasks.add_task(
+                    send_pro_activated_email,
+                    EmailUserContext.from_user(user),
+                    f"pro_activated:{event_id}",
+                )
+                logger.info("pro_activated_email_queued user_id=%s event_type=%s", user.id, event_type)
 
     elif event_type in {"customer.subscription.created", "customer.subscription.updated"}:
         user = find_user_for_stripe_object(database, data_object)
 
         if user:
+            previous_plan = user.plan
+            previous_status = user.subscription_status
             apply_subscription_state(user, data_object)
+
+            if previous_plan != "pro" and user.plan == "pro":
+                background_tasks.add_task(
+                    send_pro_activated_email,
+                    EmailUserContext.from_user(user),
+                    f"pro_activated:{event_id or user.id}",
+                )
+                logger.info("pro_activated_email_queued user_id=%s event_type=%s", user.id, event_type)
+            elif (
+                event_type == "customer.subscription.updated"
+                and previous_status != "canceled"
+                and user.subscription_status == "canceled"
+            ):
+                background_tasks.add_task(
+                    send_subscription_canceled_email,
+                    EmailUserContext.from_user(user),
+                    f"subscription_canceled:{event_id}",
+                )
+                logger.info("subscription_canceled_email_queued user_id=%s event_type=%s", user.id, event_type)
 
     elif event_type == "customer.subscription.deleted":
         user = find_user_for_stripe_object(database, data_object)
 
         if user:
             clear_subscription_state(user, data_object)
+            if event_id:
+                background_tasks.add_task(
+                    send_subscription_canceled_email,
+                    EmailUserContext.from_user(user),
+                    f"subscription_canceled:{event_id}",
+                )
+                logger.info("subscription_canceled_email_queued user_id=%s event_type=%s", user.id, event_type)
 
     elif event_type == "invoice.paid":
         subscription_id = stripe_value(data_object, "subscription")
@@ -282,7 +329,16 @@ async def stripe_webhook(
             user = find_user_for_stripe_object(database, subscription)
 
             if user:
+                previous_plan = user.plan
                 apply_subscription_state(user, subscription)
+
+                if previous_plan != "pro" and user.plan == "pro":
+                    background_tasks.add_task(
+                        send_pro_activated_email,
+                        EmailUserContext.from_user(user),
+                        f"pro_activated:{event_id or user.id}",
+                    )
+                    logger.info("pro_activated_email_queued user_id=%s event_type=%s", user.id, event_type)
 
     elif event_type == "invoice.payment_failed":
         subscription_id = stripe_value(data_object, "subscription")
@@ -292,13 +348,30 @@ async def stripe_webhook(
             user = find_user_for_stripe_object(database, subscription)
 
             if user:
+                previous_status = user.subscription_status
                 apply_subscription_state(user, subscription)
+
+                if previous_status not in {"past_due", "unpaid"} and event_id:
+                    background_tasks.add_task(
+                        send_payment_failed_email,
+                        EmailUserContext.from_user(user),
+                        f"payment_failed:{event_id}",
+                    )
+                    logger.info("payment_failed_email_queued user_id=%s event_type=%s", user.id, event_type)
         else:
             user = find_user_for_stripe_object(database, data_object)
 
             if user and user.subscription_status not in FREE_SUBSCRIPTION_STATUSES:
+                previous_status = user.subscription_status
                 user.subscription_status = "past_due"
                 user.plan = "free"
+                if previous_status not in {"past_due", "unpaid"} and event_id:
+                    background_tasks.add_task(
+                        send_payment_failed_email,
+                        EmailUserContext.from_user(user),
+                        f"payment_failed:{event_id}",
+                    )
+                    logger.info("payment_failed_email_queued user_id=%s event_type=%s", user.id, event_type)
 
     database.commit()
 

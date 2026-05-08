@@ -1,6 +1,7 @@
+import logging
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -23,9 +24,11 @@ from app.schemas.auth import (
     RefreshResponse,
     RegisterRequest,
 )
+from app.services.email import EmailUserContext, send_welcome_email
 
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
+logger = logging.getLogger("rentscout.auth")
 
 
 def access_token_expires_in_seconds() -> int:
@@ -76,6 +79,7 @@ def register(
     payload: RegisterRequest,
     request: Request,
     response: Response,
+    background_tasks: BackgroundTasks,
     database: Session = Depends(get_database_session),
 ):
     email_normalized = normalize_email(payload.email)
@@ -103,6 +107,9 @@ def register(
     database.refresh(user)
 
     set_refresh_cookie(response, refresh_token)
+    user_context = EmailUserContext.from_user(user)
+    background_tasks.add_task(send_welcome_email, user_context)
+    logger.info("welcome_email_queued user_id=%s", user.id)
 
     return AuthResponse(
         user=user,
