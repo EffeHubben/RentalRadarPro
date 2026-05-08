@@ -5,6 +5,7 @@ export type AuthUser = {
   email: string;
   display_name: string | null;
   preferred_language: Language | null;
+  email_verified: boolean;
   is_active: boolean;
   is_admin: boolean;
   created_at: string;

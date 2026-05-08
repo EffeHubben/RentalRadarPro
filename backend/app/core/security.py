@@ -65,8 +65,16 @@ def create_refresh_token() -> str:
     return secrets.token_urlsafe(48)
 
 
-def hash_refresh_token(token: str) -> str:
+def create_one_time_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def hash_token(token: str) -> str:
     return sha256(token.encode("utf-8")).hexdigest()
+
+
+def hash_refresh_token(token: str) -> str:
+    return hash_token(token)
 
 
 def decode_access_token(token: str) -> dict:

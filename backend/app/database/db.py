@@ -79,6 +79,13 @@ USER_COLUMN_MIGRATIONS = {
     "stripe_customer_id": "ALTER TABLE users ADD COLUMN stripe_customer_id VARCHAR(255)",
     "stripe_subscription_id": "ALTER TABLE users ADD COLUMN stripe_subscription_id VARCHAR(255)",
     "subscription_current_period_end": "ALTER TABLE users ADD COLUMN subscription_current_period_end DATETIME",
+    "email_verified": "ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT 0",
+    "email_verification_token_hash": "ALTER TABLE users ADD COLUMN email_verification_token_hash VARCHAR(128)",
+    "email_verification_sent_at": "ALTER TABLE users ADD COLUMN email_verification_sent_at DATETIME",
+    "email_verification_expires_at": "ALTER TABLE users ADD COLUMN email_verification_expires_at DATETIME",
+    "password_reset_token_hash": "ALTER TABLE users ADD COLUMN password_reset_token_hash VARCHAR(128)",
+    "password_reset_sent_at": "ALTER TABLE users ADD COLUMN password_reset_sent_at DATETIME",
+    "password_reset_expires_at": "ALTER TABLE users ADD COLUMN password_reset_expires_at DATETIME",
 }
 
 
@@ -181,6 +188,17 @@ def migrate_users_table() -> None:
         for column_name, migration_sql in USER_COLUMN_MIGRATIONS.items():
             if column_name not in existing_columns:
                 connection.execute(text(migration_sql))
+
+        connection.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_users_email_verification_token_hash ON users (email_verification_token_hash)"
+            )
+        )
+        connection.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_users_password_reset_token_hash ON users (password_reset_token_hash)"
+            )
+        )
 
 
 def migrate_geocode_cache_table() -> None:

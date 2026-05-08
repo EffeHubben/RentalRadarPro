@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     resend_api_key: str | None = None
     email_from: str | None = None
     app_public_url: str | None = None
+    email_verification_enabled: bool = False
+    email_verification_token_expiration_minutes: int = 4320
+    password_reset_enabled: bool = True
+    password_reset_token_expiration_minutes: int = 60
 
     @property
     def token_secret_key(self) -> str:

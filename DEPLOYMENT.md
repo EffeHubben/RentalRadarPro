@@ -36,6 +36,13 @@ Backend:
 - `BACKEND_CORS_ORIGINS`: Comma-separated allowed frontend origins.
 - `LISTING_SCAN_INTERVAL_MINUTES`: Default automatic source scan interval. Use `5` for production.
 - `LISTING_SOURCE_TIMEOUT_SECONDS`: Per-source scan timeout. Default is `45`.
+- `RESEND_API_KEY`: Resend API key for transactional email sending.
+- `EMAIL_FROM`: Verified sender address for RentScout emails.
+- `APP_PUBLIC_URL`: Public frontend base URL used in email buttons and account links.
+- `EMAIL_VERIFICATION_ENABLED`: Soft rollout flag for verification emails. Default `false`.
+- `EMAIL_VERIFICATION_TOKEN_EXPIRATION_MINUTES`: Verification link lifetime. Default `4320`.
+- `PASSWORD_RESET_ENABLED`: Enables password reset flow. Default `true`.
+- `PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES`: Password reset link lifetime. Default `60`.
 
 Frontend:
 
@@ -249,6 +256,49 @@ Suggested implementation shape:
 5. Enforce captcha in production only when the secret key is configured.
 
 This change keeps the current auth surface scoped to branding and password hardening, instead of adding a partial captcha path without end-to-end verification.
+
+## Transactional Email Preview
+
+Render local HTML previews without sending real emails:
+
+```bash
+cd backend
+./.venv/bin/python scripts/preview_emails.py
+```
+
+Generated previews are written to:
+
+```text
+backend/tmp/email-previews/
+```
+
+Each preview includes both HTML and plain-text output for English and Dutch variants.
+
+## Manual Email Test
+
+To send a manual test welcome email from the backend environment, make sure `RESEND_API_KEY`, `EMAIL_FROM`, and `APP_PUBLIC_URL` are already set in the active backend environment, then run:
+
+```bash
+cd backend
+./.venv/bin/python -c "from app.services.email import EmailUserContext, send_welcome_email; send_welcome_email(EmailUserContext(id=999, email='your-email@example.com', display_name='Test User', preferred_language='en'), event_key='manual-test-welcome')"
+```
+
+To send a Dutch test email, change `preferred_language='nl'` and use a different `event_key`.
+
+## Email Verification And Password Reset
+
+RentScout now supports:
+
+- branded multilingual welcome, billing, verification, and password reset emails
+- soft email verification with hashed tokens stored server-side
+- password reset request and confirmation endpoints with hashed expiring tokens
+
+The rollout stays soft by default:
+
+- email verification is available but not enforced for login
+- verification mail sending is controlled by `EMAIL_VERIFICATION_ENABLED`
+- password reset always returns a generic success message to avoid account enumeration
+- missing Resend config logs and skips sending instead of breaking auth flows
 
 ## Future PostgreSQL Recommendation
 

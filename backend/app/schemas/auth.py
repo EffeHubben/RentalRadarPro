@@ -20,6 +20,7 @@ class AuthUserResponse(BaseModel):
     email: str
     display_name: str | None
     preferred_language: str | None
+    email_verified: bool
     is_active: bool
     is_admin: bool
     created_at: datetime
@@ -47,3 +48,17 @@ class RefreshResponse(BaseModel):
 
 class LogoutResponse(BaseModel):
     ok: bool
+
+
+class MessageResponse(BaseModel):
+    ok: bool
+    message: str
+
+
+class RequestPasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=512)
+    password: str = Field(min_length=1, max_length=128)

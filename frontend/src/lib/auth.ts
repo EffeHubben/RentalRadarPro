@@ -57,3 +57,26 @@ export function getCurrentUser(accessToken: string) {
     },
   });
 }
+
+export function verifyEmailToken(token: string) {
+  return authRequest<{ ok: boolean; message: string }>(
+    `/auth/verify-email?token=${encodeURIComponent(token)}`,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export function requestPasswordReset(email: string) {
+  return authRequest<{ ok: boolean; message: string }>("/auth/password-reset/request", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function confirmPasswordReset(token: string, password: string) {
+  return authRequest<{ ok: boolean; message: string }>("/auth/password-reset/confirm", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
+}

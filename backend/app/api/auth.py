@@ -6,11 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import (
+    create_one_time_token,
     create_access_token,
     create_refresh_token,
     get_current_user,
     hash_password,
     hash_refresh_token,
+    hash_token,
     normalize_email,
     password_strength_error,
     verify_password,
@@ -22,14 +24,25 @@ from app.schemas.auth import (
     AuthUserResponse,
     LoginRequest,
     LogoutResponse,
+    MessageResponse,
+    RequestPasswordResetRequest,
     RefreshResponse,
     RegisterRequest,
+    ResetPasswordRequest,
 )
-from app.services.email import EmailUserContext, send_welcome_email
+from app.services.email import (
+    EmailUserContext,
+    send_email_verification_email,
+    send_password_reset_email,
+    send_welcome_email,
+)
 
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 logger = logging.getLogger("rentscout.auth")
+PASSWORD_RESET_SUCCESS_MESSAGE = (
+    "If an account exists for that email address, a password reset link will be sent shortly."
+)
 
 
 def access_token_expires_in_seconds() -> int:
@@ -75,6 +88,32 @@ def create_refresh_token_record(
     return refresh_token
 
 
+def issue_email_verification_token(user: User) -> tuple[str, str, datetime]:
+    token = create_one_time_token()
+    token_hash = hash_token(token)
+    sent_at = datetime.utcnow()
+    expires_at = datetime.utcnow() + timedelta(
+        minutes=settings.email_verification_token_expiration_minutes
+    )
+    user.email_verification_token_hash = token_hash
+    user.email_verification_sent_at = sent_at
+    user.email_verification_expires_at = expires_at
+    return token, f"email_verification:user:{user.id}:{int(sent_at.timestamp())}", expires_at
+
+
+def issue_password_reset_token(user: User) -> tuple[str, str, datetime]:
+    token = create_one_time_token()
+    token_hash = hash_token(token)
+    sent_at = datetime.utcnow()
+    expires_at = datetime.utcnow() + timedelta(
+        minutes=settings.password_reset_token_expiration_minutes
+    )
+    user.password_reset_token_hash = token_hash
+    user.password_reset_sent_at = sent_at
+    user.password_reset_expires_at = expires_at
+    return token, f"password_reset:user:{user.id}:{int(sent_at.timestamp())}", expires_at
+
+
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def register(
     payload: RegisterRequest,
@@ -83,6 +122,8 @@ def register(
     background_tasks: BackgroundTasks,
     database: Session = Depends(get_database_session),
 ):
+    verification_token: str | None = None
+    verification_event_key: str | None = None
     email_normalized = normalize_email(payload.email)
     existing_user = database.query(User).filter(User.email_normalized == email_normalized).first()
 
@@ -110,6 +151,9 @@ def register(
     database.add(user)
     database.flush()
 
+    if settings.email_verification_enabled:
+        verification_token, verification_event_key, _ = issue_email_verification_token(user)
+
     refresh_token = create_refresh_token_record(request, database, user)
     database.commit()
     database.refresh(user)
@@ -118,6 +162,15 @@ def register(
     user_context = EmailUserContext.from_user(user)
     background_tasks.add_task(send_welcome_email, user_context)
     logger.info("welcome_email_queued user_id=%s", user.id)
+
+    if settings.email_verification_enabled and verification_token and verification_event_key:
+        background_tasks.add_task(
+            send_email_verification_email,
+            user_context,
+            verification_token,
+            verification_event_key,
+        )
+        logger.info("email_verification_email_queued user_id=%s", user.id)
 
     return AuthResponse(
         user=user,
@@ -212,6 +265,111 @@ def logout(
 
     clear_refresh_cookie(response)
     return LogoutResponse(ok=True)
+
+
+@router.get("/verify-email", response_model=MessageResponse)
+def verify_email(
+    token: str,
+    database: Session = Depends(get_database_session),
+):
+    token_hash = hash_token(token)
+    user = database.query(User).filter(User.email_verification_token_hash == token_hash).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification link",
+        )
+
+    if user.email_verification_expires_at and user.email_verification_expires_at < datetime.utcnow():
+        user.email_verification_token_hash = None
+        user.email_verification_expires_at = None
+        database.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification link",
+        )
+
+    user.email_verified = True
+    user.email_verification_token_hash = None
+    user.email_verification_expires_at = None
+    database.commit()
+
+    return MessageResponse(ok=True, message="Email address verified")
+
+
+@router.post("/password-reset/request", response_model=MessageResponse)
+def request_password_reset(
+    payload: RequestPasswordResetRequest,
+    background_tasks: BackgroundTasks,
+    database: Session = Depends(get_database_session),
+):
+    if not settings.password_reset_enabled:
+        logger.info("password_reset_request_skipped_disabled")
+        return MessageResponse(ok=True, message=PASSWORD_RESET_SUCCESS_MESSAGE)
+
+    email_normalized = normalize_email(payload.email)
+    user = (
+        database.query(User)
+        .filter(User.email_normalized == email_normalized, User.is_active.is_(True))
+        .first()
+    )
+
+    if not user:
+        return MessageResponse(ok=True, message=PASSWORD_RESET_SUCCESS_MESSAGE)
+
+    reset_token, reset_event_key, _ = issue_password_reset_token(user)
+    database.commit()
+
+    background_tasks.add_task(
+        send_password_reset_email,
+        EmailUserContext.from_user(user),
+        reset_token,
+        reset_event_key,
+    )
+    logger.info("password_reset_email_queued user_id=%s", user.id)
+    return MessageResponse(ok=True, message=PASSWORD_RESET_SUCCESS_MESSAGE)
+
+
+@router.post("/password-reset/confirm", response_model=MessageResponse)
+def confirm_password_reset(
+    payload: ResetPasswordRequest,
+    database: Session = Depends(get_database_session),
+):
+    if not settings.password_reset_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Password reset is not available",
+        )
+
+    password_error = password_strength_error(payload.password)
+    if password_error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=password_error,
+        )
+
+    token_hash = hash_token(payload.token)
+    user = database.query(User).filter(User.password_reset_token_hash == token_hash).first()
+
+    if not user or not user.password_reset_expires_at or user.password_reset_expires_at < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset link",
+        )
+
+    user.password_hash = hash_password(payload.password)
+    user.password_reset_token_hash = None
+    user.password_reset_sent_at = None
+    user.password_reset_expires_at = None
+
+    database.query(RefreshToken).filter(
+        RefreshToken.user_id == user.id,
+        RefreshToken.revoked_at.is_(None),
+    ).update({"revoked_at": datetime.utcnow()}, synchronize_session=False)
+
+    database.commit()
+    return MessageResponse(ok=True, message="Password reset completed")
 
 
 @router.get("/me", response_model=AuthUserResponse)

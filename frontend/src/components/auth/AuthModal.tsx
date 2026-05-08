@@ -5,39 +5,45 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { i18n, type Language } from "@/lib/i18n";
+import {
+  evaluatePasswordRules,
+  MIN_PASSWORD_LENGTH,
+  passwordMeetsRequirements,
+} from "@/lib/passwordRules";
 
 type AuthMode = "login" | "register";
-const MIN_PASSWORD_LENGTH = 8;
 
 function inputClass() {
   return "rs-modal-input h-11 px-3 text-sm";
 }
 
 function getPasswordChecks(password: string, copy: (typeof i18n)[Language]["auth"]) {
+  const checks = evaluatePasswordRules(password);
+
   return [
     {
       key: "length",
-      valid: password.length >= MIN_PASSWORD_LENGTH,
+      valid: checks.length,
       label: copy.passwordRuleLength,
     },
     {
       key: "uppercase",
-      valid: /[A-Z]/.test(password),
+      valid: checks.uppercase,
       label: copy.passwordRuleUppercase,
     },
     {
       key: "lowercase",
-      valid: /[a-z]/.test(password),
+      valid: checks.lowercase,
       label: copy.passwordRuleLowercase,
     },
     {
       key: "number",
-      valid: /\d/.test(password),
+      valid: checks.number,
       label: copy.passwordRuleNumber,
     },
     {
       key: "special",
-      valid: /[^A-Za-z0-9]/.test(password),
+      valid: checks.special,
       label: copy.passwordRuleSpecial,
     },
   ] as const;
@@ -67,7 +73,7 @@ export function AuthModal({
   const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
   const passwordChecks = getPasswordChecks(password, copy);
-  const passwordValid = passwordChecks.every((check) => check.valid);
+  const passwordValid = passwordMeetsRequirements(password);
   const confirmPasswordMismatch =
     mode === "register" && confirmPassword.length > 0 && password !== confirmPassword;
   const registerBlocked = mode === "register" && (!passwordValid || confirmPasswordMismatch);
