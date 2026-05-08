@@ -37,6 +37,11 @@ Backend:
 - `BACKEND_CORS_ORIGINS`: Comma-separated allowed frontend origins. Do not use `*`; credentialed auth requests require explicit origins.
 - `LISTING_SCAN_INTERVAL_MINUTES`: Default automatic source scan interval. Use `5` for production.
 - `LISTING_SOURCE_TIMEOUT_SECONDS`: Per-source scan timeout. Default is `45`.
+- `STRIPE_SECRET_KEY`: Stripe secret key from test mode while validating sandbox billing.
+- `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret from the matching test-mode webhook endpoint.
+- `STRIPE_PRICE_ID_PRO`: Stripe test-mode recurring price ID for the Pro subscription.
+- `BILLING_SUCCESS_URL`: Frontend URL Stripe returns to after checkout, for example `https://rentscout.nl/account?checkout=success`.
+- `BILLING_CANCEL_URL`: Frontend URL Stripe returns to after cancellation, for example `https://rentscout.nl/#pricing`.
 - `RESEND_API_KEY`: Resend API key for transactional email sending.
 - `EMAIL_FROM`: Verified sender address for RentScout emails.
 - `APP_PUBLIC_URL`: Public frontend base URL used in email buttons and account links.
@@ -71,6 +76,8 @@ BACKEND_CORS_ORIGINS=http://YOUR_SERVER_IP:3000
 NEXT_PUBLIC_API_URL=http://YOUR_SERVER_IP:8000/api
 REFRESH_COOKIE_SECURE=false
 AUTH_REFRESH_COOKIE_PATH=/api/auth
+BILLING_SUCCESS_URL=http://YOUR_SERVER_IP:3000/account?checkout=success
+BILLING_CANCEL_URL=http://YOUR_SERVER_IP:3000/#pricing
 ```
 
 For a future HTTPS domain deployment:
@@ -81,6 +88,8 @@ BACKEND_CORS_ORIGINS=https://rentscout.nl,https://www.rentscout.nl
 NEXT_PUBLIC_API_URL=https://api.rentscout.nl/api
 REFRESH_COOKIE_SECURE=true
 AUTH_REFRESH_COOKIE_PATH=/api/auth
+BILLING_SUCCESS_URL=https://rentscout.nl/account?checkout=success
+BILLING_CANCEL_URL=https://rentscout.nl/#pricing
 ```
 
 `docker-compose.yml` reads these values from the shell or a local Compose `.env` file in the project root. `NEXT_PUBLIC_API_URL` must be present before `docker compose up -d --build`, because Next.js embeds `NEXT_PUBLIC_*` values into the browser bundle during `next build`. Do not put this only in `frontend/.env.production` when building through Docker Compose.
@@ -94,10 +103,38 @@ BACKEND_CORS_ORIGINS=https://rentscout.nl,https://www.rentscout.nl
 REFRESH_COOKIE_SECURE=true
 REFRESH_COOKIE_SAMESITE=lax
 AUTH_REFRESH_COOKIE_PATH=/api/auth
+STRIPE_SECRET_KEY=sk_test_REPLACE_WITH_STRIPE_TEST_SECRET
+STRIPE_WEBHOOK_SECRET=whsec_REPLACE_WITH_STRIPE_TEST_WEBHOOK_SECRET
+STRIPE_PRICE_ID_PRO=price_REPLACE_WITH_STRIPE_TEST_PRICE
+BILLING_SUCCESS_URL=https://rentscout.nl/account?checkout=success
+BILLING_CANCEL_URL=https://rentscout.nl/#pricing
 LISTING_SCAN_INTERVAL_MINUTES=5
 ```
 
 Refresh tokens are stored only in an HttpOnly cookie scoped to `/api/auth`, which is narrow enough for refresh/logout while still allowing login/register to set the cookie. The access token is returned in JSON and kept client-side in memory by the frontend auth provider.
+
+## Stripe Sandbox Billing
+
+Keep Stripe in test mode until a separate live-mode rollout is planned. The backend reads Stripe configuration only from environment variables; do not commit real `sk_*`, `whsec_*`, or `price_*` values.
+
+Required sandbox values:
+
+- `STRIPE_SECRET_KEY`: a Stripe test secret key such as `sk_test_...`.
+- `STRIPE_WEBHOOK_SECRET`: the signing secret for the test webhook endpoint or Stripe CLI listener.
+- `STRIPE_PRICE_ID_PRO`: a recurring test price ID for the Pro plan.
+- `BILLING_SUCCESS_URL`: normally `http://localhost:3000/account?checkout=success` locally.
+- `BILLING_CANCEL_URL`: normally `http://localhost:3000/#pricing` locally.
+
+Manual sandbox checkout test:
+
+1. Start the backend and frontend with the Stripe test env vars set.
+2. Forward Stripe test webhooks to `http://localhost:8000/api/billing/webhook` with the Stripe CLI, then put the generated `whsec_...` value in the backend env.
+3. Register or log in with a Free account.
+4. Click `Upgrade to Pro` and complete Stripe Checkout with a test card such as `4242 4242 4242 4242`.
+5. After Stripe redirects to `/account?checkout=success`, confirm the account shows `Pro` and `active`.
+6. Open `/search` and confirm full listing details are available.
+7. In Stripe test mode, cancel the subscription or trigger `customer.subscription.deleted`; confirm the account returns to Free and listing details are preview-only after the auth state refreshes.
+8. Trigger `invoice.payment_failed` or set the subscription to `past_due`; confirm `subscription_status` reflects the failed state and Pro access is restricted.
 
 6. Build and start:
 
