@@ -359,6 +359,38 @@ def logout(
     return LogoutResponse(ok=True)
 
 
+@router.post("/resend-verification-email", response_model=MessageResponse)
+def resend_verification_email(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    database: Session = Depends(get_database_session),
+):
+    if current_user.email_verified:
+        return MessageResponse(ok=True, message="Email already verified")
+
+    if current_user.email_verification_sent_at:
+        elapsed = (datetime.utcnow() - current_user.email_verification_sent_at).total_seconds()
+        if elapsed < 60:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Please wait before requesting another verification email",
+            )
+
+    verification_token, verification_event_key, _ = issue_email_verification_token(current_user)
+    database.commit()
+    database.refresh(current_user)
+
+    user_context = EmailUserContext.from_user(current_user)
+    background_tasks.add_task(
+        send_email_verification_email,
+        user_context,
+        verification_token,
+        verification_event_key,
+    )
+    logger.info("email_verification_resend_queued user_id=%s", current_user.id)
+    return MessageResponse(ok=True, message="Verification email sent")
+
+
 @router.get("/verify-email", response_model=MessageResponse)
 def verify_email(
     token: str,

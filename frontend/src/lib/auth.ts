@@ -67,6 +67,15 @@ export function verifyEmailToken(token: string) {
   );
 }
 
+export function resendVerificationEmail(accessToken: string) {
+  return authRequest<{ ok: boolean; message: string }>("/auth/resend-verification-email", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
 export function requestPasswordReset(email: string) {
   return authRequest<{ ok: boolean; message: string }>("/auth/password-reset/request", {
     method: "POST",

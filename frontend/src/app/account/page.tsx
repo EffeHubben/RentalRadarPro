@@ -10,6 +10,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import {
   changeEmailAddress,
   changePassword,
+  resendVerificationEmail,
   updateProfile,
 } from "@/lib/auth";
 import {
@@ -52,6 +53,8 @@ const accountCopy: Record<
     emailVerification: string;
     emailVerified: string;
     emailUnverified: string;
+    resendVerification: string;
+    resendVerificationSent: string;
     language: string;
     joined: string;
     plan: string;
@@ -115,6 +118,8 @@ const accountCopy: Record<
     emailVerification: "E-mailstatus",
     emailVerified: "Bevestigd",
     emailUnverified: "Nog niet bevestigd",
+    resendVerification: "Verificatie-e-mail versturen",
+    resendVerificationSent: "Verificatie-e-mail verzonden. Controleer je inbox en spammap.",
     language: "Taal",
     joined: "Account sinds",
     plan: "Abonnement",
@@ -185,6 +190,8 @@ const accountCopy: Record<
     emailVerification: "Email status",
     emailVerified: "Verified",
     emailUnverified: "Not verified yet",
+    resendVerification: "Send verification email",
+    resendVerificationSent: "Verification email sent. Check your inbox and spam folder.",
     language: "Language",
     joined: "Joined",
     plan: "Plan",
@@ -339,6 +346,9 @@ export default function AccountPage() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [emailSaving, setEmailSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
+  const [resendError, setResendError] = useState("");
 
   const isPro = hasPro(auth.user);
   const subscriptionSummary = describeSubscriptionState(auth.user, language);
@@ -363,6 +373,23 @@ export default function AccountPage() {
   function openAuth(mode: AuthMode) {
     setModalMode(mode);
     setModalOpen(true);
+  }
+
+  async function handleResendVerification() {
+    if (!auth.accessToken) return;
+
+    setResendLoading(true);
+    setResendMessage("");
+    setResendError("");
+
+    try {
+      await resendVerificationEmail(auth.accessToken);
+      setResendMessage(copy.resendVerificationSent);
+    } catch (caughtError) {
+      setResendError(caughtError instanceof Error ? caughtError.message : siteAuthCopy.genericError);
+    } finally {
+      setResendLoading(false);
+    }
   }
 
   async function redirectToBillingSession(mode: "checkout" | "portal") {
@@ -581,6 +608,25 @@ export default function AccountPage() {
                           {auth.user?.email_verified ? copy.emailVerified : copy.emailUnverified}
                         </StatusPill>
                       </div>
+                      {!auth.user?.email_verified && (
+                        <div className="mt-3">
+                          {resendMessage ? (
+                            <p className="text-xs leading-5 text-[var(--color-text)]">{resendMessage}</p>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={resendLoading}
+                              onClick={() => void handleResendVerification()}
+                              className="text-xs font-semibold text-[var(--color-accent-strong)] transition hover:text-[var(--color-text)] disabled:opacity-60"
+                            >
+                              {resendLoading ? copy.working : copy.resendVerification}
+                            </button>
+                          )}
+                          {resendError ? (
+                            <p className="mt-1 text-xs text-danger">{resendError}</p>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
                       <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">
