@@ -351,6 +351,8 @@ export const i18n = {
       externalSourceLimited: "Beperkt",
       externalSourceLoginNeeded: "Mogelijk inloggen vereist",
       externalSourceNotAuto: "Nog niet automatisch gescand",
+      externalSourceCityMatch: "Past bij stad",
+      externalSourceRegionMatch: "Past bij regio",
       externalSourceOpen: "Open externe bron",
     },
     filters: {
@@ -1130,6 +1132,8 @@ export const i18n = {
       externalSourceLimited: "Limited",
       externalSourceLoginNeeded: "May require login",
       externalSourceNotAuto: "Not automatically scanned yet",
+      externalSourceCityMatch: "City match",
+      externalSourceRegionMatch: "Region match",
       externalSourceOpen: "Open external source",
     },
     filters: {

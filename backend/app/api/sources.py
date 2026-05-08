@@ -8,6 +8,7 @@ from app.database.db import get_database_session
 from app.models.scan_history import ScanHistory
 from app.models.listing import Listing
 from app.sources.registry import RENTAL_SOURCES, source_payload
+from app.services.scanner_schedule import scan_decision_for_source
 from app.services.scanner_reliability import truncate_error_message
 
 
@@ -100,6 +101,24 @@ def build_sources_payloads(database: Session, city: str | None = None) -> list[d
     payloads = []
     for source in RENTAL_SOURCES:
         payload = source_payload(source, city=city)
+        if city:
+            decision = scan_decision_for_source(database, city, source)
+            payload.update(
+                {
+                    "scan_state": "due" if decision.due else "skipped",
+                    "scan_skip_reason": None if decision.due else decision.reason,
+                    "is_cooling_down": (not decision.due and decision.next_due_at is not None),
+                    "next_due_at": decision.next_due_at.isoformat() if decision.next_due_at else payload.get("next_due_at"),
+                }
+            )
+        else:
+            payload.update(
+                {
+                    "scan_state": "manual" if not source.auto_scan_enabled else "auto",
+                    "scan_skip_reason": None if source.auto_scan_enabled else f"{source.source_type}_not_auto_scanned",
+                    "is_cooling_down": False,
+                }
+            )
         latest_scan = latest_scan_for_source(database, city, source.source_key)
         latest_success = latest_success_for_source(database, city, source.source_key)
         latest_failure = latest_failure_for_source(database, city, source.source_key)
@@ -135,9 +154,10 @@ def build_sources_payloads(database: Session, city: str | None = None) -> list[d
                         "started_at": latest_scan.started_at.isoformat() if latest_scan.started_at else None,
                         "finished_at": latest_scan.finished_at.isoformat() if latest_scan.finished_at else None,
                     },
-                    "next_due_at": next_due_from_scan(source, latest_scan),
                 }
             )
+            if not city:
+                payload["next_due_at"] = next_due_from_scan(source, latest_scan)
 
         if latest_success:
             payload["last_success_at"] = latest_success.finished_at.isoformat() if latest_success.finished_at else None

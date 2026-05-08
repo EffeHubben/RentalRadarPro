@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fastapi.testclient import TestClient
 
+from app.api.listings import _diversify_best_match_listings
 from app.database.db import SessionLocal, create_database_tables
 from app.main import app
 from app.models.listing import Listing
@@ -66,6 +67,9 @@ def test_registry_has_capability_metadata_for_every_source() -> None:
         assert isinstance(payload["supports_pagination"], bool)
         assert isinstance(payload["requires_detail_page"], bool)
         assert isinstance(payload["likely_blocks_bots"], bool)
+        assert isinstance(payload["requires_login"], bool)
+        assert isinstance(payload["supports_price_filter"], bool)
+        assert isinstance(payload["supports_property_type"], bool)
         assert 0 <= payload["reliability_weight"] <= 1
 
 
@@ -87,6 +91,33 @@ def test_registry_marks_only_validated_sources_as_auto_scan() -> None:
     assert expected_known_working.issubset(auto_keys), (
         f"missing known working sources: {expected_known_working - auto_keys}"
     )
+
+    for source in RENTAL_SOURCES:
+        if not source.auto_scan_enabled:
+            continue
+        assert source.source_type in {"direct_scraper", "generic_html"}
+        assert source.supports_automatic_scraping is True
+        assert source.status in {"online", "degraded"}
+
+
+def test_registry_contains_expanded_external_sources_without_auto_enabling_them() -> None:
+    external_keys = {
+        "woonnet_rijnmond",
+        "klikvoorwonen",
+        "wooniezie",
+        "entree",
+        "room_university_housing",
+        "plaza_newnewnew",
+        "woonnet_haaglanden",
+        "liv_residential",
+        "housinganywhere",
+    }
+    registry_by_key = {source.source_key: source for source in RENTAL_SOURCES}
+
+    assert external_keys.issubset(registry_by_key)
+    assert all(not registry_by_key[key].auto_scan_enabled for key in external_keys)
+    assert registry_by_key["klikvoorwonen"].supported_cities
+    assert registry_by_key["klikvoorwonen"].requires_login is True
 
 
 def test_listing_quality_applies_source_reliability_weight() -> None:
@@ -352,3 +383,62 @@ def test_listings_api_best_quality_sort() -> None:
     prices = [item["price"] for item in payload["items"]]
     assert prices[0] == 2000  # the high-quality entry
     assert prices[1] == 900
+
+
+def make_ranked_listing(index: int, source_key: str, confidence: float = 0.86) -> Listing:
+    return Listing(
+        id=index,
+        title=f"Listing {index}",
+        source=source_key.title(),
+        source_key=source_key,
+        url=f"https://example.com/{source_key}/{index}",
+        city="Breda",
+        confidence_score=confidence,
+        is_active=True,
+    )
+
+
+def test_best_match_source_diversity_mixes_comparable_sources() -> None:
+    listings = [
+        *[make_ranked_listing(index, "marktplaats", 0.90 - index * 0.001) for index in range(1, 7)],
+        *[make_ranked_listing(index, "funda", 0.88 - index * 0.001) for index in range(7, 10)],
+        *[make_ranked_listing(index, "rotsvast", 0.87 - index * 0.001) for index in range(10, 13)],
+    ]
+
+    reranked = _diversify_best_match_listings(listings)
+    top_sources = [listing.source_key for listing in reranked[:6]]
+
+    assert "marktplaats" in top_sources
+    assert "funda" in top_sources
+    assert len(set(top_sources)) >= 2
+
+
+def test_best_match_source_diversity_keeps_one_source_sets_unchanged() -> None:
+    listings = [make_ranked_listing(index, "marktplaats") for index in range(1, 8)]
+
+    reranked = _diversify_best_match_listings(listings)
+
+    assert [listing.id for listing in reranked] == [listing.id for listing in listings]
+
+
+def test_best_match_source_diversity_does_not_remove_marktplaats() -> None:
+    listings = [
+        make_ranked_listing(1, "marktplaats", 0.91),
+        make_ranked_listing(2, "funda", 0.90),
+        make_ranked_listing(3, "pararius", 0.89),
+    ]
+
+    reranked = _diversify_best_match_listings(listings)
+
+    assert any(listing.source_key == "marktplaats" for listing in reranked)
+
+
+def test_best_match_source_diversity_does_not_promote_clearly_weaker_listings() -> None:
+    listings = [
+        *[make_ranked_listing(index, "marktplaats", 0.95 - index * 0.005) for index in range(1, 7)],
+        make_ranked_listing(7, "funda", 0.42),
+    ]
+
+    reranked = _diversify_best_match_listings(listings)
+
+    assert reranked[-1].source_key == "funda"

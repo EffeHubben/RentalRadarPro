@@ -9,11 +9,10 @@ pause between cities, keeping the load respectful per-site.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from sqlalchemy import func
 
@@ -21,7 +20,12 @@ from app.api.scrapers import ScraperRunRequest, run_scrapers
 from app.core.config import settings
 from app.database.db import SessionLocal, create_database_tables
 from app.models.scan_history import ScanHistory
-from app.sources.registry import RENTAL_SOURCES, RentalSource
+from app.sources.registry import RENTAL_SOURCES
+from app.services.scanner_schedule import (
+    city_scan_score,
+    due_sources_for_city,
+    source_scan_decisions_for_city,
+)
 
 
 logging.basicConfig(
@@ -37,48 +41,6 @@ def automatic_source_keys() -> list[str]:
         for source in RENTAL_SOURCES
         if source.enabled and source.auto_scan_enabled
     ]
-
-
-def _stagger_seconds(source: RentalSource, city: str) -> int:
-    digest = hashlib.sha1(f"{source.source_key}|{city.lower()}".encode("utf-8")).hexdigest()
-    return int(digest[:4], 16) % max(60, source.interval_minutes * 60)
-
-
-def _last_finished_at(database, source_key: str, city: str) -> datetime | None:
-    return (
-        database.query(func.max(ScanHistory.finished_at))
-        .filter(
-            ScanHistory.source_id == source_key,
-            func.lower(ScanHistory.city) == city.lower(),
-            ScanHistory.finished_at.isnot(None),
-        )
-        .scalar()
-    )
-
-
-def due_sources_for_city(database, city: str) -> list[str]:
-    now = datetime.utcnow()
-    due_sources: list[str] = []
-
-    for source in RENTAL_SOURCES:
-        if not source.enabled or not source.auto_scan_enabled:
-            continue
-
-        last_finished_at = _last_finished_at(database, source.source_key, city)
-        if last_finished_at is None:
-            due_sources.append(source.source_key)
-            continue
-
-        interval = max(source.interval_minutes, 0)
-        next_due_at = last_finished_at + timedelta(
-            minutes=interval,
-            seconds=_stagger_seconds(source, city),
-        )
-        if next_due_at <= now:
-            due_sources.append(source.source_key)
-
-    return due_sources
-
 
 def run_once(city: str, sources: list[str] | None, dry_run: bool = False) -> dict:
     selected_sources = sources or automatic_source_keys()
@@ -124,9 +86,31 @@ def run_cycle(
 
     database = SessionLocal()
     try:
-        scored: list[tuple[datetime | None, str, list[str]]] = []
+        scored: list[tuple[float, datetime | None, str, list[str]]] = []
         for city in cities:
-            due_for_city = due_sources_for_city(database, city)
+            decisions = source_scan_decisions_for_city(database, city)
+            due_for_city = [
+                decision.source_key
+                for decision in sorted(
+                    (decision for decision in decisions if decision.due),
+                    key=lambda decision: (-decision.score, decision.source_key),
+                )
+            ]
+            skipped = [
+                {
+                    "source": decision.source_key,
+                    "reason": decision.reason,
+                    "next_due_at": decision.next_due_at.isoformat() if decision.next_due_at else None,
+                }
+                for decision in decisions
+                if not decision.due and decision.reason != "disabled"
+            ]
+            if skipped:
+                logger.info(
+                    "scanner_cycle_skipped city=%s skipped=%s",
+                    city,
+                    json.dumps(skipped[:12], default=str),
+                )
             if not due_for_city:
                 continue
 
@@ -138,7 +122,7 @@ def run_cycle(
                 )
                 .scalar()
             )
-            scored.append((most_recent, city, due_for_city))
+            scored.append((city_scan_score(database, city, due_for_city, most_recent), most_recent, city, due_for_city))
     finally:
         database.close()
 
@@ -149,11 +133,15 @@ def run_cycle(
         )
         return []
 
-    scored.sort(key=lambda entry: (entry[0] is not None, entry[0] or datetime.min))
+    scored.sort(key=lambda entry: (-entry[0], entry[1] is not None, entry[1] or datetime.min))
     selected = scored[: max(1, max_cities_per_cycle)]
 
     results: list[dict] = []
-    for index, (last_finished_at, city, due_for_city) in enumerate(selected):
+    logger.info(
+        "scanner_cycle_started selected_cities=%s",
+        json.dumps([city for _, _, city, _ in selected], default=str),
+    )
+    for index, (_, last_finished_at, city, due_for_city) in enumerate(selected):
         logger.info(
             "scanner_cycle_city city=%s sources=%s last_finished_at=%s",
             city,

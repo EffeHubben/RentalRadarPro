@@ -289,6 +289,9 @@ export type SourceInfo = {
   active_listing_count?: number;
   internal_reason?: string | null;
   next_due_at?: string | null;
+  scan_state?: "auto" | "manual" | "due" | "skipped" | null;
+  scan_skip_reason?: string | null;
+  is_cooling_down?: boolean;
   notes: string;
   manual_search_url_template?: string | null;
   manual_search_url?: string | null;
@@ -299,6 +302,10 @@ export type SourceInfo = {
   country?: string;
   source_type?: SourceType;
   supported_cities?: string[] | null;
+  supported_regions?: string[] | null;
+  requires_login?: boolean;
+  supports_price_filter?: boolean;
+  supports_property_type?: boolean;
   supports_pagination?: boolean;
   requires_detail_page?: boolean;
   likely_blocks_bots?: boolean;

@@ -1349,6 +1349,8 @@ export default function AdminPage() {
                                 limited: sources.filter((source) => source.status === "limited").length,
                                 manual: sources.filter((source) => source.status === "manual").length,
                                 auto: sources.filter((source) => source.auto_scan_enabled).length,
+                                externalOnly: sources.filter((source) => !source.auto_scan_enabled).length,
+                                coolingDown: sources.filter((source) => source.is_cooling_down).length,
                                 totalListings: sources.reduce((total, source) => total + (source.total_listing_count ?? 0), 0),
                                 addedToday: sources.reduce((total, source) => total + (source.listings_added_today ?? 0), 0),
                                 anyError: sources.filter((source) => source.last_error || source.last_failed_error).length,
@@ -1359,6 +1361,8 @@ export default function AdminPage() {
                                 { label: pageCopy.statusLabels.limited, value: counts.limited, tone: "border-brass/30 bg-brass/12 text-brass" },
                                 { label: pageCopy.statusLabels.manual, value: counts.manual, tone: "border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-muted)]" },
                                 { label: `Auto-scan`, value: counts.auto, tone: "border-mint/30 bg-mint/12 text-mint" },
+                                { label: `External only`, value: counts.externalOnly, tone: "border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-muted)]" },
+                                { label: `Cooling down`, value: counts.coolingDown, tone: counts.coolingDown > 0 ? "border-brass/30 bg-brass/12 text-brass" : "border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-muted)]" },
                                 { label: `Total listings`, value: counts.totalListings, tone: "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]" },
                                 { label: `Added today`, value: counts.addedToday, tone: "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]" },
                                 { label: `With recent error`, value: counts.anyError, tone: counts.anyError > 0 ? "border-danger/30 bg-danger/12 text-danger" : "border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-muted)]" },
@@ -1390,6 +1394,28 @@ export default function AdminPage() {
                                     <div className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getSourceStatusTone(source.status)}`}>
                                       {pageCopy.statusLabels[source.status]}
                                     </div>
+                                  </div>
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                                      source.auto_scan_enabled
+                                        ? "border-mint/30 bg-mint/12 text-mint"
+                                        : "border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-muted)]"
+                                    }`}>
+                                      {source.auto_scan_enabled ? "Auto-scanned" : "External only"}
+                                    </span>
+                                    <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--color-muted)]">
+                                      {source.source_type ?? "manual"}
+                                    </span>
+                                    {source.requires_login ? (
+                                      <span className="rounded-full border border-brass/30 bg-brass/12 px-2.5 py-1 text-xs font-semibold text-brass">
+                                        Login may be required
+                                      </span>
+                                    ) : null}
+                                    {source.is_cooling_down ? (
+                                      <span className="rounded-full border border-brass/30 bg-brass/12 px-2.5 py-1 text-xs font-semibold text-brass">
+                                        Cooling down
+                                      </span>
+                                    ) : null}
                                   </div>
 
                               <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
@@ -1458,6 +1484,12 @@ export default function AdminPage() {
                                     <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] px-3 py-2 text-sm text-[var(--color-muted)]">
                                       <span className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.lastError}:</span>{" "}
                                       {source.last_failed_error || source.last_error}
+                                    </div>
+                                  ) : null}
+                                  {source.scan_skip_reason ? (
+                                    <div className="mt-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] px-3 py-2 text-sm text-[var(--color-muted)]">
+                                      <span className="font-semibold text-[var(--color-subtle)]">Scanner:</span>{" "}
+                                      {source.scan_skip_reason.replace(/_/g, " ")}
                                     </div>
                                   ) : null}
                                 </article>

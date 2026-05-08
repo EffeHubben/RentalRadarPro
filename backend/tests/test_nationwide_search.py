@@ -28,6 +28,8 @@ from app.scrapers.funda import build_funda_search_url
 from app.scrapers.ikwilhuren import build_ikwilhuren_search_url
 from app.scrapers.marktplaats import build_search_urls as build_marktplaats_search_urls
 from app.services.scanner import due_sources_for_city
+from app.services.scanner_schedule import scan_decision_for_source
+from app.sources.registry import RENTAL_SOURCES
 
 
 create_database_tables()
@@ -179,6 +181,89 @@ def test_due_sources_for_city_skips_recently_scanned_city() -> None:
     # funda should have just been scanned, but other sources should still be due.
     assert "funda" not in due_for_rotterdam
     assert "marktplaats" in due_for_rotterdam
+
+
+def source_by_key(source_key: str):
+    return next(source for source in RENTAL_SOURCES if source.source_key == source_key)
+
+
+def test_due_sources_for_city_never_selects_manual_sources() -> None:
+    reset_tables()
+    database = SessionLocal()
+    try:
+        due_for_breda = due_sources_for_city(database, "Breda")
+    finally:
+        database.close()
+
+    manual_keys = {source.source_key for source in RENTAL_SOURCES if source.source_type == "manual"}
+    assert manual_keys.isdisjoint(due_for_breda)
+
+
+def test_limited_sources_are_not_due_unless_auto_enabled() -> None:
+    reset_tables()
+    database = SessionLocal()
+    try:
+        pararius = source_by_key("pararius")
+        decision = scan_decision_for_source(database, "Breda", pararius)
+    finally:
+        database.close()
+
+    assert decision.due is False
+    assert decision.reason == "generic_html_not_auto_scanned"
+
+
+def test_failed_sources_get_cooldown_backoff() -> None:
+    reset_tables()
+    now = datetime.utcnow()
+    database = SessionLocal()
+    try:
+        database.add(
+            ScanHistory(
+                city="Breda",
+                source_id="funda",
+                status="failed",
+                scraped_count=0,
+                created_count=0,
+                updated_count=0,
+                started_at=now - timedelta(minutes=1),
+                finished_at=now - timedelta(minutes=1),
+                error="timeout",
+            )
+        )
+        database.commit()
+        decision = scan_decision_for_source(database, "Breda", source_by_key("funda"), now=now)
+    finally:
+        database.close()
+
+    assert decision.due is False
+    assert decision.reason == "failure_backoff:1"
+
+
+def test_repeated_zero_sources_get_backoff() -> None:
+    reset_tables()
+    now = datetime.utcnow()
+    database = SessionLocal()
+    try:
+        for index in range(3):
+            database.add(
+                ScanHistory(
+                    city="Breda",
+                    source_id="funda",
+                    status="no_results",
+                    scraped_count=0,
+                    created_count=0,
+                    updated_count=0,
+                    started_at=now - timedelta(minutes=4 + index),
+                    finished_at=now - timedelta(minutes=4 + index),
+                )
+            )
+        database.commit()
+        decision = scan_decision_for_source(database, "Breda", source_by_key("funda"), now=now)
+    finally:
+        database.close()
+
+    assert decision.due is False
+    assert decision.reason == "zero_result_backoff:3"
 
 
 def test_admin_coverage_endpoint_requires_admin() -> None:

@@ -26,6 +26,78 @@ router = APIRouter(
 )
 
 FREE_LISTING_LIMIT = 10
+BEST_MATCH_DIVERSITY_WINDOW = 36
+BEST_MATCH_MAX_RANK_JUMP = 8
+BEST_MATCH_COMPARABLE_SCORE_GAP = 0.16
+
+
+def _listing_source_id(listing: Listing) -> str:
+    return (listing.source_key or listing.source or "unknown").strip().lower() or "unknown"
+
+
+def _listing_quality_score(listing: Listing) -> float:
+    return float(listing.confidence_score or 0.0)
+
+
+def _diversify_best_match_listings(
+    listings: list[Listing],
+    *,
+    window: int = BEST_MATCH_DIVERSITY_WINDOW,
+    max_rank_jump: int = BEST_MATCH_MAX_RANK_JUMP,
+    comparable_score_gap: float = BEST_MATCH_COMPARABLE_SCORE_GAP,
+) -> list[Listing]:
+    """Gently interleave comparable best-match results without hiding relevance."""
+    if len(listings) < 3:
+        return listings
+
+    source_counts = {
+        _listing_source_id(listing)
+        for listing in listings[:window]
+    }
+    if len(source_counts) <= 1:
+        return listings
+
+    head = listings[:window]
+    tail = listings[window:]
+    best_score = max(_listing_quality_score(listing) for listing in head)
+    comparable_floor = max(0.0, best_score - comparable_score_gap)
+    remaining = list(enumerate(head))
+    selected: list[tuple[int, Listing]] = []
+    emitted_by_source: dict[str, int] = {}
+
+    while remaining:
+        output_index = len(selected)
+        eligible: list[tuple[int, int, Listing]] = []
+
+        for position, (original_index, listing) in enumerate(remaining):
+            rank_jump = original_index - output_index
+            if rank_jump > max_rank_jump:
+                continue
+            if _listing_quality_score(listing) < comparable_floor:
+                continue
+            eligible.append((position, original_index, listing))
+
+        if not eligible:
+            selected.append(remaining.pop(0))
+            source_id = _listing_source_id(selected[-1][1])
+            emitted_by_source[source_id] = emitted_by_source.get(source_id, 0) + 1
+            continue
+
+        def diversity_key(candidate: tuple[int, int, Listing]) -> tuple[int, int, int]:
+            _, original_index, listing = candidate
+            source_id = _listing_source_id(listing)
+            return (
+                emitted_by_source.get(source_id, 0),
+                original_index,
+                listing.id or 0,
+            )
+
+        selected_position, _, selected_listing = min(eligible, key=diversity_key)
+        selected.append(remaining.pop(selected_position))
+        selected_source = _listing_source_id(selected_listing)
+        emitted_by_source[selected_source] = emitted_by_source.get(selected_source, 0) + 1
+
+    return [listing for _, listing in selected] + tail
 
 
 def _make_preview_listing(listing: Listing) -> ListingResponse:
@@ -396,7 +468,18 @@ def get_listings(
     user_is_pro = current_user is not None and is_pro(current_user)
     free_limit_applied = not user_is_pro
 
-    if free_limit_applied:
+    if sort == "best_match":
+        if free_limit_applied:
+            candidate_limit = max(FREE_LISTING_LIMIT, min(BEST_MATCH_DIVERSITY_WINDOW, total))
+            raw_listings = _diversify_best_match_listings(
+                query.offset(0).limit(candidate_limit).all()
+            )[:FREE_LISTING_LIMIT]
+        else:
+            candidate_limit = min(max(offset + limit, BEST_MATCH_DIVERSITY_WINDOW), total)
+            raw_listings = _diversify_best_match_listings(
+                query.offset(0).limit(candidate_limit).all()
+            )[offset: offset + limit]
+    elif free_limit_applied:
         raw_listings = query.offset(0).limit(FREE_LISTING_LIMIT).all()
     else:
         raw_listings = query.offset(offset).limit(limit).all()

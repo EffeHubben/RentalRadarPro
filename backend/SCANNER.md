@@ -21,13 +21,31 @@ LISTING_SCAN_INTERVAL_MINUTES=15      # interval per source/city
 Each cycle the scanner:
 
 1. Looks at `scan_history` to find the cities most overdue for a refresh.
-2. Picks up to `LISTING_SCAN_MAX_CITIES_PER_CYCLE` of them.
-3. For each picked city, runs only the sources whose per-city interval has
-   elapsed (`source.scan_interval_minutes` + small stagger).
-4. Sleeps `LISTING_SCAN_PER_CITY_PAUSE_SECONDS` between cities, then sleeps
+2. Scores cities by staleness, low active-listing inventory, and due source
+   coverage.
+3. Picks up to `LISTING_SCAN_MAX_CITIES_PER_CYCLE` of them.
+4. For each picked city, runs only enabled automatic sources that are due.
+5. Applies source-level cooldowns for recent failures/blocks and repeated
+   zero-result runs.
+6. Sleeps `LISTING_SCAN_PER_CITY_PAUSE_SECONDS` between cities, then sleeps
    `--sleep-seconds` between cycles.
 
 This avoids hammering any single source for too many cities back-to-back.
+Manual and external-only sources remain visible in the frontend source panel,
+but they are never selected for automatic scanner cycles. Limited sources are
+also skipped unless they have a validated fetch implementation and
+`auto_scan_enabled=True`.
+
+Current continuously scanned sources are:
+
+```text
+marktplaats, funda, ikwilhuren, heimstaden, rotsvast, interhouse, maxx_aanhuur, vesteda, expat_rentals
+```
+
+The larger registry also contains manual/limited external sources for housing
+corporations, student housing, expat platforms, property managers, regional
+portals, and temporary housing. These are links for users to open themselves;
+they are not inserted as fake listings.
 
 Run one cycle locally without committing changes:
 
