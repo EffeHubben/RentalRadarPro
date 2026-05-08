@@ -18,6 +18,61 @@ BROKEN_TITLE_MARKERS = {
     "more info",
     "details",
     "klik hier",
+    "klik",
+    "lees meer",
+    "view details",
+    "view more",
+    "see more",
+    "huur",
+    "te huur",
+    "rent",
+    "for rent",
+    "...",
+}
+
+KNOWN_CITY_TITLECASE = {
+    "amsterdam": "Amsterdam",
+    "rotterdam": "Rotterdam",
+    "den haag": "Den Haag",
+    "the hague": "Den Haag",
+    "utrecht": "Utrecht",
+    "eindhoven": "Eindhoven",
+    "groningen": "Groningen",
+    "tilburg": "Tilburg",
+    "almere": "Almere",
+    "breda": "Breda",
+    "nijmegen": "Nijmegen",
+    "enschede": "Enschede",
+    "haarlem": "Haarlem",
+    "arnhem": "Arnhem",
+    "amersfoort": "Amersfoort",
+    "apeldoorn": "Apeldoorn",
+    "zwolle": "Zwolle",
+    "leiden": "Leiden",
+    "maastricht": "Maastricht",
+    "dordrecht": "Dordrecht",
+    "ede": "Ede",
+    "leeuwarden": "Leeuwarden",
+    "delft": "Delft",
+    "deventer": "Deventer",
+    "helmond": "Helmond",
+    "alkmaar": "Alkmaar",
+    "venlo": "Venlo",
+    "roosendaal": "Roosendaal",
+    "gouda": "Gouda",
+    "oss": "Oss",
+    "drachten": "Drachten",
+    "oosterhout": "Oosterhout",
+    "veldhoven": "Veldhoven",
+    "waalwijk": "Waalwijk",
+    "gorinchem": "Gorinchem",
+    "bergen op zoom": "Bergen op Zoom",
+    "etten-leur": "Etten-Leur",
+    "rijen": "Rijen",
+    "zevenbergen": "Zevenbergen",
+    "den bosch": "'s-Hertogenbosch",
+    "'s-hertogenbosch": "'s-Hertogenbosch",
+    "s-hertogenbosch": "'s-Hertogenbosch",
 }
 
 
@@ -70,7 +125,16 @@ def normalize_optional_url(url: str | None) -> str | None:
 
 
 def normalize_city(city: str | None, fallback_city: str) -> str:
-    return normalize_space(city) or normalize_space(fallback_city)
+    candidate = normalize_space(city) or normalize_space(fallback_city)
+    if not candidate:
+        return ""
+
+    lower = candidate.lower()
+    canonical = KNOWN_CITY_TITLECASE.get(lower)
+    if canonical:
+        return canonical
+
+    return candidate.title() if candidate.islower() else candidate
 
 
 def sanitize_scraped_listing(

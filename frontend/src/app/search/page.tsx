@@ -921,6 +921,7 @@ export default function DashboardPage() {
                     { value: "newest" as ListingSort, label: copy.filters.newest },
                     { value: "cheapest" as ListingSort, label: copy.filters.cheapest },
                     { value: "most_expensive" as ListingSort, label: copy.filters.mostExpensive },
+                    { value: "best_quality" as ListingSort, label: copy.filters.bestQuality },
                   ]
                 ).map((option) => (
                   <button

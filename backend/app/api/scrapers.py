@@ -445,6 +445,7 @@ def run_scrapers(
                     price=scraped_listing.price,
                     area_m2=scraped_listing.area_m2,
                     image_url=scraped_listing.image_url,
+                    source_reliability_weight=source.reliability_weight,
                 )
             )
             listing_metadata["source_key"] = source.source_key

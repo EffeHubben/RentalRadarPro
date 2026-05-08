@@ -84,7 +84,8 @@ export type ListingSort =
   | "newest"
   | "recently_updated"
   | "cheapest"
-  | "most_expensive";
+  | "most_expensive"
+  | "best_quality";
 
 export type ListingStatus =
   | "new"
@@ -125,7 +126,9 @@ export type SearchProfileFilters = {
   exclude_woningruil: boolean;
   exclude_parking: boolean;
   hide_rented: boolean;
+  available_now?: boolean;
   only_independent: boolean;
+  excluded_sources?: string[];
   status: ListingStatus | "";
   show_hidden_listings: boolean;
   search: string;
@@ -143,6 +146,7 @@ export type SearchProfile = {
 export type ListingFilters = {
   city: string;
   source: string;
+  excludedSources: string[];
   minPrice: string;
   maxPrice: string;
   noMaxPrice: boolean;
@@ -163,6 +167,7 @@ export type ListingFilters = {
   excludeWoningruil: boolean;
   excludeParking: boolean;
   hideRented: boolean;
+  availableNow: boolean;
   onlyIndependent: boolean;
   status: ListingStatus | "";
   showHiddenListings: boolean;
@@ -231,6 +236,15 @@ export type ScraperFreshness = {
   freshness_window_minutes: number;
 };
 
+export type SourceType =
+  | "direct_scraper"
+  | "generic_html"
+  | "rss"
+  | "sitemap"
+  | "manual"
+  | "partner"
+  | "api";
+
 export type SourceInfo = {
   source_id: string;
   display_name: string;
@@ -262,6 +276,14 @@ export type SourceInfo = {
   supports_automatic_scraping: boolean;
   status_note_nl?: string | null;
   status_note_en?: string | null;
+  country?: string;
+  source_type?: SourceType;
+  supported_cities?: string[] | null;
+  supports_pagination?: boolean;
+  requires_detail_page?: boolean;
+  likely_blocks_bots?: boolean;
+  priority?: number;
+  reliability_weight?: number;
   last_run?: {
     source_id?: string;
     source: string;

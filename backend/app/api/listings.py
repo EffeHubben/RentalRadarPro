@@ -79,7 +79,10 @@ def _make_preview_listing(listing: Listing) -> ListingResponse:
 def get_listings(
     request: Request,
     city: str | None = Query(default=None),
+    cities: str | None = Query(default=None, description="Comma-separated list of city names"),
     source: str | None = Query(default=None),
+    sources: str | None = Query(default=None, description="Comma-separated allowlist of source identifiers (display name or source_key)"),
+    exclude_sources: str | None = Query(default=None, description="Comma-separated denylist of source identifiers"),
     min_price: int | None = Query(default=None, ge=0),
     max_price: int | None = Query(default=None, ge=0),
     no_max_price: bool = Query(default=False),
@@ -107,6 +110,7 @@ def get_listings(
     exclude_woningruil: bool = Query(default=False),
     exclude_parking: bool = Query(default=False),
     hide_rented: bool = Query(default=True),
+    available_now: bool = Query(default=False, description="Only listings explicitly marked available."),
     only_independent: bool = Query(default=False),
     search: str | None = Query(default=None),
     sort: Literal[
@@ -115,6 +119,7 @@ def get_listings(
         "recently_updated",
         "cheapest",
         "most_expensive",
+        "best_quality",
     ] = Query(default="newest"),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
@@ -145,11 +150,68 @@ def get_listings(
         if property_type_value in valid_property_types
     ]
 
+    requested_cities: list[str] = []
+    if cities:
+        requested_cities.extend(
+            entry.strip() for entry in cities.split(",") if entry.strip()
+        )
     if city:
-        query = query.filter(Listing.city.ilike(f"%{city}%"))
+        requested_cities.append(city)
 
+    requested_cities = list(dict.fromkeys(requested_cities))
+
+    if requested_cities:
+        if len(requested_cities) == 1:
+            query = query.filter(Listing.city.ilike(f"%{requested_cities[0]}%"))
+        else:
+            query = query.filter(
+                or_(*[Listing.city.ilike(f"%{name}%") for name in requested_cities])
+            )
+
+    requested_source_filters: list[str] = []
+    if sources:
+        requested_source_filters.extend(
+            entry.strip() for entry in sources.split(",") if entry.strip()
+        )
     if source:
-        query = query.filter(Listing.source.ilike(f"%{source}%"))
+        requested_source_filters.append(source)
+    requested_source_filters = list(dict.fromkeys(requested_source_filters))
+
+    if requested_source_filters:
+        if len(requested_source_filters) == 1:
+            single = requested_source_filters[0]
+            query = query.filter(
+                or_(
+                    Listing.source.ilike(f"%{single}%"),
+                    Listing.source_key.ilike(f"%{single}%"),
+                )
+            )
+        else:
+            query = query.filter(
+                or_(
+                    *[
+                        or_(
+                            Listing.source.ilike(f"%{value}%"),
+                            Listing.source_key.ilike(f"%{value}%"),
+                        )
+                        for value in requested_source_filters
+                    ]
+                )
+            )
+
+    if exclude_sources:
+        excluded = [
+            entry.strip()
+            for entry in exclude_sources.split(",")
+            if entry.strip()
+        ]
+        for excluded_value in excluded:
+            query = query.filter(
+                ~or_(
+                    Listing.source.ilike(f"%{excluded_value}%"),
+                    Listing.source_key.ilike(f"%{excluded_value}%"),
+                )
+            )
 
     price_filters = []
 
@@ -221,7 +283,9 @@ def get_listings(
     if exclude_parking:
         query = query.filter(Listing.property_type != "parking")
 
-    if hide_rented:
+    if available_now:
+        query = query.filter(Listing.availability_status == "available")
+    elif hide_rented:
         query = query.filter(
             or_(
                 Listing.availability_status.is_(None),
@@ -265,6 +329,13 @@ def get_listings(
         query = query.order_by(Listing.last_checked_at.desc(), Listing.updated_at.desc())
     elif sort == "newest":
         query = query.order_by(Listing.first_seen_at.desc(), Listing.created_at.desc())
+    elif sort == "best_quality":
+        query = query.order_by(
+            case((Listing.confidence_score.is_(None), 1), else_=0),
+            Listing.confidence_score.desc(),
+            Listing.last_seen_at.desc(),
+            Listing.created_at.desc(),
+        )
     else:
         location_rank = case(
             (Listing.location_precision == "exact_address", 0),

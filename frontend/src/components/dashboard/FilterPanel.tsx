@@ -228,6 +228,7 @@ export function FilterPanel({
     { label: copy.recentlyUpdated, value: "recently_updated" },
     { label: copy.cheapest, value: "cheapest" },
     { label: copy.mostExpensive, value: "most_expensive" },
+    { label: copy.bestQuality, value: "best_quality" },
   ];
   const booleanOptions: Array<SelectOption<"any" | "true" | "false">> = [
     { label: copy.any, value: "any" },
@@ -527,6 +528,11 @@ export function FilterPanel({
           label={copy.hideRented}
           checked={filters.hideRented}
           onChange={(checked) => update("hideRented", checked)}
+        />
+        <Toggle
+          label={copy.availableNow}
+          checked={filters.availableNow}
+          onChange={(checked) => update("availableNow", checked)}
         />
       </Section>
 

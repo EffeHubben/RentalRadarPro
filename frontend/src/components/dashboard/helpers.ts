@@ -136,6 +136,7 @@ export function createInitialFilters(): ListingFilters {
   return {
     city: "",
     source: "",
+    excludedSources: [],
     minPrice: "",
     maxPrice: "",
     noMaxPrice: false,
@@ -156,6 +157,7 @@ export function createInitialFilters(): ListingFilters {
     excludeWoningruil: false,
     excludeParking: false,
     hideRented: true,
+    availableNow: false,
     onlyIndependent: false,
     status: "",
     showHiddenListings: false,

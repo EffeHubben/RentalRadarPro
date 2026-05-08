@@ -1272,6 +1272,39 @@ export default function AdminPage() {
                         </div>
 
                         {sources.length ? (
+                          <div className="mt-5 mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                            {(() => {
+                              const counts = {
+                                online: sources.filter((source) => source.status === "online").length,
+                                degraded: sources.filter((source) => source.status === "degraded").length,
+                                limited: sources.filter((source) => source.status === "limited").length,
+                                manual: sources.filter((source) => source.status === "manual").length,
+                                auto: sources.filter((source) => source.auto_scan_enabled).length,
+                                totalListings: sources.reduce((total, source) => total + (source.total_listing_count ?? 0), 0),
+                                addedToday: sources.reduce((total, source) => total + (source.listings_added_today ?? 0), 0),
+                                anyError: sources.filter((source) => source.last_error || source.last_failed_error).length,
+                              };
+                              const cards: Array<{ label: string; value: number; tone: string }> = [
+                                { label: pageCopy.statusLabels.online, value: counts.online, tone: "border-mint/30 bg-mint/12 text-mint" },
+                                { label: pageCopy.statusLabels.degraded, value: counts.degraded, tone: "border-brass/30 bg-brass/12 text-brass" },
+                                { label: pageCopy.statusLabels.limited, value: counts.limited, tone: "border-brass/30 bg-brass/12 text-brass" },
+                                { label: pageCopy.statusLabels.manual, value: counts.manual, tone: "border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-muted)]" },
+                                { label: `Auto-scan`, value: counts.auto, tone: "border-mint/30 bg-mint/12 text-mint" },
+                                { label: `Total listings`, value: counts.totalListings, tone: "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]" },
+                                { label: `Added today`, value: counts.addedToday, tone: "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]" },
+                                { label: `With recent error`, value: counts.anyError, tone: counts.anyError > 0 ? "border-danger/30 bg-danger/12 text-danger" : "border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-muted)]" },
+                              ];
+                              return cards.map((card) => (
+                                <div key={card.label} className={`rounded-xl border px-3 py-2.5 ${card.tone}`}>
+                                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] opacity-80">{card.label}</div>
+                                  <div className="mt-1 text-xl font-semibold">{card.value}</div>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        ) : null}
+
+                        {sources.length ? (
                           <div className="mt-5 space-y-3">
                             {sources.map((source) => {
                               const freshness = getFreshness(source, pageCopy, language);

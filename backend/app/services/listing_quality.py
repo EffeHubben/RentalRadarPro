@@ -180,6 +180,7 @@ class ListingQualityInput:
     price: int | None
     area_m2: int | None
     image_url: str | None
+    source_reliability_weight: float = 0.7
 
 
 def normalize_space(value: str | None) -> str:
@@ -305,6 +306,7 @@ def calculate_confidence_score(
     is_shared: bool | None,
     is_woningruil: bool,
     availability_status: str,
+    source_reliability_weight: float = 0.7,
 ) -> float:
     score = 0.2
 
@@ -332,6 +334,11 @@ def calculate_confidence_score(
         score -= 0.2
     if property_type == "parking":
         score -= 0.08
+
+    if source_reliability_weight >= 0.85:
+        score += 0.04
+    elif source_reliability_weight <= 0.4:
+        score -= 0.05
 
     return round(max(0.0, min(score, 1.0)), 2)
 
@@ -411,6 +418,7 @@ def build_listing_quality(data: ListingQualityInput) -> dict:
         is_shared=is_shared,
         is_woningruil=is_woningruil,
         availability_status=availability_status,
+        source_reliability_weight=data.source_reliability_weight,
     )
 
     return {

@@ -9,6 +9,29 @@ from sqlalchemy.orm import Session
 from app.models.listing import Listing
 
 
+_NOISY_TITLE_TOKENS = {
+    "te",
+    "huur",
+    "voor",
+    "for",
+    "rent",
+    "huurwoning",
+    "appartement",
+    "apartment",
+    "studio",
+    "kamer",
+    "room",
+    "huis",
+    "house",
+    "in",
+    "te-huur",
+    "the",
+    "een",
+    "a",
+    "an",
+}
+
+
 def normalize_key_part(value: str | int | None) -> str:
     if value is None:
         return ""
@@ -20,6 +43,17 @@ def normalize_key_part(value: str | int | None) -> str:
 
 def normalize_postal_code(value: str | None) -> str:
     return normalize_key_part(value).replace("-", "")
+
+
+def normalize_title_signature(title: str | None) -> str:
+    """Reduce a title to a slot of meaningful tokens for fallback duplicate matching."""
+    if not title:
+        return ""
+
+    lowered = title.lower().replace("\xa0", " ")
+    cleaned = re.sub(r"[^a-z0-9]+", " ", lowered).split()
+    meaningful = [token for token in cleaned if len(token) >= 3 and token not in _NOISY_TITLE_TOKENS]
+    return "-".join(meaningful[:6])
 
 
 def build_duplicate_key(listing: Listing) -> str | None:
@@ -38,6 +72,10 @@ def build_duplicate_key(listing: Listing) -> str | None:
 
     if street_name and city and area_m2 and price:
         return f"street-city-area-price:{street_name}:{city}:{area_m2}:{price}"
+
+    title_signature = normalize_title_signature(listing.title)
+    if title_signature and city and area_m2 and price:
+        return f"title-city-area-price:{title_signature}:{city}:{area_m2}:{price}"
 
     return None
 

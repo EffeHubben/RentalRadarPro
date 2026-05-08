@@ -37,6 +37,8 @@ function sortLabel(sort: ListingFilters["sort"], language: Language) {
       return copy.cheapest;
     case "most_expensive":
       return copy.mostExpensive;
+    case "best_quality":
+      return copy.bestQuality;
     case "best_match":
     default:
       return copy.bestMatch;
@@ -151,6 +153,9 @@ export function getActiveFilters(filters: ListingFilters, language: Language): F
   }
   if (filters.hideRented) {
     pills.push({ key: "hideRented", label: copy.hideRented, resetValue: false });
+  }
+  if (filters.availableNow) {
+    pills.push({ key: "availableNow", label: copy.availableNow, resetValue: false });
   }
   if (filters.onlyIndependent) {
     pills.push({ key: "onlyIndependent", label: copy.onlyIndependent, resetValue: false });

@@ -80,7 +80,12 @@ export function buildListingQueryParams(filters: ListingFilters): URLSearchParam
   params.set("exclude_woningruil", String(filters.excludeWoningruil));
   params.set("exclude_parking", String(filters.excludeParking));
   params.set("hide_rented", String(filters.hideRented));
+  params.set("available_now", String(filters.availableNow));
   params.set("only_independent", String(filters.onlyIndependent));
+
+  if (filters.excludedSources.length) {
+    params.set("exclude_sources", filters.excludedSources.join(","));
+  }
 
   if (filters.hasImage) {
     params.set("has_image", "true");
