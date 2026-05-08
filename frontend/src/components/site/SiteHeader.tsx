@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -29,11 +30,20 @@ export function SiteHeader({
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-header)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-semibold text-[var(--color-accent)]">
-            RS
+        <Link href="/" className="flex items-center gap-3" aria-label="RentScout home">
+          <span className="relative flex h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_1px_rgba(50,42,31,0.03)]">
+            <Image
+              src="/logo.png"
+              alt=""
+              fill
+              sizes="36px"
+              className="object-cover"
+              priority
+            />
           </span>
-          <span className="text-sm font-semibold tracking-wide text-[var(--color-text)]">RentScout</span>
+          <span className="hidden text-sm font-semibold tracking-wide text-[var(--color-text)] sm:inline">
+            RentScout
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label={copy.primaryNavigation}>

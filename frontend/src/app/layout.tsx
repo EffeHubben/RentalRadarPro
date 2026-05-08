@@ -5,6 +5,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "RentScout",
   description: "A focused rental search platform for multi-source listings and workflow tracking.",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
