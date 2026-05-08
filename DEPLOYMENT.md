@@ -197,6 +197,39 @@ docker compose restart frontend
 docker compose restart scanner
 ```
 
+## GitHub Actions Auto-Deploy
+
+The repository can deploy automatically to the VPS whenever code is pushed to the `animated-landing-page` branch. The workflow lives at `.github/workflows/deploy.yml` and runs the same production update steps already used for manual deploys over SSH.
+
+Add these GitHub repository secrets before enabling the workflow:
+
+- `VPS_HOST`: VPS hostname or IP address.
+- `VPS_USER`: SSH user used for deployments.
+- `VPS_SSH_KEY`: Private SSH key for that deploy user.
+- `VPS_PROJECT_PATH`: Absolute VPS path to the cloned project, for example `~/RentalRadarPro`.
+
+On each push to `animated-landing-page`, GitHub Actions:
+
+- connects to the VPS over SSH
+- changes into `VPS_PROJECT_PATH`
+- fetches and checks out `animated-landing-page`
+- pulls the latest code from `origin`
+- runs `docker compose up -d --build`
+- runs `docker compose ps`
+- calls `http://127.0.0.1:8000/health` if `curl` is available on the VPS
+
+If auto-deploy fails or you need to deploy manually, use:
+
+```bash
+cd ~/RentalRadarPro
+git fetch origin
+git checkout animated-landing-page
+git pull origin animated-landing-page
+docker compose up -d --build
+docker compose ps
+curl http://127.0.0.1:8000/health
+```
+
 ## Future PostgreSQL Recommendation
 
 SQLite is fine for a simple first deployment, but PostgreSQL is recommended once the app has real users, concurrent writes, backups, and operational monitoring. A future migration should add a PostgreSQL service, update `DATABASE_URL`, remove SQLite-only connection options, and include a tested data migration plan.

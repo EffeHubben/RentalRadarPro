@@ -1,0 +1,68 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - animated-landing-page
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Validate required secrets
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_PROJECT_PATH: ${{ secrets.VPS_PROJECT_PATH }}
+        run: |
+          set -euo pipefail
+
+          for secret_name in VPS_HOST VPS_USER VPS_SSH_KEY VPS_PROJECT_PATH; do
+            if [ -z "${!secret_name}" ]; then
+              echo "Missing required secret: ${secret_name}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Configure SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Add VPS host key
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          set -euo pipefail
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy application
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PROJECT_PATH: ${{ secrets.VPS_PROJECT_PATH }}
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "${VPS_USER}@${VPS_HOST}" <<EOF
+          set -euo pipefail
+          PROJECT_PATH="${VPS_PROJECT_PATH/#\~/\$HOME}"
+          cd "$PROJECT_PATH"
+          git fetch origin
+          git checkout animated-landing-page
+          git pull origin animated-landing-page
+          docker compose up -d --build
+          docker compose ps
+          if command -v curl >/dev/null 2>&1; then
+            curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-connrefused http://127.0.0.1:8000/health
+          else
+            echo "curl not installed on VPS, skipping backend health check."
+          fi
+          EOF
