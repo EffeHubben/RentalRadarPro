@@ -6,8 +6,11 @@ x-backend-environment: &backend-environment
   AUTH_REFRESH_COOKIE_PATH: ${AUTH_REFRESH_COOKIE_PATH:-/api/auth}
   FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
   BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
-  LISTING_SCAN_INTERVAL_MINUTES: ${LISTING_SCAN_INTERVAL_MINUTES:-5}
+  LISTING_SCAN_INTERVAL_MINUTES: ${LISTING_SCAN_INTERVAL_MINUTES:-15}
   LISTING_SOURCE_TIMEOUT_SECONDS: ${LISTING_SOURCE_TIMEOUT_SECONDS:-45}
+  LISTING_SCAN_CITIES: ${LISTING_SCAN_CITIES:-Amsterdam,Rotterdam,Den Haag,Utrecht,Eindhoven,Tilburg,Breda,Den Bosch,Nijmegen,Arnhem,Groningen,Maastricht,Leiden,Delft,Haarlem,Almere,Amersfoort,Apeldoorn,Enschede,Zwolle,Dordrecht,Zoetermeer,Etten-Leur,Roosendaal,Bergen op Zoom}
+  LISTING_SCAN_MAX_CITIES_PER_CYCLE: ${LISTING_SCAN_MAX_CITIES_PER_CYCLE:-6}
+  LISTING_SCAN_PER_CITY_PAUSE_SECONDS: ${LISTING_SCAN_PER_CITY_PAUSE_SECONDS:-8}
   STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
   STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
   STRIPE_PRICE_ID_PRO: ${STRIPE_PRICE_ID_PRO:-}
@@ -32,7 +35,7 @@ services:
     env_file:
       - .env
     environment: *backend-environment
-    command: ["python", "-m", "app.services.scanner", "--city", "Breda", "--continuous", "--sleep-seconds", "300"]
+    command: ["python", "-m", "app.services.scanner", "--continuous", "--sleep-seconds", "300"]
     depends_on:
       - backend
     volumes:

@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./rental_radar_pro.db"
     max_rent: int = 1000
     default_city: str = "Breda"
+    listing_scan_cities: str = (
+        "Amsterdam,Rotterdam,Den Haag,Utrecht,Eindhoven,Tilburg,Breda,"
+        "Den Bosch,Nijmegen,Arnhem,Groningen,Maastricht,Leiden,Delft,"
+        "Haarlem,Almere,Amersfoort,Apeldoorn,Enschede,Zwolle,Dordrecht,"
+        "Zoetermeer,Etten-Leur,Roosendaal,Bergen op Zoom"
+    )
+    listing_scan_max_cities_per_cycle: int = 6
+    listing_scan_per_city_pause_seconds: int = 8
     auth_secret_key: str = "change-me-in-production-rental-radar-pro"
     jwt_secret_key: str | None = None
     auth_access_token_minutes: int = 15
@@ -60,6 +68,23 @@ class Settings(BaseSettings):
     @property
     def refresh_cookie_secure_enabled(self) -> bool:
         return self.refresh_cookie_secure if self.refresh_cookie_secure is not None else self.auth_cookie_secure
+
+    @property
+    def scan_cities(self) -> list[str]:
+        cities: list[str] = []
+        seen: set[str] = set()
+        for raw in (self.listing_scan_cities or "").split(","):
+            normalized = " ".join(raw.split())
+            if not normalized:
+                continue
+            key = normalized.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            cities.append(normalized)
+        if not cities:
+            cities.append(self.default_city)
+        return cities
 
     @property
     def cors_origins(self) -> list[str]:

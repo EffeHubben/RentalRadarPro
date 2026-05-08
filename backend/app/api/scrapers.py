@@ -74,6 +74,7 @@ def create_source_summary(source_id: str, source_name: str, manual_search_url: s
         "duration_ms": None,
         "manual_search_url": manual_search_url,
         "failure_type": None,
+        "skip_reasons": {},
     }
 
 
@@ -297,6 +298,16 @@ def run_scrapers(
             source.timeout_seconds,
         )
 
+        scan_url_hint: str | None = source.manual_search_url(city) or source.base_url
+        logger.info(
+            "scan_query source=%s city=%s url=%s auto=%s reliability=%s",
+            source.source_key,
+            city,
+            scan_url_hint,
+            source.auto_scan_enabled,
+            source.reliability_weight,
+        )
+
         try:
             scraped_listings = fetch_source_with_timeout(source, city)
         except SourceBlockedError as error:
@@ -408,6 +419,10 @@ def run_scrapers(
             if sanitized_listing is None:
                 skipped_count += 1
                 source_summary["skipped_count"] += 1
+                if skip_reason:
+                    source_summary["skip_reasons"][skip_reason] = (
+                        source_summary["skip_reasons"].get(skip_reason, 0) + 1
+                    )
                 logger.info(
                     "scan_listing_skipped source=%s source_name=%s city=%s reason=%s",
                     source.source_key,

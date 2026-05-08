@@ -2,9 +2,50 @@
 
 Run these commands from the project root unless noted otherwise.
 
-## One-off scans
+## Multi-city continuous scanner (recommended for production)
 
-Run all automatic sources once:
+The scanner now iterates a list of cities so the database covers the whole
+Netherlands instead of a single city. The list comes from
+`LISTING_SCAN_CITIES` (comma-separated) and falls back to `default_city` if
+that env var is empty.
+
+Defaults baked into `app/core/config.py` and `docker-compose.yml`:
+
+```
+LISTING_SCAN_CITIES="Amsterdam,Rotterdam,Den Haag,Utrecht,Eindhoven,Tilburg,Breda,Den Bosch,Nijmegen,Arnhem,Groningen,Maastricht,Leiden,Delft,Haarlem,Almere,Amersfoort,Apeldoorn,Enschede,Zwolle,Dordrecht,Zoetermeer,Etten-Leur,Roosendaal,Bergen op Zoom"
+LISTING_SCAN_MAX_CITIES_PER_CYCLE=6   # how many cities to scan per cycle
+LISTING_SCAN_PER_CITY_PAUSE_SECONDS=8 # respectful pause between cities
+LISTING_SCAN_INTERVAL_MINUTES=15      # interval per source/city
+```
+
+Each cycle the scanner:
+
+1. Looks at `scan_history` to find the cities most overdue for a refresh.
+2. Picks up to `LISTING_SCAN_MAX_CITIES_PER_CYCLE` of them.
+3. For each picked city, runs only the sources whose per-city interval has
+   elapsed (`source.scan_interval_minutes` + small stagger).
+4. Sleeps `LISTING_SCAN_PER_CITY_PAUSE_SECONDS` between cities, then sleeps
+   `--sleep-seconds` between cycles.
+
+This avoids hammering any single source for too many cities back-to-back.
+
+Run one cycle locally without committing changes:
+
+```bash
+cd backend
+.venv/bin/python -m app.services.scanner --dry-run
+```
+
+Override the city list at the CLI:
+
+```bash
+cd backend
+.venv/bin/python -m app.services.scanner --cities "Rotterdam,Amsterdam,Utrecht"
+```
+
+## One-off single-city scans
+
+Run all automatic sources once for one city:
 
 ```bash
 cd backend
@@ -66,8 +107,11 @@ docker compose stop scanner
 The Compose worker runs:
 
 ```bash
-python -m app.services.scanner --city Breda --continuous --sleep-seconds 300
+python -m app.services.scanner --continuous --sleep-seconds 300
 ```
+
+It picks up the city list from `LISTING_SCAN_CITIES` (set by the
+`x-backend-environment` block in `docker-compose.yml`).
 
 The worker uses the same Docker volume as the backend, so it writes listings and scan history to the same SQLite database. Back up the SQLite database before the first production deploy that enables the scanner worker.
 

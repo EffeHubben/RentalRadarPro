@@ -267,3 +267,66 @@ def get_admin_sources(
 ):
     del admin_user
     return build_sources_payloads(database, city=city)
+
+
+@router.get("/coverage")
+def get_admin_coverage(
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    """Return listing volume per city and per source plus failed source/city combos."""
+    del admin_user
+
+    listings_by_city = [
+        {"city": city or "(unknown)", "count": int(count)}
+        for city, count in (
+            database.query(Listing.city, func.count(Listing.id))
+            .filter(Listing.is_active.is_(True))
+            .group_by(Listing.city)
+            .order_by(func.count(Listing.id).desc())
+            .all()
+        )
+    ]
+    listings_by_source = [
+        {"source": source or "(unknown)", "count": int(count)}
+        for source, count in (
+            database.query(Listing.source, func.count(Listing.id))
+            .filter(Listing.is_active.is_(True))
+            .group_by(Listing.source)
+            .order_by(func.count(Listing.id).desc())
+            .all()
+        )
+    ]
+
+    from app.models.scan_history import ScanHistory  # local import to avoid cycle
+
+    failed_combos_query = (
+        database.query(
+            ScanHistory.source_id,
+            ScanHistory.city,
+            ScanHistory.status,
+            func.count(ScanHistory.id),
+            func.max(ScanHistory.finished_at),
+        )
+        .filter(ScanHistory.status.in_(["failed", "blocked"]))
+        .group_by(ScanHistory.source_id, ScanHistory.city, ScanHistory.status)
+        .order_by(func.max(ScanHistory.finished_at).desc())
+        .limit(60)
+        .all()
+    )
+    failed_combos = [
+        {
+            "source_id": source_id,
+            "city": city,
+            "status": status_value,
+            "count": int(count),
+            "last_finished_at": finished_at.isoformat() if finished_at else None,
+        }
+        for source_id, city, status_value, count, finished_at in failed_combos_query
+    ]
+
+    return {
+        "listings_by_city": listings_by_city,
+        "listings_by_source": listings_by_source,
+        "failed_source_city_combos": failed_combos,
+    }
