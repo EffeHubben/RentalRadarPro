@@ -1,5 +1,6 @@
 "use client";
 
+import headerIcon from "@/app/icon.png";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,18 +31,19 @@ export function SiteHeader({
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-header)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-3" aria-label="RentScout home">
-          <span className="relative flex h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_1px_rgba(50,42,31,0.03)]">
+        <Link href="/" className="flex min-w-0 items-center gap-2.5 py-2" aria-label="RentScout home">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_1px_rgba(50,42,31,0.03)]">
             <Image
-              src="/logo.png"
+              src={headerIcon}
               alt=""
-              fill
-              sizes="36px"
-              className="object-cover"
+              width={28}
+              height={28}
+              sizes="40px"
+              className="h-7 w-7 object-contain"
               priority
             />
           </span>
-          <span className="hidden text-sm font-semibold tracking-wide text-[var(--color-text)] sm:inline">
+          <span className="hidden whitespace-nowrap text-sm font-semibold tracking-[0.08em] text-[var(--color-text)] sm:inline">
             RentScout
           </span>
         </Link>

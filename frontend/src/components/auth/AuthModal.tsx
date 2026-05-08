@@ -7,9 +7,40 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { i18n, type Language } from "@/lib/i18n";
 
 type AuthMode = "login" | "register";
+const MIN_PASSWORD_LENGTH = 8;
 
 function inputClass() {
   return "rs-modal-input h-11 px-3 text-sm";
+}
+
+function getPasswordChecks(password: string, copy: (typeof i18n)[Language]["auth"]) {
+  return [
+    {
+      key: "length",
+      valid: password.length >= MIN_PASSWORD_LENGTH,
+      label: copy.passwordRuleLength,
+    },
+    {
+      key: "uppercase",
+      valid: /[A-Z]/.test(password),
+      label: copy.passwordRuleUppercase,
+    },
+    {
+      key: "lowercase",
+      valid: /[a-z]/.test(password),
+      label: copy.passwordRuleLowercase,
+    },
+    {
+      key: "number",
+      valid: /\d/.test(password),
+      label: copy.passwordRuleNumber,
+    },
+    {
+      key: "special",
+      valid: /[^A-Za-z0-9]/.test(password),
+      label: copy.passwordRuleSpecial,
+    },
+  ] as const;
 }
 
 export function AuthModal({
@@ -35,6 +66,11 @@ export function AuthModal({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const passwordChecks = getPasswordChecks(password, copy);
+  const passwordValid = passwordChecks.every((check) => check.valid);
+  const confirmPasswordMismatch =
+    mode === "register" && confirmPassword.length > 0 && password !== confirmPassword;
+  const registerBlocked = mode === "register" && (!passwordValid || confirmPasswordMismatch);
 
   useEffect(() => {
     setMounted(true);
@@ -67,6 +103,11 @@ export function AuthModal({
 
     if (mode === "register" && password !== confirmPassword) {
       setError(copy.passwordsDoNotMatch);
+      return;
+    }
+
+    if (mode === "register" && !passwordValid) {
+      setError(copy.passwordInvalid);
       return;
     }
 
@@ -163,7 +204,8 @@ export function AuthModal({
                         className={inputClass()}
                         value={displayName}
                         onChange={(event) => setDisplayName(event.target.value)}
-                        placeholder="Efecan"
+                        placeholder={copy.displayNamePlaceholder}
+                        autoComplete="name"
                       />
                     </label>
                   ) : null}
@@ -194,8 +236,33 @@ export function AuthModal({
                       onChange={(event) => setPassword(event.target.value)}
                       autoComplete={mode === "login" ? "current-password" : "new-password"}
                       required
-                      minLength={8}
+                      minLength={MIN_PASSWORD_LENGTH}
                     />
+                    {mode === "register" ? (
+                      <div className="mt-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)]/70 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">
+                          {copy.passwordRequirements}
+                        </p>
+                        <div className="mt-2 grid gap-2">
+                          {passwordChecks.map((check) => (
+                            <div
+                              key={check.key}
+                              className={`flex items-center gap-2 text-xs ${
+                                check.valid ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--color-muted)]"
+                              }`}
+                            >
+                              <span
+                                className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                                  check.valid ? "bg-emerald-500" : "bg-[var(--color-border)]"
+                                }`}
+                                aria-hidden="true"
+                              />
+                              <span>{check.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </label>
 
                   {mode === "register" ? (
@@ -210,8 +277,11 @@ export function AuthModal({
                         onChange={(event) => setConfirmPassword(event.target.value)}
                         autoComplete="new-password"
                         required
-                        minLength={8}
+                        minLength={MIN_PASSWORD_LENGTH}
                       />
+                      {confirmPasswordMismatch ? (
+                        <p className="mt-2 text-xs text-danger">{copy.passwordsDoNotMatch}</p>
+                      ) : null}
                     </label>
                   ) : null}
                 </motion.div>
@@ -225,8 +295,8 @@ export function AuthModal({
 
               <button
                 type="submit"
-                disabled={submitting}
-                className="h-11 w-full rounded-xl border border-brass/40 bg-brass/14 px-4 text-sm font-semibold text-brass transition hover:bg-brass hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={submitting || registerBlocked}
+                className="h-11 w-full rounded-xl border border-brass/40 bg-brass/14 px-4 text-sm font-semibold text-brass transition hover:bg-brass hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass/50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting
                   ? copy.loading

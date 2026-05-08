@@ -16,10 +16,28 @@ from app.models.user import User
 password_hash = PasswordHash.recommended()
 bearer_scheme = HTTPBearer(auto_error=False)
 JWT_ALGORITHM = "HS256"
+PASSWORD_MIN_LENGTH = 8
+PASSWORD_RULE_MESSAGE = (
+    "Use at least 8 characters with an uppercase letter, lowercase letter, number, and special character"
+)
 
 
 def normalize_email(email: str) -> str:
     return email.strip().lower()
+
+
+def password_strength_error(password: str) -> str | None:
+    if len(password) < PASSWORD_MIN_LENGTH:
+        return PASSWORD_RULE_MESSAGE
+    if not any(character.isupper() for character in password):
+        return PASSWORD_RULE_MESSAGE
+    if not any(character.islower() for character in password):
+        return PASSWORD_RULE_MESSAGE
+    if not any(character.isdigit() for character in password):
+        return PASSWORD_RULE_MESSAGE
+    if password.isalnum():
+        return PASSWORD_RULE_MESSAGE
+    return None
 
 
 def hash_password(password: str) -> str:

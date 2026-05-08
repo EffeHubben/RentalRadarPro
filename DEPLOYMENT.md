@@ -230,6 +230,26 @@ docker compose ps
 curl http://127.0.0.1:8000/health
 ```
 
+## Registration Bot Protection
+
+The current registration flow does not ship with captcha enforcement yet. For this stack, Cloudflare Turnstile is the cleanest next step because it is low-friction on mobile, works well behind a reverse proxy, and has a simple server-side verification API.
+
+Recommended rollout:
+
+- Frontend env: `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+- Backend env: `TURNSTILE_SECRET_KEY`
+- Optional backend flag: `TURNSTILE_REQUIRED=true` in production
+
+Suggested implementation shape:
+
+1. Render the Turnstile widget only on the register mode of the auth modal.
+2. Submit the Turnstile token with `POST /api/auth/register`.
+3. Verify that token server-side before creating the user.
+4. If the Turnstile env vars are missing, keep registration available in local development and log that captcha verification is skipped.
+5. Enforce captcha in production only when the secret key is configured.
+
+This change keeps the current auth surface scoped to branding and password hardening, instead of adding a partial captcha path without end-to-end verification.
+
 ## Future PostgreSQL Recommendation
 
 SQLite is fine for a simple first deployment, but PostgreSQL is recommended once the app has real users, concurrent writes, backups, and operational monitoring. A future migration should add a PostgreSQL service, update `DATABASE_URL`, remove SQLite-only connection options, and include a tested data migration plan.

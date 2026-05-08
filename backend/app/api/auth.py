@@ -12,6 +12,7 @@ from app.core.security import (
     hash_password,
     hash_refresh_token,
     normalize_email,
+    password_strength_error,
     verify_password,
 )
 from app.database.db import get_database_session
@@ -89,6 +90,13 @@ def register(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="An account with this email already exists",
+        )
+
+    password_error = password_strength_error(payload.password)
+    if password_error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=password_error,
         )
 
     user = User(
