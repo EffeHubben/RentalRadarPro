@@ -51,7 +51,8 @@ jobs:
           VPS_PROJECT_PATH: ${{ secrets.VPS_PROJECT_PATH }}
         run: |
           set -euo pipefail
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "${VPS_USER}@${VPS_HOST}" <<EOF
+          REMOTE_PROJECT_PATH=$(printf '%q' "$VPS_PROJECT_PATH")
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "${VPS_USER}@${VPS_HOST}" "VPS_PROJECT_PATH=$REMOTE_PROJECT_PATH bash -se" <<'EOF'
           set -euo pipefail
           PROJECT_PATH="${VPS_PROJECT_PATH/#\~/\$HOME}"
           cd "$PROJECT_PATH"
