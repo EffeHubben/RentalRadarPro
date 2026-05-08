@@ -9,11 +9,13 @@ from app.scrapers.base import (
     extract_price_from_text,
     extract_rooms_from_text,
 )
+from app.scrapers.generic_sources import SourceBlockedError
 from app.services.browser_fetcher import fetch_page_with_browser
 
 
 SOURCE_NAME = "Ik wil huren"
 DETAIL_TIMEOUT_SECONDS = 10
+MAX_DETAIL_FETCHES_PER_RUN = 8
 
 
 def normalize_city(city: str) -> str:
@@ -215,11 +217,12 @@ def fetch_ikwilhuren_listings(city: str = "Breda") -> list[ScrapedListing]:
     html = fetch_page_with_browser(search_url, debug_name="ikwilhuren")
 
     if not html:
-        return []
+        raise SourceBlockedError("Source returned no usable HTML or appears blocked.")
 
     soup = BeautifulSoup(html, "html.parser")
     listings = []
     seen_urls = set()
+    detail_fetches = 0
 
     for link in soup.find_all("a", href=True):
         href = link.get("href")
@@ -247,22 +250,28 @@ def fetch_ikwilhuren_listings(city: str = "Breda") -> list[ScrapedListing]:
         detail_text = ""
         detail_availability_status = "unknown"
         detail_is_available = None
+        overview_availability_status, overview_is_available = detect_availability_status(
+            f"{title} {surrounding_text}"
+        )
+        should_fetch_detail = (
+            detail_fetches < MAX_DETAIL_FETCHES_PER_RUN
+            and (
+                not is_real_image_url(image_url)
+                or overview_availability_status == "unknown"
+            )
+        )
 
-        if not is_real_image_url(image_url):
+        if should_fetch_detail:
             (
                 detail_text,
                 detail_image_url,
                 detail_availability_status,
                 detail_is_available,
             ) = fetch_listing_detail(full_url)
+            detail_fetches += 1
             image_url = detail_image_url or image_url
-        else:
-            detail_text, _, detail_availability_status, detail_is_available = fetch_listing_detail(full_url)
 
         combined_description = f"{surrounding_text} {detail_text}".strip()
-        overview_availability_status, overview_is_available = detect_availability_status(
-            f"{title} {surrounding_text}"
-        )
         availability_status = (
             detail_availability_status
             if detail_availability_status != "unknown"

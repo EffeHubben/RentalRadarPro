@@ -75,6 +75,61 @@ The worker uses the same Docker volume as the backend, so it writes listings and
 
 Scanner logs are written to stdout by the CLI and to the backend process logs when scans are triggered through the API. Each source writes `scan_start`, `scan_finished`, `scan_blocked`, or `scan_failed` log lines.
 
+Each run records:
+
+- source key and display name
+- scraped, created, updated, skipped, and duplicate counts
+- timeout or failure type when a run does not complete
+- duration in milliseconds
+
+## Source health checks
+
+Admin source health is available at:
+
+```bash
+curl http://localhost:8000/api/sources
+```
+
+Admin-authenticated source health is also available through:
+
+```bash
+curl -H "Authorization: Bearer <admin-access-token>" http://localhost:8000/api/admin/sources
+```
+
+Useful fields:
+
+- `last_scan_finished_at`: most recent run end time
+- `last_success_at`: most recent successful or no-results run
+- `last_failed_at`: most recent failed or blocked run
+- `last_failed_error`: latest safe truncated error message
+- `total_listing_count` and `active_listing_count`: current stored inventory by source
+- `next_due_at`: next automatic scan time after interval and backoff
+
+## Debugging failed sources
+
+1. Run a single source locally:
+
+```bash
+cd backend
+.venv/bin/python -m app.services.scanner --city Breda --source funda
+```
+
+2. Inspect recent scan history:
+
+```bash
+cd backend
+sqlite3 rental_radar_pro.db "select source_id,status,scraped_count,created_count,updated_count,skipped_count,duplicate_count,duration_ms,error,finished_at from scan_history order by finished_at desc limit 20;"
+```
+
+3. Review the saved browser HTML under `backend/debug/` when a source looks blocked or empty.
+
+4. Compare current stored listings for one source:
+
+```bash
+cd backend
+sqlite3 rental_radar_pro.db "select source_key,title,url,last_seen_at,is_active from listings where source_key='funda' order by last_seen_at desc limit 20;"
+```
+
 Scan history is stored in the `scan_history` table. A quick local SQLite check:
 
 ```bash

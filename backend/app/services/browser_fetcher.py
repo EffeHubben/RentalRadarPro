@@ -1,6 +1,10 @@
 from pathlib import Path
+import logging
 
 from playwright.sync_api import sync_playwright
+
+
+logger = logging.getLogger("rentscout.scraper.browser")
 
 
 def fetch_page_with_browser(url: str, debug_name: str = "last_page") -> str | None:
@@ -38,9 +42,13 @@ def fetch_page_with_browser(url: str, debug_name: str = "last_page") -> str | No
             debug_file = debug_folder / f"{debug_name}.html"
             debug_file.write_text(content, encoding="utf-8")
 
-            print(f"Browser page title: {title}")
-            print(f"Saved debug HTML to: {debug_file}")
-            print(f"HTML length: {len(content)}")
+            logger.info(
+                "browser_fetch_complete debug_name=%s title=%s debug_file=%s html_length=%s",
+                debug_name,
+                title,
+                debug_file,
+                len(content),
+            )
 
             lower_content = content.lower()
 
@@ -53,11 +61,11 @@ def fetch_page_with_browser(url: str, debug_name: str = "last_page") -> str | No
             ]
 
             if any(keyword in lower_content for keyword in blocked_keywords):
-                print(f"Browser fetch may be blocked: {url}")
+                logger.warning("browser_fetch_blocked debug_name=%s url=%s", debug_name, url)
                 return None
 
             return content
 
     except Exception as error:
-        print(f"Browser fetch error for {url}: {error}")
+        logger.exception("browser_fetch_failed debug_name=%s url=%s", debug_name, url)
         return None

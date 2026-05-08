@@ -7,6 +7,7 @@ from app.scrapers.base import (
     extract_price_from_text,
     extract_rooms_from_text,
 )
+from app.scrapers.generic_sources import SourceBlockedError
 from app.services.browser_fetcher import fetch_page_with_browser
 
 
@@ -111,7 +112,7 @@ def fetch_funda_listings(city: str = "Breda") -> list[ScrapedListing]:
     html = fetch_page_with_browser(search_url, debug_name="funda")
 
     if not html:
-        return []
+        raise SourceBlockedError("Source returned no usable HTML or appears blocked.")
 
     soup = BeautifulSoup(html, "html.parser")
     listings = []

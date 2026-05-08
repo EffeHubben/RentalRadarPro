@@ -17,6 +17,11 @@ from app.scrapers.base import detect_availability_status
 from app.services.duplicates import assign_duplicate_metadata, refresh_duplicate_group
 from app.scrapers.generic_sources import SourceBlockedError
 from app.services.listing_quality import ListingQualityInput, build_listing_quality
+from app.services.scanner_reliability import (
+    source_listing_signature,
+    sanitize_scraped_listing,
+    truncate_error_message,
+)
 from app.services.location import (
     AddressParts,
     enrich_location,
@@ -68,6 +73,7 @@ def create_source_summary(source_id: str, source_name: str, manual_search_url: s
         "error": None,
         "duration_ms": None,
         "manual_search_url": manual_search_url,
+        "failure_type": None,
     }
 
 
@@ -227,7 +233,6 @@ def fetch_source_with_timeout(source, city: str):
 def mark_source_result(source, source_summary: dict, finished_at: datetime) -> None:
     source.last_scan_finished_at = finished_at
     source.listings_found_last_scan = source_summary["scraped_count"]
-    source.last_error = source_summary["error"]
 
     if source_summary["status"] in {"success", "no_results"}:
         source.failure_count = 0
@@ -236,6 +241,7 @@ def mark_source_result(source, source_summary: dict, finished_at: datetime) -> N
         return
 
     source.failure_count += 1
+    source.last_error = source_summary["error"]
     source.status = "limited" if source_summary["status"] == "blocked" else "degraded"
 
 
@@ -267,6 +273,7 @@ def run_scrapers(
     duplicate_count = 0
     skipped_count = 0
     seen_urls = set()
+    seen_source_signatures = set()
     created_listings = []
     source_summaries = []
     selected_source_ids = request.sources if request and request.sources is not None else None
@@ -282,14 +289,21 @@ def run_scrapers(
             manual_search_url=source.manual_search_url(city),
         )
         source_summaries.append(source_summary)
-        logger.info("scan_start source=%s city=%s timeout=%ss", source.source_key, city, source.timeout_seconds)
+        logger.info(
+            "scan_start source=%s source_name=%s city=%s timeout_seconds=%s",
+            source.source_key,
+            source.display_name,
+            city,
+            source.timeout_seconds,
+        )
 
         try:
             scraped_listings = fetch_source_with_timeout(source, city)
         except SourceBlockedError as error:
             source_summary["status"] = "blocked"
-            source_summary["error"] = str(error)
+            source_summary["error"] = truncate_error_message(str(error))
             source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
+            source_summary["failure_type"] = "blocked"
             finished_at = datetime.utcnow()
             LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
             mark_source_result(source, source_summary, finished_at)
@@ -308,12 +322,52 @@ def run_scrapers(
                 started_at=scan_started_at,
                 finished_at=finished_at,
             )
-            logger.warning("scan_blocked source=%s city=%s error=%s", source.source_key, city, error)
+            logger.warning(
+                "scan_blocked source=%s source_name=%s city=%s duration_ms=%s error=%s",
+                source.source_key,
+                source.display_name,
+                city,
+                source_summary["duration_ms"],
+                source_summary["error"],
+            )
+            continue
+        except TimeoutError as error:
+            source_summary["status"] = "failed"
+            source_summary["error"] = truncate_error_message(str(error))
+            source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
+            source_summary["failure_type"] = "timeout"
+            finished_at = datetime.utcnow()
+            LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
+            mark_source_result(source, source_summary, finished_at)
+            record_scan_history(
+                database,
+                city=city,
+                source_id=source.source_key,
+                status=source_summary["status"],
+                scraped_count=source_summary["scraped_count"],
+                created_count=source_summary["created_count"],
+                updated_count=source_summary["updated_count"],
+                skipped_count=source_summary["skipped_count"],
+                duplicate_count=source_summary["duplicate_count"],
+                duration_ms=source_summary["duration_ms"],
+                error=source_summary["error"],
+                started_at=scan_started_at,
+                finished_at=finished_at,
+            )
+            logger.warning(
+                "scan_timeout source=%s source_name=%s city=%s duration_ms=%s error=%s",
+                source.source_key,
+                source.display_name,
+                city,
+                source_summary["duration_ms"],
+                source_summary["error"],
+            )
             continue
         except Exception as error:
             source_summary["status"] = "failed"
-            source_summary["error"] = str(error)
+            source_summary["error"] = truncate_error_message(str(error))
             source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
+            source_summary["failure_type"] = "exception"
             finished_at = datetime.utcnow()
             LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
             mark_source_result(source, source_summary, finished_at)
@@ -332,24 +386,53 @@ def run_scrapers(
                 started_at=scan_started_at,
                 finished_at=finished_at,
             )
-            logger.exception("scan_failed source=%s city=%s", source.source_key, city)
+            logger.exception(
+                "scan_failed source=%s source_name=%s city=%s duration_ms=%s error=%s",
+                source.source_key,
+                source.display_name,
+                city,
+                source_summary["duration_ms"],
+                source_summary["error"],
+            )
             continue
 
         source_summary["scraped_count"] = len(scraped_listings)
         source_summary["status"] = "success" if scraped_listings else "no_results"
 
         for scraped_listing in scraped_listings:
-            if not scraped_listing.url:
+            sanitized_listing, skip_reason = sanitize_scraped_listing(
+                scraped_listing,
+                fallback_source=source.display_name,
+                requested_city=city,
+            )
+            if sanitized_listing is None:
                 skipped_count += 1
                 source_summary["skipped_count"] += 1
+                logger.info(
+                    "scan_listing_skipped source=%s source_name=%s city=%s reason=%s",
+                    source.source_key,
+                    source.display_name,
+                    city,
+                    skip_reason,
+                )
                 continue
+
+            scraped_listing = sanitized_listing
 
             if scraped_listing.url in seen_urls:
                 duplicate_count += 1
                 source_summary["duplicate_count"] += 1
                 continue
 
+            source_signature = source_listing_signature(scraped_listing, source.source_key, city)
+            if source_signature and source_signature in seen_source_signatures:
+                duplicate_count += 1
+                source_summary["duplicate_count"] += 1
+                continue
+
             seen_urls.add(scraped_listing.url)
+            if source_signature:
+                seen_source_signatures.add(source_signature)
 
             now = datetime.utcnow()
             listing_metadata = build_listing_quality(
@@ -466,8 +549,9 @@ def run_scrapers(
             finished_at=finished_at,
         )
         logger.info(
-            "scan_finished source=%s city=%s status=%s scraped=%s created=%s updated=%s skipped=%s duplicates=%s duration_ms=%s",
+            "scan_finished source=%s source_name=%s city=%s status=%s scraped=%s created=%s updated=%s skipped=%s duplicates=%s duration_ms=%s",
             source.source_key,
+            source.display_name,
             city,
             source_summary["status"],
             source_summary["scraped_count"],

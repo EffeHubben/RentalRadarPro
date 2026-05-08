@@ -108,8 +108,14 @@ type PageCopy = {
     providerId: string;
     source: string;
     lastScan: string;
+    lastSuccess: string;
+    lastFailure: string;
     freshness: string;
     listingCount: string;
+    activeListings: string;
+    lastError: string;
+    nextDue: string;
+    duration: string;
   };
   modal: {
     title: Record<UserActionMode, string>;
@@ -211,8 +217,14 @@ const copy: Record<Language, PageCopy> = {
       providerId: "Provider ID",
       source: "Bron",
       lastScan: "Laatste scan",
+      lastSuccess: "Laatste succes",
+      lastFailure: "Laatste fout",
       freshness: "Versheid",
       listingCount: "Listings",
+      activeListings: "Actief",
+      lastError: "Laatste foutmelding",
+      nextDue: "Volgende scan",
+      duration: "Duur",
     },
     modal: {
       title: {
@@ -322,8 +334,14 @@ const copy: Record<Language, PageCopy> = {
       providerId: "Provider ID",
       source: "Source",
       lastScan: "Last scan",
+      lastSuccess: "Last success",
+      lastFailure: "Last failure",
       freshness: "Freshness",
       listingCount: "Listings",
+      activeListings: "Active",
+      lastError: "Last error",
+      nextDue: "Next due",
+      duration: "Duration",
     },
     modal: {
       title: {
@@ -445,6 +463,18 @@ function getSourceStatusTone(status: SourceInfo["status"]) {
     default:
       return "border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-muted)]";
   }
+}
+
+function formatDuration(durationMs: number | null | undefined, unknown: string) {
+  if (!durationMs || durationMs < 0) {
+    return unknown;
+  }
+
+  if (durationMs < 1000) {
+    return `${durationMs} ms`;
+  }
+
+  return `${(durationMs / 1000).toFixed(1)} s`;
 }
 
 function getSubscriptionTone(status: string) {
@@ -1260,11 +1290,11 @@ export default function AdminPage() {
                                     </div>
                                   </div>
 
-                                  <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
-                                    <div>
-                                      <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.lastScan}</div>
-                                      <div className="mt-1 text-[var(--color-text)]">
-                                        {formatDate(source.last_scan_finished_at, language, pageCopy.unknown)}
+                              <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
+                                <div>
+                                  <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.lastScan}</div>
+                                  <div className="mt-1 text-[var(--color-text)]">
+                                    {formatDate(source.last_scan_finished_at, language, pageCopy.unknown)}
                                       </div>
                                     </div>
                                     <div>
@@ -1276,15 +1306,58 @@ export default function AdminPage() {
                                       </div>
                                     </div>
                                     <div>
-                                      <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.listingCount}</div>
-                                      <div className="mt-1 text-[var(--color-text)]">
-                                        {source.listings_found_last_scan ?? 0}
+                                    <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.listingCount}</div>
+                                    <div className="mt-1 text-[var(--color-text)]">
+                                        {source.total_listing_count ?? source.listings_found_last_scan ?? 0}
                                         <span className="ml-2 text-xs text-[var(--color-muted)]">
                                           +{source.listings_added_today ?? 0} {pageCopy.today}
                                         </span>
                                       </div>
                                     </div>
                                   </div>
+
+                                  <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
+                                    <div>
+                                      <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.lastSuccess}</div>
+                                      <div className="mt-1 text-[var(--color-text)]">
+                                        {formatDate(source.last_success_at, language, pageCopy.unknown)}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.lastFailure}</div>
+                                      <div className="mt-1 text-[var(--color-text)]">
+                                        {formatDate(source.last_failed_at ?? null, language, pageCopy.unknown)}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.activeListings}</div>
+                                      <div className="mt-1 text-[var(--color-text)]">
+                                        {source.active_listing_count ?? 0}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+                                    <div>
+                                      <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.nextDue}</div>
+                                      <div className="mt-1 text-[var(--color-text)]">
+                                        {formatDate(source.next_due_at ?? null, language, pageCopy.unknown)}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.duration}</div>
+                                      <div className="mt-1 text-[var(--color-text)]">
+                                        {formatDuration(source.last_run?.duration_ms, pageCopy.unknown)}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {source.last_failed_error || source.last_error ? (
+                                    <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] px-3 py-2 text-sm text-[var(--color-muted)]">
+                                      <span className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.lastError}:</span>{" "}
+                                      {source.last_failed_error || source.last_error}
+                                    </div>
+                                  ) : null}
                                 </article>
                               );
                             })}

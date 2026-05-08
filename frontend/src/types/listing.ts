@@ -246,9 +246,13 @@ export type SourceInfo = {
   last_scan_started_at: string | null;
   last_scan_finished_at: string | null;
   last_success_at: string | null;
+  last_failed_at?: string | null;
   last_error?: string | null;
+  last_failed_error?: string | null;
   listings_found_last_scan: number;
   listings_added_today?: number;
+  total_listing_count?: number;
+  active_listing_count?: number;
   internal_reason?: string | null;
   next_due_at?: string | null;
   notes: string;
@@ -270,5 +274,7 @@ export type SourceInfo = {
     error?: string | null;
     duration_ms?: number | null;
     manual_search_url?: string | null;
+    started_at?: string | null;
+    finished_at?: string | null;
   } | null;
 };

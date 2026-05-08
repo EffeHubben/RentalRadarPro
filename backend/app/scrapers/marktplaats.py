@@ -7,6 +7,7 @@ from app.scrapers.base import (
     extract_price_from_text,
     extract_rooms_from_text,
 )
+from app.scrapers.generic_sources import SourceBlockedError
 from app.services.browser_fetcher import fetch_page_with_browser
 
 
@@ -172,6 +173,7 @@ def fetch_marktplaats_listings(city: str = "Breda") -> list[ScrapedListing]:
     listings = []
     seen_urls = set()
     search_urls = build_search_urls(requested_city)
+    successful_fetches = 0
 
     for index, search_url in enumerate(search_urls):
         html = fetch_page_with_browser(
@@ -180,8 +182,9 @@ def fetch_marktplaats_listings(city: str = "Breda") -> list[ScrapedListing]:
         )
 
         if not html:
-            print(f"Could not fetch Marktplaats URL: {search_url}")
             continue
+
+        successful_fetches += 1
 
         soup = BeautifulSoup(html, "html.parser")
 
@@ -226,5 +229,8 @@ def fetch_marktplaats_listings(city: str = "Breda") -> list[ScrapedListing]:
                     description=surrounding_text[:1500],
                 )
             )
+
+    if successful_fetches == 0:
+        raise SourceBlockedError("Source returned no usable HTML or appears blocked.")
 
     return listings
