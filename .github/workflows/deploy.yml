@@ -62,7 +62,26 @@ jobs:
           docker compose up -d --build
           docker compose ps
           if command -v curl >/dev/null 2>&1; then
-            curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-connrefused http://127.0.0.1:8000/health
+            health_url=http://127.0.0.1:8000/health
+            ready=false
+            for attempt in $(seq 1 20); do
+              echo "Health check attempt ${attempt}/20: ${health_url}"
+              if curl --fail --silent --show-error "$health_url"; then
+                echo "Backend is ready."
+                ready=true
+                break
+              fi
+
+              echo "Backend not ready yet; waiting 3 seconds before retrying."
+              sleep 3
+            done
+
+            if [ "$ready" != "true" ]; then
+              echo "Backend failed to become ready after 20 attempts."
+              docker compose ps
+              docker compose logs backend --tail=100
+              exit 1
+            fi
           else
             echo "curl not installed on VPS, skipping backend health check."
           fi
