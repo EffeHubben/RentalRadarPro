@@ -34,6 +34,7 @@ export type RegisterPayload = {
   password: string;
   display_name?: string;
   preferred_language?: Language;
+  captcha_token?: string;
 };
 
 export type LoginPayload = {

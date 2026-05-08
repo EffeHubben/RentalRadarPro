@@ -1,7 +1,9 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
+import requests
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -46,10 +48,62 @@ logger = logging.getLogger("rentscout.auth")
 PASSWORD_RESET_SUCCESS_MESSAGE = (
     "If an account exists for that email address, a password reset link will be sent shortly."
 )
+TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 
 def access_token_expires_in_seconds() -> int:
     return settings.auth_access_token_minutes * 60
+
+
+def verify_turnstile_token(token: str, remote_ip: str | None) -> bool:
+    payload = {
+        "secret": settings.turnstile_secret_key,
+        "response": token,
+    }
+
+    if remote_ip:
+        payload["remoteip"] = remote_ip
+
+    try:
+        response = requests.post(
+            TURNSTILE_VERIFY_URL,
+            data=payload,
+            timeout=8,
+        )
+        response.raise_for_status()
+    except requests.RequestException:
+        logger.exception("turnstile_request_failed")
+        return False
+
+    payload: dict[str, Any] = response.json()
+    return bool(payload.get("success"))
+
+
+def enforce_registration_bot_check(payload: RegisterRequest, request: Request) -> None:
+    if not settings.turnstile_secret_key:
+        if settings.turnstile_required:
+            logger.error("turnstile_required_but_secret_missing")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Registration protection is temporarily unavailable",
+            )
+        logger.info("turnstile_skipped_missing_secret")
+        return
+
+    if not payload.captcha_token:
+        if settings.turnstile_required:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please complete the verification challenge",
+            )
+        logger.info("turnstile_optional_token_missing")
+        return
+
+    if not verify_turnstile_token(payload.captcha_token, request.client.host if request.client else None):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification failed. Please try again.",
+        )
 
 
 def set_refresh_cookie(response: Response, token: str) -> None:
@@ -143,6 +197,8 @@ def register(
     background_tasks: BackgroundTasks,
     database: Session = Depends(get_database_session),
 ):
+    enforce_registration_bot_check(payload, request)
+
     verification_token: str | None = None
     verification_event_key: str | None = None
     email_normalized = normalize_email(payload.email)

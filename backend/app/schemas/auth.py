@@ -8,6 +8,7 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
     display_name: str | None = Field(default=None, max_length=120)
     preferred_language: str | None = Field(default=None, pattern="^(nl|en)$")
+    captcha_token: str | None = Field(default=None, max_length=2048)
 
 
 class LoginRequest(BaseModel):

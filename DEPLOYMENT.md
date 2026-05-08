@@ -239,23 +239,26 @@ curl http://127.0.0.1:8000/health
 
 ## Registration Bot Protection
 
-The current registration flow does not ship with captcha enforcement yet. For this stack, Cloudflare Turnstile is the cleanest next step because it is low-friction on mobile, works well behind a reverse proxy, and has a simple server-side verification API.
+Registration now supports Cloudflare Turnstile in a feature-flagged way.
 
-Recommended rollout:
+Environment variables:
 
 - Frontend env: `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
 - Backend env: `TURNSTILE_SECRET_KEY`
-- Optional backend flag: `TURNSTILE_REQUIRED=true` in production
+- Backend flag: `TURNSTILE_REQUIRED=false` by default
 
-Suggested implementation shape:
+Current behavior:
 
-1. Render the Turnstile widget only on the register mode of the auth modal.
-2. Submit the Turnstile token with `POST /api/auth/register`.
-3. Verify that token server-side before creating the user.
-4. If the Turnstile env vars are missing, keep registration available in local development and log that captcha verification is skipped.
-5. Enforce captcha in production only when the secret key is configured.
+1. The Turnstile widget is rendered only in register mode of the auth modal when `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is set.
+2. The register request sends the Turnstile token to `POST /api/auth/register`.
+3. If `TURNSTILE_SECRET_KEY` is configured and a token is provided, the backend verifies it with Cloudflare before creating the account.
+4. If `TURNSTILE_REQUIRED=true`, registration is blocked unless a valid Turnstile token is present.
+5. If the Turnstile keys are missing and `TURNSTILE_REQUIRED=false`, local development still works and registration continues without captcha enforcement.
 
-This change keeps the current auth surface scoped to branding and password hardening, instead of adding a partial captcha path without end-to-end verification.
+Recommended production setup:
+
+- Set both `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`
+- Flip `TURNSTILE_REQUIRED=true` only after confirming the widget renders correctly on the live frontend
 
 ## Transactional Email Preview
 

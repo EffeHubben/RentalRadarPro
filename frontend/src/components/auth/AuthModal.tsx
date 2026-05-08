@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
 import { i18n, type Language } from "@/lib/i18n";
 import {
   evaluatePasswordRules,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/passwordRules";
 
 type AuthMode = "login" | "register";
+const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
 
 function inputClass() {
   return "rs-modal-input h-11 px-3 text-sm";
@@ -70,6 +72,7 @@ export function AuthModal({
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -77,7 +80,9 @@ export function AuthModal({
   const passwordValid = passwordMeetsRequirements(password);
   const confirmPasswordMismatch =
     mode === "register" && confirmPassword.length > 0 && password !== confirmPassword;
-  const registerBlocked = mode === "register" && (!passwordValid || confirmPasswordMismatch);
+  const registerBlocked =
+    mode === "register" &&
+    (!passwordValid || confirmPasswordMismatch || (Boolean(turnstileSiteKey) && !captchaToken));
 
   useEffect(() => {
     setMounted(true);
@@ -86,6 +91,7 @@ export function AuthModal({
   useEffect(() => {
     if (open) {
       setMode(initialMode);
+      setCaptchaToken("");
     }
   }, [initialMode, open]);
 
@@ -129,6 +135,7 @@ export function AuthModal({
           password,
           display_name: displayName.trim() || undefined,
           preferred_language: language,
+          captcha_token: captchaToken || undefined,
         });
       }
 
@@ -143,6 +150,7 @@ export function AuthModal({
 
   function switchMode(nextMode: AuthMode) {
     setMode(nextMode);
+    setCaptchaToken("");
     setError("");
   }
 
@@ -302,6 +310,14 @@ export function AuthModal({
                         <p className="mt-2 text-xs text-danger">{copy.passwordsDoNotMatch}</p>
                       ) : null}
                     </label>
+                  ) : null}
+
+                  {mode === "register" && turnstileSiteKey ? (
+                    <TurnstileWidget
+                      language={language}
+                      siteKey={turnstileSiteKey}
+                      onTokenChange={setCaptchaToken}
+                    />
                   ) : null}
                 </motion.div>
               </AnimatePresence>

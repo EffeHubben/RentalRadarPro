@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     email_verification_token_expiration_minutes: int = 4320
     password_reset_enabled: bool = True
     password_reset_token_expiration_minutes: int = 60
+    turnstile_secret_key: str | None = None
+    turnstile_required: bool = False
 
     @property
     def token_secret_key(self) -> str:
