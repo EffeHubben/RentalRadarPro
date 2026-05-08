@@ -26,6 +26,7 @@ export type AdminUser = {
 };
 
 export type AdminUsersResponse = {
+  total: number;
   items: AdminUser[];
 };
 
@@ -33,6 +34,7 @@ export type AdminEmailDelivery = {
   id: number;
   user_id: number | null;
   email_type: string;
+  delivery_status: "sent";
   provider_message_id: string | null;
   created_at: string;
 };
@@ -40,6 +42,19 @@ export type AdminEmailDelivery = {
 export type AdminEmailDeliveriesResponse = {
   items: AdminEmailDelivery[];
   table_available: boolean;
+  status_tracking_limited: boolean;
+  available_email_types: string[];
 };
+
+export type AdminUserSegment =
+  | "all"
+  | "free"
+  | "pro"
+  | "admin"
+  | "inactive"
+  | "past_due"
+  | "canceled";
+
+export type AdminEmailDeliveryStatus = "all" | "sent" | "failed";
 
 export type AdminSourcesResponse = SourceInfo[];

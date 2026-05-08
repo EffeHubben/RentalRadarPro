@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
+from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, inspect
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from sqlalchemy import func, inspect, or_
 from sqlalchemy.orm import Session
 
 from app.api.sources import build_sources_payloads
@@ -14,6 +15,8 @@ from app.schemas.admin import (
     AdminEmailDeliveriesListResponse,
     AdminEmailDeliveryResponse,
     AdminOverviewResponse,
+    AdminSetUserAdminRequest,
+    AdminSetUserPlanRequest,
     AdminUserResponse,
     AdminUsersListResponse,
 )
@@ -23,11 +26,34 @@ router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 PRO_SUBSCRIPTION_STATUSES = {"active", "trialing"}
 RECENT_ACTIVITY_WINDOW_DAYS = 7
+USER_SEGMENTS = {"all", "free", "pro", "admin", "inactive", "past_due", "canceled"}
+EMAIL_DELIVERY_STATUSES = {"all", "sent", "failed"}
 
 
 def email_deliveries_table_exists() -> bool:
     inspector = inspect(engine)
     return "email_deliveries" in inspector.get_table_names()
+
+
+def serialize_admin_user(user: User) -> AdminUserResponse:
+    return AdminUserResponse(
+        id=user.id,
+        email=user.email,
+        display_name=user.display_name,
+        plan=user.plan,
+        subscription_status=user.subscription_status,
+        subscription_current_period_end=user.subscription_current_period_end,
+        email_verified=bool(user.email_verified),
+        created_at=user.created_at,
+        is_admin=bool(user.is_admin),
+    )
+
+
+def get_target_user(database: Session, user_id: int) -> User:
+    user = database.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return user
 
 
 @router.get("/overview", response_model=AdminOverviewResponse)
@@ -86,37 +112,95 @@ def get_admin_overview(
 
 @router.get("/users", response_model=AdminUsersListResponse)
 def get_admin_users(
+    search: str | None = Query(default=None, min_length=1, max_length=120),
+    segment: Literal["all", "free", "pro", "admin", "inactive", "past_due", "canceled"] = Query(default="all"),
     limit: int = Query(default=50, ge=1, le=200),
     admin_user: User = Depends(require_admin),
     database: Session = Depends(get_database_session),
 ):
     del admin_user
 
-    users = (
-        database.query(User)
-        .order_by(User.created_at.desc(), User.id.desc())
-        .limit(limit)
-        .all()
-    )
-    items = [
-        AdminUserResponse(
-            id=user.id,
-            email=user.email,
-            display_name=user.display_name,
-            plan=user.plan,
-            subscription_status=user.subscription_status,
-            subscription_current_period_end=user.subscription_current_period_end,
-            email_verified=bool(user.email_verified),
-            created_at=user.created_at,
-            is_admin=bool(user.is_admin),
+    if segment not in USER_SEGMENTS:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user segment")
+
+    query = database.query(User)
+
+    if search:
+        trimmed_search = search.strip()
+        like_query = f"%{trimmed_search}%"
+        query = query.filter(
+            or_(
+                User.email.ilike(like_query),
+                User.display_name.ilike(like_query),
+            )
         )
-        for user in users
-    ]
-    return AdminUsersListResponse(items=items)
+
+    if segment == "free":
+        query = query.filter(User.plan == "free")
+    elif segment == "pro":
+        query = query.filter(User.plan == "pro")
+    elif segment == "admin":
+        query = query.filter(User.is_admin.is_(True))
+    elif segment in {"inactive", "past_due", "canceled"}:
+        query = query.filter(User.subscription_status == segment)
+
+    total = query.count()
+    users = query.order_by(User.created_at.desc(), User.id.desc()).limit(limit).all()
+
+    return AdminUsersListResponse(total=int(total), items=[serialize_admin_user(user) for user in users])
+
+
+@router.patch("/users/{user_id}/admin", response_model=AdminUserResponse)
+def update_admin_user_admin_status(
+    payload: AdminSetUserAdminRequest,
+    user_id: int = Path(..., ge=1),
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    target_user = get_target_user(database, user_id)
+
+    if admin_user.id == target_user.id and not payload.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot remove your own admin access",
+        )
+
+    target_user.is_admin = payload.is_admin
+    database.commit()
+    database.refresh(target_user)
+    return serialize_admin_user(target_user)
+
+
+@router.patch("/users/{user_id}/plan", response_model=AdminUserResponse)
+def update_admin_user_plan(
+    payload: AdminSetUserPlanRequest,
+    user_id: int = Path(..., ge=1),
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    del admin_user
+    target_user = get_target_user(database, user_id)
+
+    if payload.plan == "free":
+        target_user.plan = "free"
+        target_user.subscription_status = "inactive"
+        target_user.subscription_current_period_end = None
+        target_user.subscription_cancel_at_period_end = False
+    else:
+        target_user.plan = "pro"
+        target_user.subscription_status = "active"
+        target_user.subscription_current_period_end = payload.expires_at
+        target_user.subscription_cancel_at_period_end = False
+
+    database.commit()
+    database.refresh(target_user)
+    return serialize_admin_user(target_user)
 
 
 @router.get("/email-deliveries", response_model=AdminEmailDeliveriesListResponse)
 def get_admin_email_deliveries(
+    status_filter: Literal["all", "sent", "failed"] = Query(default="all", alias="status"),
+    email_type: str | None = Query(default=None, min_length=1, max_length=80),
     limit: int = Query(default=50, ge=1, le=200),
     admin_user: User = Depends(require_admin),
     database: Session = Depends(get_database_session),
@@ -124,25 +208,55 @@ def get_admin_email_deliveries(
     del admin_user
 
     if not email_deliveries_table_exists():
-        return AdminEmailDeliveriesListResponse(items=[], table_available=False)
+        return AdminEmailDeliveriesListResponse(
+            items=[],
+            table_available=False,
+            status_tracking_limited=True,
+            available_email_types=[],
+        )
 
-    deliveries = (
-        database.query(EmailDelivery)
-        .order_by(EmailDelivery.created_at.desc(), EmailDelivery.id.desc())
-        .limit(limit)
+    if status_filter not in EMAIL_DELIVERY_STATUSES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid delivery status filter")
+
+    available_email_types = [
+        row[0]
+        for row in database.query(EmailDelivery.email_type)
+        .distinct()
+        .order_by(EmailDelivery.email_type.asc())
         .all()
-    )
+        if row[0]
+    ]
+
+    if status_filter == "failed":
+        return AdminEmailDeliveriesListResponse(
+            items=[],
+            table_available=True,
+            status_tracking_limited=True,
+            available_email_types=available_email_types,
+        )
+
+    query = database.query(EmailDelivery)
+    if email_type:
+        query = query.filter(EmailDelivery.email_type == email_type.strip())
+
+    deliveries = query.order_by(EmailDelivery.created_at.desc(), EmailDelivery.id.desc()).limit(limit).all()
     items = [
         AdminEmailDeliveryResponse(
             id=delivery.id,
             user_id=delivery.user_id,
             email_type=delivery.email_type,
+            delivery_status="sent",
             provider_message_id=delivery.provider_message_id,
             created_at=delivery.created_at,
         )
         for delivery in deliveries
     ]
-    return AdminEmailDeliveriesListResponse(items=items, table_available=True)
+    return AdminEmailDeliveriesListResponse(
+        items=items,
+        table_available=True,
+        status_tracking_limited=True,
+        available_email_types=available_email_types,
+    )
 
 
 @router.get("/sources")

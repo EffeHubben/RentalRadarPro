@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+from typing import Literal
 
 
 class AdminOverviewResponse(BaseModel):
@@ -32,6 +33,7 @@ class AdminUserResponse(BaseModel):
 
 
 class AdminUsersListResponse(BaseModel):
+    total: int
     items: list[AdminUserResponse]
 
 
@@ -39,6 +41,7 @@ class AdminEmailDeliveryResponse(BaseModel):
     id: int
     user_id: int | None
     email_type: str
+    delivery_status: Literal["sent"]
     provider_message_id: str | None
     created_at: datetime
 
@@ -49,3 +52,33 @@ class AdminEmailDeliveryResponse(BaseModel):
 class AdminEmailDeliveriesListResponse(BaseModel):
     items: list[AdminEmailDeliveryResponse]
     table_available: bool
+    status_tracking_limited: bool
+    available_email_types: list[str]
+
+
+class AdminSetUserAdminRequest(BaseModel):
+    is_admin: bool
+
+
+class AdminSetUserPlanRequest(BaseModel):
+    plan: Literal["free", "pro"]
+    expires_at: datetime | None = None
+
+    @field_validator("expires_at")
+    @classmethod
+    def validate_expires_at(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return value
+
+        now = datetime.now(timezone.utc) if value.tzinfo else datetime.utcnow()
+        if value <= now:
+            raise ValueError("Expiry date must be in the future")
+        return value
+
+    @field_validator("expires_at")
+    @classmethod
+    def validate_free_plan_expiry(cls, value: datetime | None, info):
+        plan = info.data.get("plan")
+        if plan == "free" and value is not None:
+            raise ValueError("Free plan cannot have an expiry date")
+        return value
