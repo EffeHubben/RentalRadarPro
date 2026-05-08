@@ -53,7 +53,6 @@ def create_access_token(user: User) -> str:
     expires_at = now + timedelta(minutes=settings.auth_access_token_minutes)
     payload = {
         "sub": str(user.id),
-        "email": user.email,
         "type": "access",
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),

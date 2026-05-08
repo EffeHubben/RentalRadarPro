@@ -540,9 +540,7 @@ def send_email(
 ) -> str | None:
     if not settings.resend_api_key or not settings.email_from:
         logger.warning(
-            "email_skipped_missing_config to=%s subject=%s resend_api_key=%s email_from=%s",
-            to,
-            subject,
+            "email_skipped_missing_config resend_api_key=%s email_from=%s",
             bool(settings.resend_api_key),
             bool(settings.email_from),
         )
@@ -551,7 +549,7 @@ def send_email(
     try:
         import resend
     except ImportError:
-        logger.warning("email_skipped_missing_dependency to=%s subject=%s", to, subject)
+        logger.warning("email_skipped_missing_dependency")
         return None
 
     try:
@@ -566,7 +564,7 @@ def send_email(
             }
         )
     except Exception:
-        logger.exception("email_send_failed to=%s subject=%s", to, subject)
+        logger.exception("email_send_failed")
         return None
 
     if isinstance(response, dict):
