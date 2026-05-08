@@ -82,6 +82,9 @@ def create_source_summary(source_id: str, source_name: str, manual_search_url: s
         "skip_reasons": {},
         "detail_pages_fetched": 0,
         "images_found": 0,
+        "area_found": 0,
+        "rooms_found": 0,
+        "status_found": 0,
         "missing_image": 0,
         "missing_area": 0,
         "missing_rooms": 0,
@@ -95,6 +98,11 @@ def update_source_quality_summary(source_summary: dict, scraped_listing) -> None
     diagnostics = scraped_listing.scrape_diagnostics or {}
     source_summary["detail_pages_fetched"] += int(diagnostics.get("detail_pages_fetched", 0))
     source_summary["images_found"] += 1 if scraped_listing.image_url else 0
+    source_summary["area_found"] += 1 if scraped_listing.area_m2 is not None else 0
+    source_summary["rooms_found"] += 1 if scraped_listing.rooms is not None else 0
+    source_summary["status_found"] += (
+        1 if scraped_listing.availability_status not in {None, "", "unknown"} else 0
+    )
     source_summary["missing_image"] += 0 if scraped_listing.image_url else 1
     source_summary["missing_area"] += 0 if scraped_listing.area_m2 is not None else 1
     source_summary["missing_rooms"] += 0 if scraped_listing.rooms is not None else 1

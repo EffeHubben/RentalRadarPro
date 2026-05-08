@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from urllib.parse import quote, urljoin, urlparse, urlunparse
 
 from bs4 import BeautifulSoup
@@ -90,6 +91,78 @@ def listing_container_for_link(element, max_depth: int = 8):
     return best
 
 
+def extract_funda_room_hints(soup: BeautifulSoup) -> dict[str, int]:
+    script = soup.find("script", id="__NUXT_DATA__")
+    if script is None:
+        return {}
+
+    raw_payload = script.string or script.get_text(strip=True)
+    if not raw_payload:
+        return {}
+
+    try:
+        payload = json.loads(raw_payload)
+    except json.JSONDecodeError:
+        return {}
+
+    if not isinstance(payload, list):
+        return {}
+
+    def resolve(value, *, depth: int = 0):
+        if depth > 8:
+            return value
+
+        if isinstance(value, int) and 0 <= value < len(payload):
+            referenced = payload[value]
+            if isinstance(referenced, (dict, list)):
+                return resolve(referenced, depth=depth + 1)
+            return referenced
+
+        if isinstance(value, list):
+            return [resolve(item, depth=depth + 1) for item in value]
+
+        if isinstance(value, dict):
+            return {key: resolve(item, depth=depth + 1) for key, item in value.items()}
+
+        return value
+
+    room_hints: dict[str, int] = {}
+
+    def walk(node) -> None:
+        if isinstance(node, dict):
+            if "object_detail_page_relative_url" in node:
+                relative_url = resolve(node.get("object_detail_page_relative_url"))
+                if isinstance(relative_url, str):
+                    full_url = canonicalize_url(urljoin("https://www.funda.nl", relative_url))
+                    rooms = resolve(node.get("number_of_rooms"))
+                    bedrooms = resolve(node.get("number_of_bedrooms"))
+
+                    room_count = rooms if isinstance(rooms, int) else None
+                    if room_count is None and rooms is not None:
+                        room_count = extract_rooms_from_text(str(rooms))
+                    if room_count is None and isinstance(bedrooms, int):
+                        room_count = bedrooms
+                    if room_count is None and bedrooms is not None:
+                        room_count = extract_rooms_from_text(f"{bedrooms} slaapkamers")
+
+                    if room_count is not None:
+                        room_hints[full_url] = room_count
+
+            for value in node.values():
+                if isinstance(value, (dict, list)):
+                    walk(value)
+            return
+
+        if isinstance(node, list):
+            for item in node:
+                if isinstance(item, (dict, list)):
+                    walk(item)
+
+    walk(payload)
+
+    return room_hints
+
+
 def fetch_funda_listings(city: str = "Breda") -> list[ScrapedListing]:
     requested_city = normalize_city(city) or "Breda"
     search_url = build_funda_search_url(requested_city)
@@ -99,6 +172,7 @@ def fetch_funda_listings(city: str = "Breda") -> list[ScrapedListing]:
         raise SourceBlockedError("Source returned no usable HTML or appears blocked.")
 
     soup = BeautifulSoup(html, "html.parser")
+    room_hints = extract_funda_room_hints(soup)
     listings = []
     seen_urls = set()
 
@@ -133,7 +207,7 @@ def fetch_funda_listings(city: str = "Breda") -> list[ScrapedListing]:
                 city=parsed_city or requested_city,
                 price=extract_price_from_text(surrounding_text),
                 area_m2=extract_area_from_text(surrounding_text),
-                rooms=extract_rooms_from_text(surrounding_text),
+                rooms=room_hints.get(full_url) or extract_rooms_from_text(surrounding_text),
                 image_url=extract_listing_image(soup, search_url, element=container or link),
                 description=surrounding_text[:1500],
                 availability_status=availability_status,

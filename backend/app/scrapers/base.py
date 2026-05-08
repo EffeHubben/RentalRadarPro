@@ -252,6 +252,15 @@ def parse_price(value: str | int | float | None) -> int | None:
         if amount is not None:
             return amount
 
+    trailing_euro_matches = re.findall(
+        r"\b([0-9][0-9.,\s]{2,})\s*euro(?:\s*/\s*maand|\s+per\s+maand)?\b",
+        normalized.lower(),
+    )
+    for match in trailing_euro_matches:
+        amount = _parse_numeric_amount(match)
+        if amount is not None:
+            return amount
+
     return None
 
 
