@@ -309,7 +309,14 @@ export default function HomePage() {
                 >
                   {heroPrimaryLabel}
                 </button>
-                {hasPreviousSearch ? (
+                {!auth.isAuthenticated && !hasPreviousSearch ? (
+                  <Link
+                    href="/search"
+                    className="inline-flex h-12 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-border-strong)]"
+                  >
+                    {copy.startSearchNoAccount}
+                  </Link>
+                ) : hasPreviousSearch ? (
                   <Link
                     href="/search"
                     className="inline-flex h-12 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-border-strong)]"
@@ -391,7 +398,7 @@ export default function HomePage() {
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {copy.practicalFeatures.map((feature, index) => (
               <Reveal key={feature.title} delay={index * 0.04}>
-                <article className="group flex h-full gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 transition hover:-translate-y-0.5 hover:border-[var(--color-border-strong)] hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)]">
+                <article className="flex h-full gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
                   <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--color-teal)]" />
                   <div>
                     <h3 className="font-semibold text-[var(--color-text)]">{feature.title}</h3>

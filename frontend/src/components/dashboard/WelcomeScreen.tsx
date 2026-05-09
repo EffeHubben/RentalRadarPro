@@ -118,9 +118,9 @@ export function WelcomeScreen({
     [copy.steps],
   );
   const progress = ((step + 1) / steps.length) * 100;
-  const selectedTypeLabels = (values.propertyTypes.length ? values.propertyTypes : selectablePropertyTypes)
-    .map((type) => propertyCopy[type])
-    .join(", ");
+  const selectedTypeLabels = values.propertyTypes.length
+    ? values.propertyTypes.map((type) => propertyCopy[type]).join(", ")
+    : copy.noPreference;
 
   function update<K extends keyof OnboardingValues>(key: K, value: OnboardingValues[K]) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -307,6 +307,11 @@ export function WelcomeScreen({
                             }`}
                           >
                             <div className="text-lg font-semibold">{label}</div>
+                            {!type ? (
+                              <div className="mt-1 text-xs font-normal opacity-60">
+                                {copy.allTypesHint}
+                              </div>
+                            ) : null}
                             {active ? (
                               <motion.div
                                 layoutId={`property-active-${type || "all"}`}
@@ -377,19 +382,20 @@ export function WelcomeScreen({
                       <div className="rs-card-solid rounded-2xl p-4 sm:col-span-2">
                         <div className="rs-subtle text-xs uppercase tracking-[0.14em]">{copy.propertyType}</div>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          {(values.propertyTypes.length ? values.propertyTypes : selectablePropertyTypes).map((type) => (
-                            <span
-                              key={type}
-                              className="rs-chip-active rounded-full px-3 py-1 text-xs font-semibold"
-                            >
-                              {propertyCopy[type]}
-                            </span>
-                          ))}
-                          {!values.propertyTypes.length ? (
+                          {values.propertyTypes.length > 0 ? (
+                            values.propertyTypes.map((type) => (
+                              <span
+                                key={type}
+                                className="rs-chip-active rounded-full px-3 py-1 text-xs font-semibold"
+                              >
+                                {propertyCopy[type]}
+                              </span>
+                            ))
+                          ) : (
                             <span className="rs-chip rounded-full px-3 py-1 text-xs font-semibold">
-                              {copy.allTypes}
+                              {copy.noPreference}
                             </span>
-                          ) : null}
+                          )}
                         </div>
                       </div>
                     </div>

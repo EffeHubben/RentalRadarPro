@@ -167,6 +167,179 @@ function PreviewLockedDialog({
   );
 }
 
+function QuickEditPanel({
+  filters,
+  language,
+  onClose,
+  onUpdate,
+}: {
+  filters: ListingFilters;
+  language: Language;
+  onClose: () => void;
+  onUpdate: (next: Partial<ListingFilters>) => void;
+}) {
+  const copy = i18n[language];
+  const onbCopy = copy.onboarding;
+  const propertyCopy = copy.propertyTypes;
+  const propertyOptions: Array<PropertyType | ""> = ["", "studio", "apartment", "room", "house"];
+
+  function toggleType(type: PropertyType | "") {
+    if (!type) {
+      onUpdate({ propertyTypes: [], offset: 0 });
+      return;
+    }
+    const next = filters.propertyTypes.includes(type)
+      ? filters.propertyTypes.filter((t) => t !== type)
+      : [...filters.propertyTypes, type];
+    onUpdate({ propertyTypes: next, offset: 0 });
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
+      className="dashboard-shell mb-5 rounded-2xl p-5"
+    >
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-[var(--color-text)]">
+          {copy.dashboard.quickEditTitle}
+        </h3>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rs-control h-9 rounded-xl px-4 text-sm font-semibold"
+        >
+          {copy.dashboard.quickEditClose}
+        </button>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="rs-subtle mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em]">
+            {onbCopy.city}
+          </label>
+          <input
+            value={filters.city}
+            onChange={(e) => onUpdate({ city: e.target.value, offset: 0 })}
+            className="rs-input h-10 w-full"
+            placeholder={onbCopy.cityPlaceholder}
+          />
+        </div>
+
+        <div>
+          <label className="rs-subtle mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em]">
+            {onbCopy.budget}
+          </label>
+          <input
+            type="number"
+            min="0"
+            disabled={filters.noMaxPrice}
+            value={filters.maxPrice}
+            onChange={(e) => onUpdate({ maxPrice: e.target.value, offset: 0 })}
+            className="rs-input h-10 w-full disabled:cursor-not-allowed disabled:opacity-40"
+            placeholder={onbCopy.maxRent}
+          />
+          <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[var(--color-muted)]">
+            <input
+              type="checkbox"
+              checked={filters.noMaxPrice}
+              onChange={(e) =>
+                onUpdate({
+                  noMaxPrice: e.target.checked,
+                  maxPrice: e.target.checked ? "" : filters.maxPrice,
+                  offset: 0,
+                })
+              }
+              className="h-4 w-4"
+            />
+            {onbCopy.noMaxPrice}
+          </label>
+        </div>
+
+        <div className="sm:col-span-2">
+          <div className="rs-subtle mb-2 text-xs font-semibold uppercase tracking-[0.12em]">
+            {onbCopy.propertyType}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {propertyOptions.map((type) => {
+              const active = type
+                ? filters.propertyTypes.includes(type)
+                : filters.propertyTypes.length === 0;
+              return (
+                <button
+                  key={type || "all"}
+                  type="button"
+                  onClick={() => toggleType(type)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                    active
+                      ? "rs-chip-active"
+                      : "rs-chip hover:border-[var(--color-border-strong)]"
+                  }`}
+                >
+                  {type ? propertyCopy[type] : onbCopy.allTypes}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="sm:col-span-2">
+          <div className="rs-subtle mb-2 text-xs font-semibold uppercase tracking-[0.12em]">
+            {onbCopy.privacy}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onUpdate({ allowShared: !filters.allowShared, offset: 0 })}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                !filters.allowShared
+                  ? "rs-chip-active"
+                  : "rs-chip hover:border-[var(--color-border-strong)]"
+              }`}
+            >
+              {onbCopy.sharedExcluded}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onUpdate({
+                  privateBathroom: filters.privateBathroom === true ? null : true,
+                  offset: 0,
+                })
+              }
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                filters.privateBathroom === true
+                  ? "rs-chip-active"
+                  : "rs-chip hover:border-[var(--color-border-strong)]"
+              }`}
+            >
+              {onbCopy.privateBathroom}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onUpdate({
+                  privateKitchen: filters.privateKitchen === true ? null : true,
+                  offset: 0,
+                })
+              }
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                filters.privateKitchen === true
+                  ? "rs-chip-active"
+                  : "rs-chip hover:border-[var(--color-border-strong)]"
+              }`}
+            >
+              {onbCopy.privateKitchen}
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function AnimatedValue({ value }: { value: string | number }) {
   return (
     <motion.span
@@ -284,6 +457,7 @@ export default function DashboardPage() {
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [previewLockedOpen, setPreviewLockedOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [quickEditOpen, setQuickEditOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [workflowState, setWorkflowState] = useState<LocalListingWorkflowState>({});
   const [searchProfiles, setSearchProfiles] = useState<SearchProfile[]>([]);
@@ -802,10 +976,10 @@ export default function DashboardPage() {
               ) : null}
               <button
                 type="button"
-                onClick={() => setSearchStarted(false)}
+                onClick={() => setQuickEditOpen((prev) => !prev)}
                 className="rs-control mt-5 rounded-full px-4 py-2 text-sm font-semibold"
               >
-                {copy.dashboard.changeSearch}
+                {copy.dashboard.quickEditTitle}
               </button>
               <button
                 type="button"
@@ -852,6 +1026,17 @@ export default function DashboardPage() {
             </div>
           </div>
         </motion.header>
+
+        <AnimatePresence>
+          {quickEditOpen ? (
+            <QuickEditPanel
+              filters={filters}
+              language={language}
+              onClose={() => setQuickEditOpen(false)}
+              onUpdate={(partial) => setFilters((prev) => ({ ...prev, ...partial }))}
+            />
+          ) : null}
+        </AnimatePresence>
 
         <motion.section
           initial={{ opacity: 0, y: 10 }}
@@ -1115,14 +1300,56 @@ export default function DashboardPage() {
                 className="dashboard-shell mt-6 rounded-2xl p-5"
               >
                 <div className="text-sm font-semibold text-[var(--color-text)]">
-                  {copy.dashboard.lowResultsTitle}
+                  {visibleListings.length === 0
+                    ? copy.dashboard.zeroResultsTitle
+                    : copy.dashboard.lowResultsTitle}
                 </div>
-                <ul className="rs-muted mt-3 space-y-2 text-sm leading-6">
-                  <li>• {copy.dashboard.lowResultsTip1}</li>
-                  <li>• {copy.dashboard.lowResultsTip2}</li>
-                  <li>• {copy.dashboard.lowResultsTip3}</li>
-                  <li>• {copy.dashboard.lowResultsTip4}</li>
-                </ul>
+                <p className="rs-muted mt-2 text-sm leading-6">
+                  {visibleListings.length === 0
+                    ? copy.dashboard.zeroResultsBody
+                    : copy.dashboard.lowResultsBody}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {filters.city.trim() ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFilters((prev) => ({ ...prev, city: "", offset: 0 }))
+                      }
+                      className="rs-control rounded-full px-4 py-2 text-sm font-semibold"
+                    >
+                      {copy.dashboard.lowResultsActionAll}
+                    </button>
+                  ) : null}
+                  {(filters.privateBathroom === true ||
+                    filters.privateKitchen === true ||
+                    filters.privateToilet === true ||
+                    !filters.allowShared) ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          privateBathroom: null,
+                          privateKitchen: null,
+                          privateToilet: null,
+                          allowShared: true,
+                          offset: 0,
+                        }))
+                      }
+                      className="rs-control rounded-full px-4 py-2 text-sm font-semibold"
+                    >
+                      {copy.dashboard.lowResultsActionPrivacy}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setQuickEditOpen(true)}
+                    className="rs-control rounded-full px-4 py-2 text-sm font-semibold"
+                  >
+                    {copy.dashboard.lowResultsActionEdit}
+                  </button>
+                </div>
               </motion.section>
             ) : null}
 
