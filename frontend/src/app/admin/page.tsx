@@ -162,6 +162,8 @@ type PageCopy = {
   healthScanner: string;
   healthConfig: string;
   healthLoading: string;
+  analyticsError: string;
+  healthError: string;
 };
 
 const copy: Record<Language, PageCopy> = {
@@ -295,6 +297,8 @@ const copy: Record<Language, PageCopy> = {
     healthScanner: "Scanner",
     healthConfig: "Configuratie",
     healthLoading: "Status laden…",
+    analyticsError: "Analytics konden niet worden geladen.",
+    healthError: "Systeemstatus kon niet worden geladen.",
   },
   en: {
     title: "Admin dashboard",
@@ -426,6 +430,8 @@ const copy: Record<Language, PageCopy> = {
     healthScanner: "Scanner",
     healthConfig: "Config",
     healthLoading: "Loading health…",
+    analyticsError: "Analytics could not be loaded.",
+    healthError: "Health status could not be loaded.",
   },
 };
 
@@ -719,6 +725,8 @@ export default function AdminPage() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [loadingSources, setLoadingSources] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState(false);
+  const [healthError, setHealthError] = useState(false);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [loadingHealth, setLoadingHealth] = useState(false);
   const [refreshingAll, setRefreshingAll] = useState(false);
@@ -829,6 +837,7 @@ export default function AdminPage() {
     }
 
     setLoadingAnalytics(true);
+    setAnalyticsError(false);
     try {
       const [overview, live] = await Promise.all([
         fetchAdminAnalyticsOverview(auth.accessToken),
@@ -837,7 +846,7 @@ export default function AdminPage() {
       setAnalyticsOverview(overview);
       setLiveSessions(live.active_sessions);
     } catch {
-      // analytics failures are non-critical
+      setAnalyticsError(true);
     } finally {
       setLoadingAnalytics(false);
     }
@@ -849,10 +858,11 @@ export default function AdminPage() {
     }
 
     setLoadingHealth(true);
+    setHealthError(false);
     try {
       setAdminHealth(await fetchAdminHealth(auth.accessToken));
     } catch {
-      // health failures are non-critical
+      setHealthError(true);
     } finally {
       setLoadingHealth(false);
     }
@@ -1144,6 +1154,103 @@ export default function AdminPage() {
                   </Reveal>
                   <Reveal delay={0.21}>
                     <MetricCard title={pageCopy.metrics.subscriptionAttention} value={subscriptionAttentionCount} />
+                  </Reveal>
+                </div>
+
+                {/* Analytics + Health – shown immediately after main stats */}
+                <div className="mt-8 grid gap-6 xl:grid-cols-2">
+                  <Reveal delay={0.04}>
+                    <section className="rs-card rounded-[1.5rem] p-5 sm:p-6">
+                      <h2 className="mb-4 text-lg font-semibold text-[var(--color-text)]">{pageCopy.analyticsTitle}</h2>
+                      {analyticsError ? (
+                        <div className="rounded-xl border border-brass/30 bg-brass/12 px-4 py-3 text-sm text-brass">
+                          {pageCopy.analyticsError}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            {[
+                              { label: pageCopy.analyticsLiveSessions, value: liveSessions ?? 0 },
+                              { label: pageCopy.analyticsSessions, value: analyticsOverview?.today.unique_sessions ?? 0 },
+                              { label: pageCopy.analyticsPageViews, value: analyticsOverview?.today.page_views ?? 0 },
+                              { label: pageCopy.analyticsSearches, value: analyticsOverview?.today.searches ?? 0 },
+                              { label: pageCopy.analyticsListingViews, value: analyticsOverview?.today.listing_views ?? 0 },
+                              { label: pageCopy.analyticsOpenClicks, value: analyticsOverview?.today.open_clicks ?? 0 },
+                            ].map(({ label, value }) => (
+                              <div key={label} className={`rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 transition-opacity ${loadingAnalytics ? "opacity-40" : ""}`}>
+                                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">{label}</div>
+                                <div className="mt-1 text-xl font-semibold text-[var(--color-text)]">{value}</div>
+                              </div>
+                            ))}
+                          </div>
+                          {analyticsOverview && analyticsOverview.trend_7d.length > 0 && (
+                            <div className="mt-4">
+                              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">7-day trend</div>
+                              <div className="flex items-end gap-1" style={{ height: 48 }}>
+                                {(() => {
+                                  const max = Math.max(...analyticsOverview.trend_7d.map((d) => d.count), 1);
+                                  return analyticsOverview.trend_7d.map((day) => (
+                                    <div
+                                      key={day.date}
+                                      title={`${day.date}: ${day.count}`}
+                                      className="flex-1 rounded-sm bg-[var(--color-accent)]"
+                                      style={{ height: `${Math.max(4, Math.round((day.count / max) * 48))}px`, opacity: 0.7 }}
+                                    />
+                                  ));
+                                })()}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </section>
+                  </Reveal>
+
+                  <Reveal delay={0.08}>
+                    <section className="rs-card rounded-[1.5rem] p-5 sm:p-6">
+                      <h2 className="mb-4 text-lg font-semibold text-[var(--color-text)]">{pageCopy.healthTitle}</h2>
+                      {healthError ? (
+                        <div className="rounded-xl border border-brass/30 bg-brass/12 px-4 py-3 text-sm text-brass">
+                          {pageCopy.healthError}
+                        </div>
+                      ) : loadingHealth && !adminHealth ? (
+                        <p className="text-sm text-[var(--color-muted)]">{pageCopy.healthLoading}</p>
+                      ) : adminHealth ? (
+                        <div className="space-y-4 text-sm">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">{pageCopy.healthDatabase}</div>
+                              <div className={`mt-1 text-sm font-semibold ${adminHealth.database.status === "ok" ? "text-mint" : "text-danger"}`}>
+                                {adminHealth.database.status}
+                                {adminHealth.database.latency_ms != null && (
+                                  <span className="ml-1 font-normal text-[var(--color-subtle)]">{adminHealth.database.latency_ms}ms</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">{pageCopy.healthScanner}</div>
+                              <div className="mt-1 text-sm font-semibold text-[var(--color-text)]">
+                                {adminHealth.scanner.status === "never_run" ? "never run" : adminHealth.scanner.status}
+                              </div>
+                              {adminHealth.scanner.age_minutes != null && (
+                                <div className="text-xs text-[var(--color-subtle)]">{adminHealth.scanner.age_minutes}m ago</div>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">{pageCopy.healthConfig}</div>
+                            <div className="space-y-1">
+                              {Object.entries(adminHealth.config).map(([key, val]) => (
+                                <div key={key} className="flex items-center gap-2 text-sm">
+                                  <span className={val ? "text-mint" : "text-[var(--color-subtle)]"}>{val ? "✓" : "·"}</span>
+                                  <span className="text-[var(--color-muted)]">{key.replace(/_/g, " ")}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </section>
                   </Reveal>
                 </div>
 
@@ -1594,96 +1701,6 @@ export default function AdminPage() {
                     </Reveal>
                   </div>
 
-                  <div className="grid gap-6 xl:grid-cols-2">
-                    <Reveal delay={0.04}>
-                      <section className="rs-card rounded-[1.5rem] p-5 sm:p-6">
-                        <h2 className="text-lg font-semibold text-[var(--color-text)]">{pageCopy.analyticsTitle}</h2>
-                        {loadingAnalytics && !analyticsOverview ? (
-                          <p className="mt-4 text-sm text-[var(--color-muted)]">{pageCopy.analyticsLoading}</p>
-                        ) : analyticsOverview ? (
-                          <>
-                            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                              {[
-                                { label: pageCopy.analyticsLiveSessions, value: liveSessions ?? "—" },
-                                { label: pageCopy.analyticsSessions, value: analyticsOverview.today.unique_sessions },
-                                { label: pageCopy.analyticsPageViews, value: analyticsOverview.today.page_views },
-                                { label: pageCopy.analyticsSearches, value: analyticsOverview.today.searches },
-                                { label: pageCopy.analyticsListingViews, value: analyticsOverview.today.listing_views },
-                                { label: pageCopy.analyticsOpenClicks, value: analyticsOverview.today.open_clicks },
-                              ].map(({ label, value }) => (
-                                <div key={label} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-                                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">{label}</div>
-                                  <div className="mt-1 text-xl font-semibold text-[var(--color-text)]">{value}</div>
-                                </div>
-                              ))}
-                            </div>
-                            {analyticsOverview.trend_7d.length > 0 && (
-                              <div className="mt-4">
-                                <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">7-day trend</div>
-                                <div className="flex items-end gap-1" style={{ height: 48 }}>
-                                  {(() => {
-                                    const max = Math.max(...analyticsOverview.trend_7d.map((d) => d.count), 1);
-                                    return analyticsOverview.trend_7d.map((day) => (
-                                      <div
-                                        key={day.date}
-                                        title={`${day.date}: ${day.count}`}
-                                        className="flex-1 rounded-sm bg-[var(--color-accent)]"
-                                        style={{ height: `${Math.max(4, Math.round((day.count / max) * 48))}px`, opacity: 0.7 }}
-                                      />
-                                    ));
-                                  })()}
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <p className="mt-4 text-sm text-[var(--color-muted)]">{pageCopy.analyticsEmpty}</p>
-                        )}
-                      </section>
-                    </Reveal>
-
-                    <Reveal delay={0.08}>
-                      <section className="rs-card rounded-[1.5rem] p-5 sm:p-6">
-                        <h2 className="text-lg font-semibold text-[var(--color-text)]">{pageCopy.healthTitle}</h2>
-                        {loadingHealth && !adminHealth ? (
-                          <p className="mt-4 text-sm text-[var(--color-muted)]">{pageCopy.healthLoading}</p>
-                        ) : adminHealth ? (
-                          <div className="mt-4 space-y-4 text-sm">
-                            <div>
-                              <div className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">{pageCopy.healthDatabase}</div>
-                              <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${adminHealth.database.status === "ok" ? "border-mint/30 bg-mint/12 text-mint" : "border-danger/30 bg-danger/12 text-danger"}`}>
-                                {adminHealth.database.status}
-                                {adminHealth.database.latency_ms != null && (
-                                  <span className="opacity-70">{adminHealth.database.latency_ms}ms</span>
-                                )}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">{pageCopy.healthScanner}</div>
-                              <div className="text-[var(--color-muted)]">
-                                {adminHealth.scanner.status === "never_run"
-                                  ? "Never run"
-                                  : `${adminHealth.scanner.status} · ${adminHealth.scanner.age_minutes != null ? `${adminHealth.scanner.age_minutes}m ago` : "—"}`}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">{pageCopy.healthConfig}</div>
-                              <div className="space-y-1">
-                                {Object.entries(adminHealth.config).map(([key, val]) => (
-                                  <div key={key} className="flex items-center gap-2">
-                                    <span className={val ? "text-mint" : "text-[var(--color-subtle)]"}>
-                                      {val ? "✓" : "·"}
-                                    </span>
-                                    <span className="text-[var(--color-muted)]">{key.replace(/_/g, " ")}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ) : null}
-                      </section>
-                    </Reveal>
-                  </div>
                 </div>
               </>
             ) : (
