@@ -333,6 +333,9 @@ export function WelcomeScreen({
                     <p className="rs-muted max-w-2xl text-sm leading-6">
                       {copy.privacyHelp}
                     </p>
+                    <p className="rs-subtle max-w-2xl rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] px-4 py-3 text-xs leading-5">
+                      {copy.privacyApartmentNote}
+                    </p>
                     <div className="grid gap-3">
                       <ToggleCard
                         label={copy.privateKitchen}

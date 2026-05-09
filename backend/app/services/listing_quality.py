@@ -449,15 +449,26 @@ def infer_property_subtype(combined_text: str, main_type: str) -> str | None:
     return None
 
 
+PRIVATE_ASSUMPTION_TYPES = {"apartment", "house", "studio"}
+
+
 def infer_private_feature(
     combined_text: str,
     private_keywords: list[str],
     shared_keywords: list[str],
+    property_type: str = "unknown",
 ) -> bool | None:
+    # Explicit shared mention overrides everything else
     if includes_any(combined_text, shared_keywords):
         return False
 
+    # Explicit private mention
     if includes_any(combined_text, private_keywords):
+        return True
+
+    # For self-contained property types assume private unless broad shared
+    # housing signals are present (e.g. "huisgenoten", "studentenhuis").
+    if property_type in PRIVATE_ASSUMPTION_TYPES and not includes_any(combined_text, SHARED_SIGNALS):
         return True
 
     return None
@@ -581,16 +592,19 @@ def build_listing_quality(data: ListingQualityInput) -> dict:
         combined_text,
         PRIVATE_KITCHEN_KEYWORDS,
         SHARED_KITCHEN_KEYWORDS,
+        property_type=property_type,
     )
     private_bathroom = infer_private_feature(
         combined_text,
         PRIVATE_BATHROOM_KEYWORDS,
         SHARED_BATHROOM_KEYWORDS,
+        property_type=property_type,
     )
     private_toilet = infer_private_feature(
         combined_text,
         PRIVATE_TOILET_KEYWORDS,
         SHARED_TOILET_KEYWORDS,
+        property_type=property_type,
     )
     shared_laundry = True if includes_any(combined_text, SHARED_LAUNDRY_KEYWORDS) else None
     is_woningruil = includes_any(combined_text, WONINGRUIL_KEYWORDS)

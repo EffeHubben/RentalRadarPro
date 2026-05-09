@@ -332,14 +332,55 @@ def get_listings(
     elif property_type:
         query = query.filter(Listing.property_type == property_type)
 
+    # Types for which private kitchen/bathroom/toilet are assumed when data is absent.
+    _PRIVATE_ASSUMPTION_TYPES = ("apartment", "house", "studio")
+
     if private_kitchen is not None:
-        query = query.filter(Listing.private_kitchen.is_(private_kitchen))
+        if private_kitchen is True:
+            # Include explicit True AND unknown-for-self-contained-type listings that
+            # aren't flagged as shared housing.
+            query = query.filter(
+                or_(
+                    Listing.private_kitchen.is_(True),
+                    and_(
+                        Listing.private_kitchen.is_(None),
+                        Listing.property_type.in_(_PRIVATE_ASSUMPTION_TYPES),
+                        or_(Listing.is_shared.is_(False), Listing.is_shared.is_(None)),
+                    ),
+                )
+            )
+        else:
+            query = query.filter(Listing.private_kitchen.is_(False))
 
     if private_bathroom is not None:
-        query = query.filter(Listing.private_bathroom.is_(private_bathroom))
+        if private_bathroom is True:
+            query = query.filter(
+                or_(
+                    Listing.private_bathroom.is_(True),
+                    and_(
+                        Listing.private_bathroom.is_(None),
+                        Listing.property_type.in_(_PRIVATE_ASSUMPTION_TYPES),
+                        or_(Listing.is_shared.is_(False), Listing.is_shared.is_(None)),
+                    ),
+                )
+            )
+        else:
+            query = query.filter(Listing.private_bathroom.is_(False))
 
     if private_toilet is not None:
-        query = query.filter(Listing.private_toilet.is_(private_toilet))
+        if private_toilet is True:
+            query = query.filter(
+                or_(
+                    Listing.private_toilet.is_(True),
+                    and_(
+                        Listing.private_toilet.is_(None),
+                        Listing.property_type.in_(_PRIVATE_ASSUMPTION_TYPES),
+                        or_(Listing.is_shared.is_(False), Listing.is_shared.is_(None)),
+                    ),
+                )
+            )
+        else:
+            query = query.filter(Listing.private_toilet.is_(False))
 
     if allow_shared is False:
         query = query.filter(or_(Listing.is_shared.is_(False), Listing.is_shared.is_(None)))
