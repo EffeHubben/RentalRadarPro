@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import type { Listing, ListingStatus } from "@/types/listing";
 import { i18n, type Language } from "@/lib/i18n";
 import {
@@ -298,6 +299,16 @@ export function ListingModal({
               >
                 {copy.close}
               </button>
+              <Link
+                href={`/listing/${[
+                  listing.id,
+                  listing.city?.toLowerCase().replace(/\s+/g, "-"),
+                  listing.property_type !== "unknown" ? listing.property_type : null,
+                ].filter(Boolean).join("-")}`}
+                className="rs-control h-11 inline-flex items-center rounded-xl px-4 text-sm font-semibold"
+              >
+                {listingCopy.viewPage}
+              </Link>
               <a
                 href={listing.url}
                 target="_blank"

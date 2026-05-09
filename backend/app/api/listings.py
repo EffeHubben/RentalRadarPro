@@ -18,6 +18,7 @@ from app.schemas.listing import (
     ListingPreviewResponse,
     ListingResponse,
     ListingsPageResponse,
+    ListingSitemapItem,
 )
 
 
@@ -533,6 +534,37 @@ def get_listings(
         requires_pro=free_limit_applied and total > FREE_LISTING_LIMIT,
         preview_fields_only=free_limit_applied,
     )
+
+
+@router.get("/sitemap", response_model=list[ListingSitemapItem])
+def get_listings_sitemap(database: Session = Depends(get_database_session)):
+    """Public endpoint for sitemap generation. Returns minimal listing metadata only."""
+    from sqlalchemy import or_
+    listings = (
+        database.query(Listing)
+        .filter(
+            Listing.is_active.is_(True),
+            or_(
+                Listing.availability_status.is_(None),
+                Listing.availability_status == "unknown",
+                Listing.availability_status == "available",
+                Listing.availability_status == "under_option",
+                Listing.availability_status == "reserved",
+            ),
+        )
+        .order_by(Listing.updated_at.desc())
+        .limit(5000)
+        .all()
+    )
+    return [
+        ListingSitemapItem(
+            id=l.id,
+            city=l.city,
+            property_type=l.property_type,
+            updated_at=l.updated_at or l.created_at or datetime.utcnow(),
+        )
+        for l in listings
+    ]
 
 
 @router.get("/{listing_id}", response_model=ListingResponse | ListingPreviewResponse)

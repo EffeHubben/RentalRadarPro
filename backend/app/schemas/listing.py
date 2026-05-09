@@ -90,6 +90,15 @@ class ListingPreviewResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ListingSitemapItem(BaseModel):
+    id: int
+    city: str | None = None
+    property_type: PropertyType = "unknown"
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ListingsPageResponse(BaseModel):
     items: list[ListingResponse | ListingPreviewResponse]
     total: int

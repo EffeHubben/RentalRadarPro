@@ -1,4 +1,5 @@
 import type {
+  Listing,
   ListingFilters,
   ListingsPage,
   ScraperFreshness,
@@ -155,6 +156,16 @@ export async function fetchScraperFreshness(
 
   return request<ScraperFreshness>(`/scrapers/freshness${query ? `?${query}` : ""}`, {
     cache: "no-store",
+  });
+}
+
+export async function fetchListingById(
+  id: number,
+  accessToken?: string,
+): Promise<Listing> {
+  return request<Listing>(`/listings/${id}`, {
+    cache: "no-store",
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
   });
 }
 
