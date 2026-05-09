@@ -5,13 +5,13 @@
 :root {
   color-scheme: light;
   --color-page: #fbfaf7;
-  /* Cinematic sky */
-  --sky-top: #f8d355;
-  --sky-mid: #eba848;
-  --sky-bottom: #7fc9bc;
-  --cloud-a: rgba(255, 252, 238, 0.97);
-  --cloud-b: rgba(255, 236, 168, 0.92);
-  --cloud-c: rgba(148, 216, 202, 0.88);
+  /* Cinematic sky — subtle tints, not saturated solid colors */
+  --sky-top: rgba(254, 250, 235, 0.50);
+  --sky-mid: rgba(254, 250, 235, 0.22);
+  --sky-bottom: rgba(195, 235, 228, 0.34);
+  --cloud-a: rgba(255, 255, 252, 0.72);
+  --cloud-b: rgba(255, 250, 230, 0.58);
+  --cloud-c: rgba(180, 228, 220, 0.46);
   --color-band: #f4f0e8;
   --color-header: rgba(251, 250, 247, 0.88);
   --color-footer: #f4f0e8;
@@ -48,13 +48,13 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --color-page: #0b1017;
-  /* Cinematic sky */
-  --sky-top: #05091a;
-  --sky-mid: #091d3c;
-  --sky-bottom: #0c3042;
-  --cloud-a: rgba(70, 112, 165, 0.90);
-  --cloud-b: rgba(36, 102, 120, 0.82);
-  --cloud-c: rgba(200, 148, 50, 0.46);
+  /* Cinematic sky — dark mode: muted blue-gray cloud tones */
+  --sky-top: rgba(30, 55, 110, 0.28);
+  --sky-mid: rgba(18, 35, 80, 0.16);
+  --sky-bottom: rgba(12, 60, 90, 0.22);
+  --cloud-a: rgba(90, 140, 200, 0.40);
+  --cloud-b: rgba(55, 115, 160, 0.32);
+  --cloud-c: rgba(65, 165, 195, 0.26);
   --color-band: #101720;
   --color-header: rgba(11, 16, 23, 0.88);
   --color-footer: #090d13;
@@ -395,13 +395,7 @@ img {
 }
 
 .cinematic-sky-bg {
-  background:
-    radial-gradient(ellipse 88% 52% at 50% -4%, var(--cloud-a), transparent 56%),
-    radial-gradient(circle at 14% 18%, var(--cloud-b), transparent 26rem),
-    radial-gradient(circle at 82% 14%, var(--cloud-b), transparent 20rem),
-    radial-gradient(circle at 64% 82%, var(--cloud-c), transparent 28rem),
-    radial-gradient(circle at 20% 84%, var(--cloud-c), transparent 22rem),
-    linear-gradient(175deg, var(--sky-top) 0%, var(--sky-mid) 50%, var(--sky-bottom) 100%);
+  background: var(--color-page);
 }
 
 :root[data-theme="light"] .theme-dashboard [class*="text-white"] {
