@@ -10,8 +10,11 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import {
   type AdminCoverageResponse,
+  fetchAdminAnalyticsLive,
+  fetchAdminAnalyticsOverview,
   fetchAdminCoverage,
   fetchAdminEmailDeliveries,
+  fetchAdminHealth,
   fetchAdminOverview,
   fetchAdminSources,
   fetchAdminUsers,
@@ -21,8 +24,10 @@ import {
 import type { Language } from "@/lib/i18n";
 import { useLanguagePreference } from "@/lib/useLanguagePreference";
 import type {
+  AdminAnalyticsOverview,
   AdminEmailDelivery,
   AdminEmailDeliveryStatus,
+  AdminHealth,
   AdminOverview,
   AdminUser,
   AdminUserSegment,
@@ -143,6 +148,20 @@ type PageCopy = {
   no: string;
   unknown: string;
   today: string;
+  analyticsTitle: string;
+  analyticsSessions: string;
+  analyticsPageViews: string;
+  analyticsSearches: string;
+  analyticsListingViews: string;
+  analyticsOpenClicks: string;
+  analyticsLiveSessions: string;
+  analyticsLoading: string;
+  analyticsEmpty: string;
+  healthTitle: string;
+  healthDatabase: string;
+  healthScanner: string;
+  healthConfig: string;
+  healthLoading: string;
 };
 
 const copy: Record<Language, PageCopy> = {
@@ -262,6 +281,20 @@ const copy: Record<Language, PageCopy> = {
     no: "Nee",
     unknown: "Onbekend",
     today: "vandaag",
+    analyticsTitle: "Analytics",
+    analyticsSessions: "Sessies vandaag",
+    analyticsPageViews: "Paginaweergaven",
+    analyticsSearches: "Zoekopdrachten",
+    analyticsListingViews: "Woningweergaven",
+    analyticsOpenClicks: "Doorkliks",
+    analyticsLiveSessions: "Actieve sessies (5 min)",
+    analyticsLoading: "Analytics laden…",
+    analyticsEmpty: "Nog geen analytics-data beschikbaar.",
+    healthTitle: "Systeemstatus",
+    healthDatabase: "Database",
+    healthScanner: "Scanner",
+    healthConfig: "Configuratie",
+    healthLoading: "Status laden…",
   },
   en: {
     title: "Admin dashboard",
@@ -379,6 +412,20 @@ const copy: Record<Language, PageCopy> = {
     no: "No",
     unknown: "Unknown",
     today: "today",
+    analyticsTitle: "Analytics",
+    analyticsSessions: "Sessions today",
+    analyticsPageViews: "Page views",
+    analyticsSearches: "Searches",
+    analyticsListingViews: "Listing views",
+    analyticsOpenClicks: "Open clicks",
+    analyticsLiveSessions: "Active sessions (5 min)",
+    analyticsLoading: "Loading analytics…",
+    analyticsEmpty: "No analytics data yet.",
+    healthTitle: "System health",
+    healthDatabase: "Database",
+    healthScanner: "Scanner",
+    healthConfig: "Config",
+    healthLoading: "Loading health…",
   },
 };
 
@@ -665,10 +712,15 @@ export default function AdminPage() {
   const [deliveriesAvailable, setDeliveriesAvailable] = useState(true);
   const [deliveryStatusLimited, setDeliveryStatusLimited] = useState(true);
   const [deliveryTypes, setDeliveryTypes] = useState<string[]>([]);
+  const [analyticsOverview, setAnalyticsOverview] = useState<AdminAnalyticsOverview | null>(null);
+  const [adminHealth, setAdminHealth] = useState<AdminHealth | null>(null);
+  const [liveSessions, setLiveSessions] = useState<number | null>(null);
   const [loadingOverview, setLoadingOverview] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [loadingSources, setLoadingSources] = useState(false);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [loadingHealth, setLoadingHealth] = useState(false);
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [mutatingUser, setMutatingUser] = useState(false);
   const [error, setError] = useState("");
@@ -771,6 +823,41 @@ export default function AdminPage() {
     }
   }, [auth.accessToken, isAdmin]);
 
+  const loadAnalytics = useCallback(async () => {
+    if (!auth.accessToken || !isAdmin) {
+      return;
+    }
+
+    setLoadingAnalytics(true);
+    try {
+      const [overview, live] = await Promise.all([
+        fetchAdminAnalyticsOverview(auth.accessToken),
+        fetchAdminAnalyticsLive(auth.accessToken),
+      ]);
+      setAnalyticsOverview(overview);
+      setLiveSessions(live.active_sessions);
+    } catch {
+      // analytics failures are non-critical
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  }, [auth.accessToken, isAdmin]);
+
+  const loadHealth = useCallback(async () => {
+    if (!auth.accessToken || !isAdmin) {
+      return;
+    }
+
+    setLoadingHealth(true);
+    try {
+      setAdminHealth(await fetchAdminHealth(auth.accessToken));
+    } catch {
+      // health failures are non-critical
+    } finally {
+      setLoadingHealth(false);
+    }
+  }, [auth.accessToken, isAdmin]);
+
   const refreshAll = useCallback(async () => {
     if (!auth.accessToken || !isAdmin) {
       return;
@@ -780,13 +867,13 @@ export default function AdminPage() {
     setError("");
 
     try {
-      await Promise.all([loadOverview(), loadUsers(), loadEmailDeliveries(), loadSources()]);
+      await Promise.all([loadOverview(), loadUsers(), loadEmailDeliveries(), loadSources(), loadAnalytics(), loadHealth()]);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : pageCopy.failedToLoad);
     } finally {
       setRefreshingAll(false);
     }
-  }, [auth.accessToken, isAdmin, loadEmailDeliveries, loadOverview, loadSources, loadUsers, pageCopy.failedToLoad]);
+  }, [auth.accessToken, isAdmin, loadAnalytics, loadEmailDeliveries, loadHealth, loadOverview, loadSources, loadUsers, pageCopy.failedToLoad]);
 
   useEffect(() => {
     if (!auth.accessToken || !isAdmin) {
@@ -799,7 +886,9 @@ export default function AdminPage() {
     void loadSources().catch((caughtError) => {
       setError(caughtError instanceof Error ? caughtError.message : pageCopy.failedToLoad);
     });
-  }, [auth.accessToken, isAdmin, loadOverview, loadSources, pageCopy.failedToLoad]);
+    void loadAnalytics().catch(() => {});
+    void loadHealth().catch(() => {});
+  }, [auth.accessToken, isAdmin, loadAnalytics, loadHealth, loadOverview, loadSources, pageCopy.failedToLoad]);
 
   useEffect(() => {
     if (!auth.accessToken || !isAdmin) {
@@ -1501,6 +1590,97 @@ export default function AdminPage() {
                         ) : (
                           <p className="mt-5 text-sm text-[var(--color-muted)]">{pageCopy.sourcesEmpty}</p>
                         )}
+                      </section>
+                    </Reveal>
+                  </div>
+
+                  <div className="grid gap-6 xl:grid-cols-2">
+                    <Reveal delay={0.04}>
+                      <section className="rs-card rounded-[1.5rem] p-5 sm:p-6">
+                        <h2 className="text-lg font-semibold text-[var(--color-text)]">{pageCopy.analyticsTitle}</h2>
+                        {loadingAnalytics && !analyticsOverview ? (
+                          <p className="mt-4 text-sm text-[var(--color-muted)]">{pageCopy.analyticsLoading}</p>
+                        ) : analyticsOverview ? (
+                          <>
+                            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                              {[
+                                { label: pageCopy.analyticsLiveSessions, value: liveSessions ?? "—" },
+                                { label: pageCopy.analyticsSessions, value: analyticsOverview.today.unique_sessions },
+                                { label: pageCopy.analyticsPageViews, value: analyticsOverview.today.page_views },
+                                { label: pageCopy.analyticsSearches, value: analyticsOverview.today.searches },
+                                { label: pageCopy.analyticsListingViews, value: analyticsOverview.today.listing_views },
+                                { label: pageCopy.analyticsOpenClicks, value: analyticsOverview.today.open_clicks },
+                              ].map(({ label, value }) => (
+                                <div key={label} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">{label}</div>
+                                  <div className="mt-1 text-xl font-semibold text-[var(--color-text)]">{value}</div>
+                                </div>
+                              ))}
+                            </div>
+                            {analyticsOverview.trend_7d.length > 0 && (
+                              <div className="mt-4">
+                                <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">7-day trend</div>
+                                <div className="flex items-end gap-1" style={{ height: 48 }}>
+                                  {(() => {
+                                    const max = Math.max(...analyticsOverview.trend_7d.map((d) => d.count), 1);
+                                    return analyticsOverview.trend_7d.map((day) => (
+                                      <div
+                                        key={day.date}
+                                        title={`${day.date}: ${day.count}`}
+                                        className="flex-1 rounded-sm bg-[var(--color-accent)]"
+                                        style={{ height: `${Math.max(4, Math.round((day.count / max) * 48))}px`, opacity: 0.7 }}
+                                      />
+                                    ));
+                                  })()}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <p className="mt-4 text-sm text-[var(--color-muted)]">{pageCopy.analyticsEmpty}</p>
+                        )}
+                      </section>
+                    </Reveal>
+
+                    <Reveal delay={0.08}>
+                      <section className="rs-card rounded-[1.5rem] p-5 sm:p-6">
+                        <h2 className="text-lg font-semibold text-[var(--color-text)]">{pageCopy.healthTitle}</h2>
+                        {loadingHealth && !adminHealth ? (
+                          <p className="mt-4 text-sm text-[var(--color-muted)]">{pageCopy.healthLoading}</p>
+                        ) : adminHealth ? (
+                          <div className="mt-4 space-y-4 text-sm">
+                            <div>
+                              <div className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">{pageCopy.healthDatabase}</div>
+                              <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${adminHealth.database.status === "ok" ? "border-mint/30 bg-mint/12 text-mint" : "border-danger/30 bg-danger/12 text-danger"}`}>
+                                {adminHealth.database.status}
+                                {adminHealth.database.latency_ms != null && (
+                                  <span className="opacity-70">{adminHealth.database.latency_ms}ms</span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">{pageCopy.healthScanner}</div>
+                              <div className="text-[var(--color-muted)]">
+                                {adminHealth.scanner.status === "never_run"
+                                  ? "Never run"
+                                  : `${adminHealth.scanner.status} · ${adminHealth.scanner.age_minutes != null ? `${adminHealth.scanner.age_minutes}m ago` : "—"}`}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">{pageCopy.healthConfig}</div>
+                              <div className="space-y-1">
+                                {Object.entries(adminHealth.config).map(([key, val]) => (
+                                  <div key={key} className="flex items-center gap-2">
+                                    <span className={val ? "text-mint" : "text-[var(--color-subtle)]"}>
+                                      {val ? "✓" : "·"}
+                                    </span>
+                                    <span className="text-[var(--color-muted)]">{key.replace(/_/g, " ")}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
                       </section>
                     </Reveal>
                   </div>

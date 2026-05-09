@@ -261,7 +261,7 @@ def migrate_geocode_cache_table() -> None:
 
 
 def create_database_tables(*, run_backfills: bool = True) -> None:
-    from app.models import email_delivery, geocode, listing, scan_history, user  # noqa: F401
+    from app.models import analytics, email_delivery, geocode, listing, monitoring, scan_history, user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     migrate_listing_table()

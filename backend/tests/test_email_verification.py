@@ -28,6 +28,7 @@ from app.models.user import User
 PASSWORD = "Str0ng!Pass"
 
 create_database_tables()
+settings.email_verification_enabled = True  # force True regardless of import order
 auth_api.hash_password = lambda password: f"test-hash:{password}"
 auth_api.verify_password = lambda password, stored_hash: stored_hash == f"test-hash:{password}"
 

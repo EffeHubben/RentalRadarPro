@@ -206,6 +206,55 @@ Do not commit the real database. It may contain user accounts, refresh tokens, s
 
 Before the first production deploy that enables the scanner worker, back up the SQLite database from the `backend_data` volume. The backend and scanner share the same SQLite file; SQLite busy timeout and WAL mode are configured by the backend database engine to reduce lock contention, but backups remain required before schema or worker changes.
 
+## Database backup and restore
+
+### Automated backup
+
+`backend/scripts/backup_db.py` performs a safe hot backup of the SQLite database using Python's `sqlite3.backup()` API (safe while the server is running). Backups are timestamped and old ones are pruned automatically.
+
+```bash
+# Default: backs up rental_radar_pro.db into backend/backups/, keeps 7 copies
+python backend/scripts/backup_db.py
+
+# Custom paths and retention
+python backend/scripts/backup_db.py --db /data/prod.db --dest /backups --keep 14
+```
+
+Run this before every schema change or Docker image update. A simple daily cron entry on the VPS:
+
+```cron
+0 3 * * * cd /home/deploy/RentalRadarPro && python backend/scripts/backup_db.py >> /var/log/rentscout-backup.log 2>&1
+```
+
+### Manual backup via Docker volume
+
+To copy the live database out of the Docker volume without stopping the container:
+
+```bash
+docker cp rentscout-backend-1:/app/rental_radar_pro.db ./backup_$(date +%Y%m%d_%H%M%S).db
+```
+
+### Restore
+
+Stop the backend container, replace the database file, then restart:
+
+```bash
+docker compose stop backend
+docker cp ./backup_20240101_030000.db rentscout-backend-1:/app/rental_radar_pro.db
+docker compose start backend
+```
+
+### Health check script
+
+`backend/scripts/check_health.py` verifies the backend is responding and (with an admin token) reports database status, scanner last run, and config flags:
+
+```bash
+python backend/scripts/check_health.py --url https://api.rentscout.nl
+python backend/scripts/check_health.py --url https://api.rentscout.nl --token <admin_jwt>
+```
+
+Returns exit code 0 on success, 1 on any failure.
+
 ## Secrets
 
 Keep production secrets in VPS environment files, your deployment platform, or a secrets manager. Do not paste real secrets into:

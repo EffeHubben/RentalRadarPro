@@ -58,3 +58,57 @@ export type AdminUserSegment =
 export type AdminEmailDeliveryStatus = "all" | "sent" | "failed";
 
 export type AdminSourcesResponse = SourceInfo[];
+
+export type AnalyticsTodayStats = {
+  page_views: number;
+  searches: number;
+  listing_views: number;
+  open_clicks: number;
+  unique_sessions: number;
+  total_events: number;
+};
+
+export type AnalyticsTrendDay = {
+  date: string;
+  count: number;
+};
+
+export type AdminAnalyticsOverview = {
+  today: AnalyticsTodayStats;
+  trend_7d: AnalyticsTrendDay[];
+};
+
+export type AdminAnalyticsLive = {
+  active_sessions: number;
+};
+
+export type AdminHealth = {
+  database: { status: string; latency_ms: number | null; error?: string | null };
+  scanner: {
+    status: string;
+    last_run_at: string | null;
+    age_minutes: number | null;
+    city: string | null;
+    source_id: string | null;
+  };
+  scanner_recent_failures: Array<{
+    city: string | null;
+    source_id: string | null;
+    status: string;
+    error: string | null;
+    finished_at: string | null;
+  }>;
+  config: {
+    email_configured: boolean;
+    stripe_configured: boolean;
+    email_verification_enabled: boolean;
+  };
+  uptime_history: Array<{
+    service: string;
+    status: string;
+    checked_at: string;
+    latency_ms: number | null;
+    error: string | null;
+  }>;
+  checked_at: string;
+};

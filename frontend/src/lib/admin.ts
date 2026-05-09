@@ -1,7 +1,10 @@
 import { buildApiUrl, getApiErrorMessage } from "@/lib/apiConfig";
 import type {
+  AdminAnalyticsLive,
+  AdminAnalyticsOverview,
   AdminEmailDeliveryStatus,
   AdminEmailDeliveriesResponse,
+  AdminHealth,
   AdminOverview,
   AdminUserSegment,
   AdminSourcesResponse,
@@ -123,4 +126,16 @@ export type AdminCoverageResponse = {
 
 export function fetchAdminCoverage(accessToken: string) {
   return adminRequest<AdminCoverageResponse>("/admin/coverage", accessToken);
+}
+
+export function fetchAdminAnalyticsOverview(accessToken: string) {
+  return adminRequest<AdminAnalyticsOverview>("/admin/analytics/overview", accessToken);
+}
+
+export function fetchAdminAnalyticsLive(accessToken: string) {
+  return adminRequest<AdminAnalyticsLive>("/admin/analytics/live", accessToken);
+}
+
+export function fetchAdminHealth(accessToken: string) {
+  return adminRequest<AdminHealth>("/admin/health", accessToken);
 }
