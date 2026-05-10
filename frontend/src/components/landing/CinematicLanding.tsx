@@ -18,7 +18,7 @@ const featureDirections: FeatureDirection[] = ["left", "right", "bottom", "left"
 
 function CloudField({ depth = "mid", className = "" }: { depth?: CloudDepth; className?: string }) {
   const blur = depth === "front" ? "blur(34px)" : depth === "mid" ? "blur(48px)" : "blur(72px)";
-  const opacity = depth === "front" ? 0.46 : depth === "mid" ? 0.78 : 0.58;
+  const opacity = depth === "front" ? 0.84 : depth === "mid" ? 0.72 : 0.52;
 
   return (
     <div
@@ -161,14 +161,14 @@ function FloatingFeatureCard({
   direction: FeatureDirection;
   className: string;
 }) {
-  const start = 0.28 + index * 0.07;
-  const full = start + 0.08;
-  const opacity = useTransform(progress, [start, full, 0.86, 0.98], [0, 1, 1, 0.88]);
-  const y = useTransform(progress, [start, full], [direction === "bottom" ? 44 : 20, 0]);
+  const start = 0.34 + index * 0.085;
+  const end = start + 0.18;
+  const opacity = useTransform(progress, [start, start + 0.05, end], [0, 1, 1]);
+  const y = useTransform(progress, [start, end], [direction === "bottom" ? 54 : 24, 0]);
   const x = useTransform(
     progress,
-    [start, full],
-    [direction === "left" ? -42 : direction === "right" ? 42 : 0, 0],
+    [start, end],
+    [direction === "left" ? -62 : direction === "right" ? 62 : 0, 0],
   );
 
   return (
@@ -204,24 +204,24 @@ function StickyStorySection({
     offset: ["start start", "end end"],
   });
 
-  const farY = useTransform(scrollYProgress, [0, 1], ["-4%", "8%"]);
-  const midY = useTransform(scrollYProgress, [0, 1], ["6%", "-12%"]);
-  const frontY = useTransform(scrollYProgress, [0, 1], ["14%", "-18%"]);
-  const frontX = useTransform(scrollYProgress, [0, 1], ["-4%", "6%"]);
-  const previewScale = useTransform(scrollYProgress, [0, 0.22, 0.56, 0.9], [0.9, 1.08, 1.14, 0.98]);
-  const previewY = useTransform(scrollYProgress, [0, 0.22, 0.7, 1], [34, 0, -12, -32]);
-  const previewOpacity = useTransform(scrollYProgress, [0, 0.06, 0.86, 1], [0.82, 1, 1, 0.68]);
-  const introOpacity = useTransform(scrollYProgress, [0, 0.18, 0.34], [1, 0.72, 0.18]);
-  const ctaOpacity = useTransform(scrollYProgress, [0.64, 0.76, 1], [0, 1, 1]);
-  const ctaY = useTransform(scrollYProgress, [0.64, 0.86], [22, 0]);
+  const farY = useTransform(scrollYProgress, [0, 1], ["-6%", "10%"]);
+  const midY = useTransform(scrollYProgress, [0, 1], ["8%", "-16%"]);
+  const frontY = useTransform(scrollYProgress, [0, 1], ["18%", "-24%"]);
+  const frontX = useTransform(scrollYProgress, [0, 1], ["-6%", "8%"]);
+  const previewScale = useTransform(scrollYProgress, [0, 0.18, 0.48, 0.82], [0.82, 1.08, 1.18, 1.02]);
+  const previewY = useTransform(scrollYProgress, [0, 0.24, 0.72, 1], [70, 0, -18, -48]);
+  const previewOpacity = useTransform(scrollYProgress, [0, 0.08, 0.92, 1], [0.55, 1, 1, 0.76]);
+  const introOpacity = useTransform(scrollYProgress, [0, 0.16, 0.3], [1, 0.72, 0]);
+  const ctaOpacity = useTransform(scrollYProgress, [0.74, 0.88, 1], [0, 1, 1]);
+  const ctaY = useTransform(scrollYProgress, [0.74, 1], [28, 0]);
 
   const cards = landing.storyCards;
   const positions = [
-    "left-[4%] top-[18%] hidden lg:block",
-    "right-[4%] top-[19%] hidden lg:block",
-    "left-[6%] bottom-[14%] hidden lg:block",
-    "right-[6%] bottom-[14%] hidden lg:block",
-    "left-1/2 top-[8%] hidden -translate-x-1/2 lg:block",
+    "left-[5%] top-[18%] hidden lg:block",
+    "right-[5%] top-[20%] hidden lg:block",
+    "left-[7%] bottom-[16%] hidden xl:block",
+    "right-[7%] bottom-[15%] hidden xl:block",
+    "left-1/2 top-[9%] hidden -translate-x-1/2 lg:block",
   ];
 
   if (shouldReduceMotion) {
@@ -255,10 +255,8 @@ function StickyStorySection({
   }
 
   return (
-    <section ref={containerRef} className="cinematic-sky-bg relative isolate h-[280vh] overflow-clip">
-      <CloudField depth="far" className="opacity-70" />
-      <CloudField depth="mid" className="opacity-65" />
-      <div className="cinematic-sky-bg sticky top-0 isolate min-h-[100svh] overflow-hidden">
+    <section ref={containerRef} className="relative h-[360vh]">
+      <div className="cinematic-sky-bg sticky top-0 isolate h-screen overflow-hidden">
         <motion.div style={{ y: farY }} className="absolute inset-0">
           <CloudField depth="far" />
         </motion.div>
@@ -305,7 +303,7 @@ function StickyStorySection({
           ))}
         </div>
 
-        <motion.div style={{ x: frontX, y: frontY }} className="absolute inset-0 z-[35]">
+        <motion.div style={{ x: frontX, y: frontY }} className="absolute inset-0 z-50">
           <CloudField depth="front" />
         </motion.div>
 
@@ -318,7 +316,7 @@ function StickyStorySection({
         </motion.div>
       </div>
 
-      <div className="cinematic-sky-bg relative z-10 border-t border-[var(--color-border)] px-4 py-12 sm:px-6 lg:hidden">
+      <div className="cinematic-sky-bg border-t border-[var(--color-border)] px-4 py-12 sm:px-6 lg:hidden">
         <div className="mx-auto grid max-w-md gap-3">
           {cards.map((card) => (
             <article
