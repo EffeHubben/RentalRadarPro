@@ -102,7 +102,17 @@ function getUsableImageUrl(listing: Listing) {
     return "";
   }
 
-  return imageUrl;
+  return upgradeImageUrl(imageUrl);
+}
+
+function upgradeImageUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.delete("rule");
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }
 
 function safeImageHost(imageUrl: string) {

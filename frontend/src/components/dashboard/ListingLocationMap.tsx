@@ -202,7 +202,7 @@ export function ListingLocationMap({
               key={createMapUrl(coordinates)}
               title={copy.location}
               src={createMapUrl(coordinates)}
-              className="relative z-0 h-full w-full border-0 opacity-90 grayscale saturate-[0.72] contrast-[0.98] sepia-[0.08]"
+              className={`relative z-0 h-full w-full border-0 opacity-90 grayscale saturate-[0.72] contrast-[0.98] sepia-[0.08] ${effectivePrecision === "city" ? "pointer-events-none" : ""}`}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
             />
