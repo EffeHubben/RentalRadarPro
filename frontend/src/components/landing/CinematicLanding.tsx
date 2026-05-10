@@ -1,382 +1,836 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { useRef, useState } from "react";
+import {
+  motion,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "framer-motion";
 import { i18n, type Language } from "@/lib/i18n";
 import { FloatingSearchPreview } from "./FloatingSearchPreview";
+import { ScrollFeatureCard } from "./ScrollFeatureCard";
+
+// ─── props ────────────────────────────────────────────────────────────────────
 
 export interface CinematicLandingProps {
   language: Language;
+  isPro: boolean;
+  isAuthenticated: boolean;
+  hasPreviousSearch: boolean;
+  billingEnabled: boolean;
+  billingLoading: boolean;
+  billingError: string;
+  proPlanPrice: string;
+  proPlanPriceSuffix: string;
+  proPlanBadge: string;
+  proPlanButtonLabel: string;
+  proPlanButtonMode: "checkout" | "portal";
+  freePlanButtonLabel: string;
+  heroPrimaryLabel: string;
+  finalCtaLabel: string;
+  finalCtaHref?: string;
   onHeroPrimary: () => void;
+  onFreePlan: () => void;
+  onStartBilling: (mode: "checkout" | "portal") => void;
+  onFinalCta: () => void;
 }
 
-type CloudDepth = "far" | "mid" | "front";
-type FeatureDirection = "left" | "right" | "bottom";
+// ─── cloud layer (reusable inside scenes) ─────────────────────────────────────
 
-const featureDirections: FeatureDirection[] = ["left", "right", "bottom", "left", "right"];
-
-function CloudField({ depth = "mid", className = "" }: { depth?: CloudDepth; className?: string }) {
-  const blur = depth === "front" ? "blur(34px)" : depth === "mid" ? "blur(48px)" : "blur(72px)";
-  const opacity = depth === "front" ? 0.84 : depth === "mid" ? 0.72 : 0.52;
-
+function CloudBlobs({ className }: { className?: string }) {
   return (
-    <div
-      aria-hidden
-      className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
-      style={{ opacity }}
-    >
+    <div aria-hidden className={`pointer-events-none absolute inset-0 overflow-hidden ${className ?? ""}`}>
       <div
         className="sky-cloud-a absolute"
         style={{
-          left: depth === "front" ? "-16%" : "-10%",
-          top: depth === "front" ? "53%" : "-6%",
-          width: depth === "front" ? "74%" : "62%",
-          height: depth === "front" ? "36%" : "58%",
-          background: "radial-gradient(ellipse 58% 46% at 50% 52%, var(--cloud-a), transparent 72%)",
-          filter: blur,
+          top: "-8%",
+          left: "-12%",
+          width: "68%",
+          height: "72%",
+          background: "radial-gradient(ellipse 55% 48% at 45% 50%, var(--cloud-a), transparent)",
+          filter: "blur(72px)",
+          willChange: "transform",
         }}
       />
       <div
         className="sky-cloud-b absolute"
         style={{
-          right: depth === "front" ? "-20%" : "-12%",
-          top: depth === "front" ? "44%" : "8%",
-          width: depth === "front" ? "78%" : "58%",
-          height: depth === "front" ? "42%" : "50%",
-          background: "radial-gradient(ellipse 62% 50% at 46% 52%, var(--cloud-b), transparent 72%)",
-          filter: blur,
-          animationDelay: "-9s",
+          top: "10%",
+          right: "-8%",
+          width: "56%",
+          height: "58%",
+          background: "radial-gradient(ellipse 62% 52% at 56% 44%, var(--cloud-b), transparent)",
+          filter: "blur(52px)",
+          willChange: "transform",
         }}
       />
       <div
         className="sky-cloud-c absolute"
         style={{
-          bottom: depth === "front" ? "-10%" : "4%",
-          left: depth === "front" ? "18%" : "22%",
-          width: depth === "front" ? "76%" : "56%",
-          height: depth === "front" ? "36%" : "34%",
-          background: "radial-gradient(ellipse 68% 54% at 50% 56%, var(--cloud-c), transparent 74%)",
-          filter: blur,
-          animationDelay: "-16s",
+          bottom: "-4%",
+          left: "18%",
+          width: "64%",
+          height: "44%",
+          background: "radial-gradient(ellipse 66% 56% at 50% 62%, var(--cloud-c), transparent)",
+          filter: "blur(44px)",
+          willChange: "transform",
+        }}
+      />
+      <div
+        className="sky-cloud-a absolute"
+        style={{
+          top: "32%",
+          left: "28%",
+          width: "46%",
+          height: "48%",
+          background: "radial-gradient(ellipse 52% 44% at 50% 50%, var(--cloud-b), transparent)",
+          filter: "blur(58px)",
+          opacity: 0.65,
+          animationDelay: "-11s",
+          willChange: "transform",
         }}
       />
     </div>
   );
 }
 
-function HeroSection({
+// ─── scene 1: hero ────────────────────────────────────────────────────────────
+
+function Scene1Hero({
   language,
   shouldReduceMotion,
+  heroPrimaryLabel,
+  hasPreviousSearch,
+  isAuthenticated,
   onHeroPrimary,
 }: {
   language: Language;
   shouldReduceMotion: boolean | null;
+  heroPrimaryLabel: string;
+  hasPreviousSearch: boolean;
+  isAuthenticated: boolean;
   onHeroPrimary: () => void;
 }) {
-  const landing = i18n[language].landing;
+  const copy = i18n[language];
+  const landing = copy.landing;
+  const home = copy.home;
 
   return (
-    <section className="cinematic-sky-bg relative isolate min-h-[100svh] overflow-hidden">
-      <CloudField depth="far" />
-      <CloudField depth="mid" className="opacity-90" />
+    <section className="cinematic-sky-bg relative min-h-screen overflow-hidden">
+      <CloudBlobs />
 
+      {/* Subtle accent glow at top */}
       <div
         aria-hidden
-        className="absolute inset-x-[-10%] top-[-18%] h-[58vh]"
+        className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2"
         style={{
-          background: "radial-gradient(ellipse at 50% 12%, var(--color-hero-glow), transparent 68%)",
-          filter: "blur(10px)",
+          width: "80vw",
+          height: "40vh",
+          background: "radial-gradient(ellipse at 50% 0%, var(--color-hero-glow), transparent 70%)",
+          filter: "blur(12px)",
         }}
       />
 
-      <div className="relative z-10 mx-auto grid min-h-[100svh] max-w-7xl items-center gap-10 px-4 py-24 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:px-8">
-        <motion.div
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 22 }}
+      <div className="relative mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-4 py-24 text-center sm:px-6">
+        {/* Eyebrow */}
+        <motion.p
+          className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 py-1.5 text-xs font-semibold text-[var(--color-accent-strong)] shadow-[var(--shadow-soft)]"
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
-          className="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left"
+          transition={{ duration: 0.45 }}
         >
-          <p className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 py-1.5 text-xs font-semibold text-[var(--color-accent-strong)] shadow-[var(--shadow-soft)] backdrop-blur-xl">
-            RentScout
-          </p>
-          <h1 className="mt-6 text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--color-text)] sm:text-6xl lg:text-7xl xl:text-8xl">
-            {landing.heroTitle}
-          </h1>
-          <p className="mt-6 max-w-xl text-base leading-7 text-[var(--color-muted)] sm:text-lg lg:text-xl">
-            {landing.heroSubtitle}
-          </p>
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
-            <button
-              type="button"
-              onClick={onHeroPrimary}
-              className="rs-primary-button inline-flex h-12 items-center justify-center rounded-xl px-7 text-sm font-semibold"
-            >
-              {landing.heroPrimary}
-            </button>
+          {home.eyebrow}
+        </motion.p>
+
+        {/* Main headline */}
+        <motion.h1
+          className="mt-6 max-w-3xl text-4xl font-bold leading-[1.06] tracking-[-0.02em] text-[var(--color-text)] sm:text-5xl lg:text-6xl xl:text-7xl"
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.65, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {landing.heroTitle}
+        </motion.h1>
+
+        {/* Subtitle */}
+        <motion.p
+          className="mt-6 max-w-2xl text-base leading-7 text-[var(--color-muted)] sm:text-lg"
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {landing.heroSubtitle}
+        </motion.p>
+
+        {/* CTA row */}
+        <motion.div
+          className="mt-9 flex flex-wrap items-center justify-center gap-3"
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <button
+            type="button"
+            onClick={onHeroPrimary}
+            className="rs-primary-button inline-flex h-12 items-center rounded-xl px-6 text-sm font-semibold"
+          >
+            {heroPrimaryLabel}
+          </button>
+
+          {!isAuthenticated && !hasPreviousSearch ? (
             <Link
               href="/search"
-              className="inline-flex h-12 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-7 text-sm font-semibold text-[var(--color-text)] shadow-[var(--shadow-soft)] backdrop-blur-xl transition hover:border-[var(--color-border-strong)] hover:shadow-[var(--shadow-hover)]"
+              className="inline-flex h-12 items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-6 text-sm font-semibold text-[var(--color-text)] shadow-[var(--shadow-soft)] transition hover:border-[var(--color-border-strong)] hover:shadow-[var(--shadow-hover)]"
             >
-              {landing.heroSecondary}
+              {home.startSearchNoAccount}
             </Link>
-          </div>
+          ) : hasPreviousSearch ? (
+            <Link
+              href="/search"
+              className="inline-flex h-12 items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-6 text-sm font-semibold text-[var(--color-text)] shadow-[var(--shadow-soft)] transition hover:border-[var(--color-border-strong)]"
+            >
+              {home.continueSearch}
+            </Link>
+          ) : (
+            <a
+              href="#pricing"
+              className="inline-flex h-12 items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-6 text-sm font-semibold text-[var(--color-text)] shadow-[var(--shadow-soft)] transition hover:border-[var(--color-border-strong)]"
+            >
+              {home.viewPlans}
+            </a>
+          )}
         </motion.div>
 
+        {/* Product highlights */}
         <motion.div
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 34, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.78, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mx-auto w-full max-w-[680px]"
+          className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-2"
+          initial={shouldReduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
         >
-          <div
+          {home.productHighlights.map((h) => (
+            <span key={h} className="text-sm text-[var(--color-muted)]">
+              <span className="mr-1.5 text-[var(--color-teal)]">✓</span>
+              {h}
+            </span>
+          ))}
+        </motion.div>
+
+        {/* Scroll cue */}
+        <motion.div
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          animate={shouldReduceMotion ? undefined : { y: [0, 8, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
             aria-hidden
-            className="absolute left-1/2 top-1/2 h-[86%] w-[92%] -translate-x-1/2 -translate-y-1/2 rounded-[48px]"
-            style={{
-              background: "radial-gradient(ellipse at 50% 52%, var(--color-teal-soft), transparent 68%)",
-              filter: "blur(20px)",
-            }}
-          />
-          <FloatingSearchPreview language={language} size="hero" />
+            className="text-[var(--color-subtle)]"
+          >
+            <path
+              d="M10 4v12M10 16l-5-5M10 16l5-5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </motion.div>
       </div>
-
-      <CloudField depth="front" className="z-20" />
     </section>
   );
 }
 
-function FloatingFeatureCard({
-  title,
-  body,
-  progress,
-  index,
-  direction,
-  className,
-}: {
-  title: string;
-  body: string;
-  progress: ReturnType<typeof useScroll>["scrollYProgress"];
-  index: number;
-  direction: FeatureDirection;
-  className: string;
-}) {
-  const start = 0.34 + index * 0.085;
-  const end = start + 0.18;
-  const opacity = useTransform(progress, [start, start + 0.05, end], [0, 1, 1]);
-  const y = useTransform(progress, [start, end], [direction === "bottom" ? 54 : 24, 0]);
-  const x = useTransform(
-    progress,
-    [start, end],
-    [direction === "left" ? -62 : direction === "right" ? 62 : 0, 0],
-  );
+// ─── step indicator (used in scene 2 sidebar) ─────────────────────────────────
 
+function StepIndicator({
+  label,
+  active,
+}: {
+  label: string;
+  active: boolean;
+}) {
   return (
-    <motion.article
-      style={{ opacity, x, y }}
-      className={`absolute w-[min(18rem,calc(100vw-2rem))] rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 shadow-[var(--shadow-premium)] backdrop-blur-2xl ${className}`}
-    >
-      <div className="flex items-start gap-3">
-        <span
-          aria-hidden
-          className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--color-teal)] shadow-[0_0_18px_var(--color-teal)]"
-        />
-        <div>
-          <h3 className="text-sm font-semibold text-[var(--color-text)]">{title}</h3>
-          <p className="mt-1.5 text-xs leading-5 text-[var(--color-muted)]">{body}</p>
-        </div>
-      </div>
-    </motion.article>
+    <div className="flex items-center gap-3">
+      <div
+        className="h-2 w-2 rounded-full transition-all duration-500"
+        style={{
+          background: active ? "var(--color-teal)" : "var(--color-border-strong)",
+          transform: active ? "scale(1.4)" : "scale(1)",
+        }}
+      />
+      <span
+        className="text-xs font-medium transition-colors duration-300"
+        style={{ color: active ? "var(--color-text)" : "var(--color-subtle)" }}
+      >
+        {label}
+      </span>
+    </div>
   );
 }
 
-function StickyStorySection({
+// ─── results preview (phase 3 of scroll journey) ──────────────────────────────
+
+function ResultsPreview({ language }: { language: Language }) {
+  const isNl = language === "nl";
+  const items = isNl
+    ? [
+        { title: "Appartement bij het station", meta: "Amsterdam · 68 m² · 2 kamers", price: "€1.275", label: "Sterke match" },
+        { title: "Studio in het centrum", meta: "Amsterdam · 34 m² · eigen keuken", price: "€985", label: "Nieuw" },
+        { title: "Rustig 2-kamerappartement", meta: "Amsterdam · 55 m² · beschikbaar", price: "€1.190", label: "Bewaard" },
+      ]
+    : [
+        { title: "Apartment near the station", meta: "Amsterdam · 68 m² · 2 rooms", price: "€1,275", label: "Strong match" },
+        { title: "Studio in the city centre", meta: "Amsterdam · 34 m² · private kitchen", price: "€985", label: "New" },
+        { title: "Quiet 2-room apartment", meta: "Amsterdam · 55 m² · available", price: "€1,190", label: "Saved" },
+      ];
+
+  return (
+    <div className="w-full max-w-sm space-y-2.5">
+      {items.map((item) => (
+        <div
+          key={item.title}
+          className="flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 py-3 shadow-[var(--shadow-soft)]"
+        >
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold text-[var(--color-text)]">{item.title}</div>
+            <div className="text-xs text-[var(--color-muted)]">{item.meta}</div>
+          </div>
+          <div className="ml-4 shrink-0 text-right">
+            <div className="text-sm font-bold text-[var(--color-text)]">{item.price}</div>
+            <span className="rounded-full bg-[var(--color-accent-soft)] px-2.5 py-0.5 text-xs font-semibold text-[var(--color-accent-strong)]">
+              {item.label}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── scene 2: sticky scroll journey ───────────────────────────────────────────
+
+function Scene2Journey({
   language,
   shouldReduceMotion,
 }: {
   language: Language;
   shouldReduceMotion: boolean | null;
 }) {
-  const landing = i18n[language].landing;
+  // All hooks must run unconditionally before any early return
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
   });
 
-  const farY = useTransform(scrollYProgress, [0, 1], ["-6%", "10%"]);
-  const midY = useTransform(scrollYProgress, [0, 1], ["8%", "-16%"]);
-  const frontY = useTransform(scrollYProgress, [0, 1], ["18%", "-24%"]);
-  const frontX = useTransform(scrollYProgress, [0, 1], ["-6%", "8%"]);
-  const previewScale = useTransform(scrollYProgress, [0, 0.18, 0.48, 0.82], [0.82, 1.08, 1.18, 1.02]);
-  const previewY = useTransform(scrollYProgress, [0, 0.24, 0.72, 1], [70, 0, -18, -48]);
-  const previewOpacity = useTransform(scrollYProgress, [0, 0.08, 0.92, 1], [0.55, 1, 1, 0.76]);
-  const introOpacity = useTransform(scrollYProgress, [0, 0.16, 0.3], [1, 0.72, 0]);
-  const ctaOpacity = useTransform(scrollYProgress, [0.74, 0.88, 1], [0, 1, 1]);
-  const ctaY = useTransform(scrollYProgress, [0.74, 1], [28, 0]);
+  const [activeStep, setActiveStep] = useState(0);
 
-  const cards = landing.storyCards;
-  const positions = [
-    "left-[5%] top-[18%] hidden lg:block",
-    "right-[5%] top-[20%] hidden lg:block",
-    "left-[7%] bottom-[16%] hidden xl:block",
-    "right-[7%] bottom-[15%] hidden xl:block",
-    "left-1/2 top-[9%] hidden -translate-x-1/2 lg:block",
-  ];
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    if (shouldReduceMotion) return;
+    if (v < 0.34) setActiveStep(0);
+    else if (v < 0.67) setActiveStep(1);
+    else setActiveStep(2);
+  });
 
+  const landing = i18n[language].landing;
+
+  // Phase 1: visible from the first moment sticky activates, fades out at 30–40%
+  const p1Opacity = useTransform(scrollYProgress, [0, 0.3, 0.4], [1, 1, 0]);
+
+  const p2Opacity = useTransform(scrollYProgress, [0.28, 0.44, 0.64, 0.76], [0, 1, 1, 0]);
+  const p2Scale = useTransform(scrollYProgress, [0.28, 0.44], [0.9, 1]);
+  const p2Y = useTransform(scrollYProgress, [0.28, 0.44], [40, 0]);
+
+  const p3Opacity = useTransform(scrollYProgress, [0.64, 0.8, 0.96, 1.0], [0, 1, 1, 0]);
+  const p3Y = useTransform(scrollYProgress, [0.64, 0.8], [50, 0]);
+
+  const stepLabels = [landing.step1Label, landing.step2Label, landing.step3Label] as string[];
+
+  // Reduced motion: skip the 360vh scroll theatre entirely
   if (shouldReduceMotion) {
     return (
-      <section className="cinematic-sky-bg relative overflow-hidden border-y border-[var(--color-border)] px-4 py-16 sm:px-6 lg:px-8">
-        <CloudField depth="far" />
-        <CloudField depth="mid" />
-        <div className="relative mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_1.1fr] lg:items-center">
-          <div>
-            <p className="text-sm font-semibold text-[var(--color-accent-strong)]">{landing.storyEyebrow}</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-[-0.02em] text-[var(--color-text)] sm:text-5xl">
-              {landing.storyTitle}
-            </h2>
-            <p className="mt-4 text-base leading-7 text-[var(--color-muted)]">{landing.storyBody}</p>
-          </div>
-          <FloatingSearchPreview language={language} size="story" />
-          <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
-            {cards.map((card) => (
-              <article
-                key={card.title}
-                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 shadow-[var(--shadow-soft)]"
-              >
-                <h3 className="text-sm font-semibold text-[var(--color-text)]">{card.title}</h3>
-                <p className="mt-1.5 text-xs leading-5 text-[var(--color-muted)]">{card.body}</p>
-              </article>
-            ))}
-          </div>
+      <section className="cinematic-sky-bg relative border-t border-[var(--color-border)] py-24">
+        <CloudBlobs />
+        <div className="relative mx-auto max-w-lg px-4">
+          <p className="mb-6 text-center text-sm font-semibold text-[var(--color-accent-strong)]">
+            {landing.step2Label}
+          </p>
+          <FloatingSearchPreview language={language} />
         </div>
       </section>
     );
   }
 
   return (
-    <section ref={containerRef} className="relative h-[360vh]">
-      <div className="cinematic-sky-bg sticky top-0 isolate h-screen overflow-hidden">
-        <motion.div style={{ y: farY }} className="absolute inset-0">
-          <CloudField depth="far" />
-        </motion.div>
-        <motion.div style={{ y: midY }} className="absolute inset-0 z-10">
-          <CloudField depth="mid" />
-        </motion.div>
+    <div ref={containerRef} style={{ height: "360vh" }} className="relative">
+      <div className="cinematic-sky-bg sticky top-0 h-screen overflow-hidden">
+        <CloudBlobs />
 
+        {/* Ambient glow */}
         <div
           aria-hidden
-          className="absolute inset-0 z-0"
+          className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse at 50% 48%, var(--color-hero-glow), transparent 54%), linear-gradient(180deg, transparent, rgba(255,255,255,0.08))",
+              "radial-gradient(ellipse 60% 40% at 50% 50%, var(--color-hero-glow), transparent)",
+            opacity: 0.5,
           }}
         />
 
+        {/* Sidebar step indicator (large screens only) */}
+        <div className="absolute left-6 top-1/2 hidden -translate-y-1/2 flex-col gap-5 lg:flex">
+          {stepLabels.map((label, i) => (
+            <StepIndicator key={label} label={label} active={activeStep === i} />
+          ))}
+        </div>
+
+        {/* Main content */}
+        <div className="relative flex h-full items-center justify-center px-4">
+          {/* Phase 1: City name */}
+          <motion.div
+            style={{ opacity: p1Opacity }}
+            className="absolute inset-0 flex flex-col items-center justify-center text-center"
+          >
+            <p className="text-sm font-semibold text-[var(--color-accent-strong)]">
+              {landing.step1Label}
+            </p>
+            <h2 className="mt-3 text-6xl font-bold tracking-[-0.03em] text-[var(--color-text)] sm:text-7xl lg:text-8xl">
+              {landing.phase1Heading}
+            </h2>
+            <p className="mt-4 text-base text-[var(--color-muted)]">{landing.phase1Sub}</p>
+          </motion.div>
+
+          {/* Phase 2: Search form materialises */}
+          <motion.div
+            style={{ opacity: p2Opacity, scale: p2Scale, y: p2Y }}
+            className="absolute inset-0 flex flex-col items-center justify-center px-4"
+          >
+            <p className="mb-5 text-sm font-semibold text-[var(--color-accent-strong)]">
+              {landing.step2Label}
+            </p>
+            <FloatingSearchPreview language={language} />
+          </motion.div>
+
+          {/* Phase 3: Results float up */}
+          <motion.div
+            style={{ opacity: p3Opacity, y: p3Y }}
+            className="absolute inset-0 flex flex-col items-center justify-center px-4"
+          >
+            <p className="mb-3 text-sm font-semibold text-[var(--color-accent-strong)]">
+              {landing.step3Label}
+            </p>
+            <p className="mb-5 text-2xl font-bold text-[var(--color-text)]">
+              {landing.phase3Heading}
+            </p>
+            <ResultsPreview language={language} />
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── scene 3: feature cards ───────────────────────────────────────────────────
+
+function Scene3Features({ language }: { language: Language }) {
+  const copy = i18n[language].home;
+  const directions = ["left", "up", "right", "left", "up", "right"] as const;
+
+  return (
+    <section className="border-t border-[var(--color-border)] bg-[var(--color-band)]">
+      <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <motion.div
-          style={{ opacity: introOpacity }}
-          className="absolute left-1/2 top-[12%] z-20 w-[min(44rem,calc(100vw-2rem))] -translate-x-1/2 text-center"
+          className="max-w-2xl"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="text-sm font-semibold text-[var(--color-accent-strong)]">{landing.storyEyebrow}</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-[-0.03em] text-[var(--color-text)] sm:text-5xl">
-            {landing.storyTitle}
+          <p className="text-sm font-semibold text-[var(--color-accent-strong)]">
+            {copy.featuresTitle}
+          </p>
+          <h2 className="mt-3 text-3xl font-bold leading-tight text-[var(--color-text)]">
+            {copy.practicalToolsTitle}
           </h2>
         </motion.div>
 
-        <div className="absolute inset-0 z-30 flex items-center justify-center px-4">
-          <motion.div style={{ scale: previewScale, y: previewY, opacity: previewOpacity }} className="w-full max-w-[720px]">
-            <FloatingSearchPreview language={language} size="story" />
-          </motion.div>
-        </div>
-
-        <div className="absolute inset-0 z-40">
-          {cards.map((card, index) => (
-            <FloatingFeatureCard
-              key={card.title}
-              title={card.title}
-              body={card.body}
-              progress={scrollYProgress}
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {copy.practicalFeatures.map((feature, index) => (
+            <ScrollFeatureCard
+              key={feature.title}
+              title={feature.title}
+              body={feature.body}
+              direction={directions[index % directions.length]}
               index={index}
-              direction={featureDirections[index]}
-              className={positions[index]}
             />
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
 
-        <motion.div style={{ x: frontX, y: frontY }} className="absolute inset-0 z-50">
-          <CloudField depth="front" />
-        </motion.div>
+// ─── scene 4: journey steps ───────────────────────────────────────────────────
 
+function Scene4Journey({ language }: { language: Language }) {
+  const copy = i18n[language].home;
+
+  return (
+    <section className="border-t border-[var(--color-border)]">
+      <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <motion.div
-          style={{ opacity: ctaOpacity, y: ctaY }}
-          className="absolute bottom-8 left-1/2 z-[60] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-5 text-center shadow-[var(--shadow-premium)] backdrop-blur-2xl sm:bottom-10"
+          className="grid gap-8 lg:grid-cols-[0.45fr_1fr] lg:items-start"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.4 }}
         >
-          <p className="text-sm font-semibold text-[var(--color-text)]">{landing.storyEndTitle}</p>
-          <p className="mt-1.5 text-xs leading-5 text-[var(--color-muted)] sm:text-sm">{landing.storyEndBody}</p>
+          <div>
+            <p className="text-sm font-semibold text-[var(--color-accent-strong)]">
+              {copy.stepsTitle}
+            </p>
+            <h2 className="mt-3 text-3xl font-bold leading-tight text-[var(--color-text)]">
+              {copy.journeyTitle}
+            </h2>
+          </div>
+
+          <div className="relative grid gap-6">
+            <div className="absolute left-[1.18rem] top-8 hidden h-[calc(100%-4rem)] w-px bg-[var(--color-border)] sm:block" />
+            {copy.journeySteps.map((step, index) => (
+              <motion.article
+                key={step.title}
+                initial={{ opacity: 0, x: -24 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                className="relative grid gap-4 sm:grid-cols-[2.5rem_1fr]"
+              >
+                <div className="z-10 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-sm font-semibold text-[var(--color-accent-strong)] shadow-[var(--shadow-soft)]">
+                  {index + 1}
+                </div>
+                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+                  <h3 className="text-lg font-semibold text-[var(--color-text)]">{step.title}</h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-muted)]">
+                    {step.body}
+                  </p>
+                </div>
+              </motion.article>
+            ))}
+          </div>
         </motion.div>
       </div>
+    </section>
+  );
+}
 
-      <div className="cinematic-sky-bg border-t border-[var(--color-border)] px-4 py-12 sm:px-6 lg:hidden">
-        <div className="mx-auto grid max-w-md gap-3">
-          {cards.map((card) => (
-            <article
-              key={card.title}
-              className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 shadow-[var(--shadow-soft)]"
-            >
-              <h3 className="text-sm font-semibold text-[var(--color-text)]">{card.title}</h3>
-              <p className="mt-1.5 text-xs leading-5 text-[var(--color-muted)]">{card.body}</p>
-            </article>
-          ))}
+// ─── scene 5: pricing ─────────────────────────────────────────────────────────
+
+function Scene5Pricing({
+  language,
+  isPro,
+  billingEnabled,
+  billingLoading,
+  billingError,
+  proPlanPrice,
+  proPlanPriceSuffix,
+  proPlanBadge,
+  proPlanButtonLabel,
+  proPlanButtonMode,
+  freePlanButtonLabel,
+  onFreePlan,
+  onStartBilling,
+}: {
+  language: Language;
+  isPro: boolean;
+  billingEnabled: boolean;
+  billingLoading: boolean;
+  billingError: string;
+  proPlanPrice: string;
+  proPlanPriceSuffix: string;
+  proPlanBadge: string;
+  proPlanButtonLabel: string;
+  proPlanButtonMode: "checkout" | "portal";
+  freePlanButtonLabel: string;
+  onFreePlan: () => void;
+  onStartBilling: (mode: "checkout" | "portal") => void;
+}) {
+  const copy = i18n[language].home;
+
+  return (
+    <section id="pricing" className="border-t border-[var(--color-border)] bg-[var(--color-band)]">
+      <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <motion.div
+          className="max-w-2xl"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.5 }}
+        >
+          <p className="text-sm font-semibold text-[var(--color-accent-strong)]">
+            {copy.pricingEyebrow}
+          </p>
+          <h2 className="mt-3 text-3xl font-bold text-[var(--color-text)]">{copy.pricingTitle}</h2>
+          <p className="mt-3 text-base leading-7 text-[var(--color-muted)]">{copy.pricingSubtitle}</p>
+        </motion.div>
+
+        <div className="mt-10 grid max-w-3xl gap-6 sm:grid-cols-2">
+          {/* Free plan */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.5, delay: 0.06 }}
+            className="flex h-full flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[var(--color-text)]">{copy.freePlanName}</h3>
+              <span className="rs-chip rounded-full px-3 py-1 text-xs font-semibold">{copy.freePlanName}</span>
+            </div>
+            <div className="mt-4">
+              <span className="text-3xl font-bold text-[var(--color-text)]">{copy.freePlanPrice}</span>
+              <span className="ml-2 text-sm text-[var(--color-muted)]">{copy.freePlanPriceSuffix}</span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{copy.freePlanDescription}</p>
+            <ul className="mt-5 flex-1 space-y-2">
+              {copy.freePlanFeatures.map((feature) => (
+                <li key={feature} className="flex items-start gap-2 text-sm text-[var(--color-muted)]">
+                  <span className="mt-0.5 shrink-0 text-[var(--color-teal)]">✓</span>
+                  {feature}
+                </li>
+              ))}
+            </ul>
+            {isPro ? (
+              <Link
+                href="/search"
+                className="rs-primary-button mt-6 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold"
+              >
+                {copy.startSearchPro}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={onFreePlan}
+                className="rs-primary-button mt-6 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold"
+              >
+                {freePlanButtonLabel}
+              </button>
+            )}
+          </motion.div>
+
+          {/* Pro plan */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.5, delay: 0.12 }}
+            className="flex h-full flex-col rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] p-6 shadow-[var(--shadow-premium)]"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[var(--color-text)]">{copy.proPlanName}</h3>
+              <span className="rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--color-accent-strong)]">
+                {proPlanBadge}
+              </span>
+            </div>
+            <div className="mt-4 flex items-end gap-2">
+              <span className="text-3xl font-bold text-[var(--color-text)]">{proPlanPrice}</span>
+              {proPlanPriceSuffix ? (
+                <span className="text-sm text-[var(--color-muted)]">{proPlanPriceSuffix}</span>
+              ) : null}
+            </div>
+            <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{copy.proPlanDescription}</p>
+            <ul className="mt-5 flex-1 space-y-2">
+              {copy.proPlanFeatures.map((feature) => (
+                <li key={feature} className="flex items-start gap-2 text-sm text-[var(--color-muted)]">
+                  <span className="mt-0.5 shrink-0 text-[var(--color-accent-strong)]">✓</span>
+                  {feature}
+                </li>
+              ))}
+            </ul>
+            {isPro ? (
+              <Link
+                href="/search"
+                className="mt-6 inline-flex h-11 items-center justify-center rounded-xl border border-brass/40 bg-brass px-5 text-sm font-semibold text-ink shadow-[0_12px_28px_rgba(215,168,79,0.24)] transition hover:bg-brass/90"
+              >
+                {copy.startSearchPro}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onStartBilling(proPlanButtonMode)}
+                disabled={billingLoading || !billingEnabled}
+                className="mt-6 inline-flex h-11 items-center justify-center rounded-xl border border-brass/40 bg-brass px-5 text-sm font-semibold text-ink shadow-[0_12px_28px_rgba(215,168,79,0.24)] transition hover:bg-brass/90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {billingEnabled
+                  ? billingLoading
+                    ? copy.billingLoading
+                    : proPlanButtonLabel
+                  : proPlanButtonLabel}
+              </button>
+            )}
+            {billingError ? (
+              <p className="mt-3 text-xs leading-5 text-danger">{billingError}</p>
+            ) : null}
+          </motion.div>
         </div>
       </div>
     </section>
   );
 }
 
-function FinalCtaSection({ language }: { language: Language }) {
+// ─── scene 6: cloud-parting final CTA ─────────────────────────────────────────
+
+function Scene6CloudCTA({
+  language,
+  finalCtaLabel,
+  finalCtaHref,
+  onFinalCta,
+}: {
+  language: Language;
+  finalCtaLabel: string;
+  finalCtaHref?: string;
+  onFinalCta: () => void;
+}) {
   const landing = i18n[language].landing;
 
   return (
-    <section className="cinematic-sky-bg relative isolate overflow-hidden px-4 py-24 text-center sm:px-6 lg:px-8">
-      <CloudField depth="far" />
-      <div
+    <section className="cinematic-sky-bg relative overflow-hidden py-24">
+      {/* Parting cloud left */}
+      <motion.div
         aria-hidden
-        className="absolute inset-x-[12%] top-8 h-40 rounded-full"
+        initial={{ x: 0 }}
+        whileInView={{ x: "-40%" }}
+        viewport={{ once: true, amount: 0.45 }}
+        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+        className="pointer-events-none absolute bottom-0 left-0 top-0 w-1/2"
         style={{
-          background: "radial-gradient(ellipse at 50% 50%, var(--color-hero-glow), transparent 70%)",
-          filter: "blur(26px)",
+          background:
+            "radial-gradient(ellipse at 95% 50%, var(--cloud-b), transparent 72%)",
+          filter: "blur(52px)",
         }}
       />
-      <div className="relative z-10 mx-auto max-w-2xl">
-        <h2 className="text-4xl font-bold tracking-[-0.035em] text-[var(--color-text)] sm:text-5xl">
+      {/* Parting cloud right */}
+      <motion.div
+        aria-hidden
+        initial={{ x: 0 }}
+        whileInView={{ x: "40%" }}
+        viewport={{ once: true, amount: 0.45 }}
+        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+        className="pointer-events-none absolute bottom-0 right-0 top-0 w-1/2"
+        style={{
+          background:
+            "radial-gradient(ellipse at 5% 50%, var(--cloud-b), transparent 72%)",
+          filter: "blur(52px)",
+        }}
+      />
+
+      {/* Content revealed by parting clouds */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.45 }}
+        transition={{ duration: 0.65, delay: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        className="relative mx-auto max-w-2xl px-4 text-center"
+      >
+        <h2 className="text-3xl font-bold tracking-[-0.01em] text-[var(--color-text)] sm:text-4xl">
           {landing.cloudCtaTitle}
         </h2>
-        <p className="mt-5 text-base leading-7 text-[var(--color-muted)] sm:text-lg">{landing.cloudCtaBody}</p>
+        <p className="mt-4 text-base leading-7 text-[var(--color-muted)]">{landing.cloudCtaBody}</p>
+
         <div className="mt-8">
-          <Link
-            href="/search"
-            className="rs-primary-button inline-flex h-12 items-center justify-center rounded-xl px-8 text-sm font-semibold"
-          >
-            {landing.cloudCtaButton}
-          </Link>
+          {finalCtaHref ? (
+            <Link
+              href={finalCtaHref}
+              className="rs-primary-button inline-flex h-12 items-center rounded-xl px-8 text-sm font-semibold"
+            >
+              {finalCtaLabel}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={onFinalCta}
+              className="rs-primary-button inline-flex h-12 items-center rounded-xl px-8 text-sm font-semibold"
+            >
+              {finalCtaLabel}
+            </button>
+          )}
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
 
-export function CinematicLanding({ language, onHeroPrimary }: CinematicLandingProps) {
+// ─── main export ──────────────────────────────────────────────────────────────
+
+export function CinematicLanding({
+  language,
+  isPro,
+  isAuthenticated,
+  hasPreviousSearch,
+  billingEnabled,
+  billingLoading,
+  billingError,
+  proPlanPrice,
+  proPlanPriceSuffix,
+  proPlanBadge,
+  proPlanButtonLabel,
+  proPlanButtonMode,
+  freePlanButtonLabel,
+  heroPrimaryLabel,
+  finalCtaLabel,
+  finalCtaHref,
+  onHeroPrimary,
+  onFreePlan,
+  onStartBilling,
+  onFinalCta,
+}: CinematicLandingProps) {
   const shouldReduceMotion = useReducedMotion();
 
   return (
     <main>
-      <HeroSection
+      <Scene1Hero
         language={language}
         shouldReduceMotion={shouldReduceMotion}
+        heroPrimaryLabel={heroPrimaryLabel}
+        hasPreviousSearch={hasPreviousSearch}
+        isAuthenticated={isAuthenticated}
         onHeroPrimary={onHeroPrimary}
       />
-      <StickyStorySection language={language} shouldReduceMotion={shouldReduceMotion} />
-      <FinalCtaSection language={language} />
+
+      <Scene2Journey language={language} shouldReduceMotion={shouldReduceMotion} />
+
+      <Scene3Features language={language} />
+
+      <Scene4Journey language={language} />
+
+      <Scene5Pricing
+        language={language}
+        isPro={isPro}
+        billingEnabled={billingEnabled}
+        billingLoading={billingLoading}
+        billingError={billingError}
+        proPlanPrice={proPlanPrice}
+        proPlanPriceSuffix={proPlanPriceSuffix}
+        proPlanBadge={proPlanBadge}
+        proPlanButtonLabel={proPlanButtonLabel}
+        proPlanButtonMode={proPlanButtonMode}
+        freePlanButtonLabel={freePlanButtonLabel}
+        onFreePlan={onFreePlan}
+        onStartBilling={onStartBilling}
+      />
+
+      <Scene6CloudCTA
+        language={language}
+        finalCtaLabel={finalCtaLabel}
+        finalCtaHref={finalCtaHref}
+        onFinalCta={onFinalCta}
+      />
     </main>
   );
 }

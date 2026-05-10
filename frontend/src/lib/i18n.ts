@@ -801,49 +801,17 @@ export const i18n = {
       selectSubtype: "Woningtype",
     },
     landing: {
-      heroTitle: "Vind wat bij je past",
+      heroTitle: "Vind je thuis, zonder de chaos.",
       heroSubtitle:
-        "Zoek huurwoningen uit meerdere bronnen op één plek.",
-      heroPrimary: "Start met zoeken",
-      heroSecondary: "Zoek zonder account",
+        "RentScout brengt huurwoningen uit meerdere bronnen samen in één rustig overzicht.",
       step1Label: "Stad kiezen",
       step2Label: "Filters instellen",
       step3Label: "Resultaten",
       phase1Heading: "Amsterdam",
       phase1Sub: "Of elke andere stad in Nederland",
       phase3Heading: "12 matches gevonden",
-      storyEyebrow: "Rust door overzicht",
-      storyTitle: "Door de wolken naar passende woningen.",
-      storyBody:
-        "RentScout brengt bronnen, filters en nieuwe matches samen in een rustige zoekervaring.",
-      storyEndTitle: "Minder tabbladen. Meer overzicht.",
-      storyEndBody: "Open je zoekoverzicht en ga direct verder met woningen die echt passen.",
-      storyCards: [
-        {
-          title: "Meerdere bronnen",
-          body: "Bekijk huurwoningen uit verschillende kanalen op één plek.",
-        },
-        {
-          title: "Slimme filters",
-          body: "Verfijn op budget, woningtype, privacy en beschikbaarheid.",
-        },
-        {
-          title: "Minder dubbel zoeken",
-          body: "Verminder ruis wanneer dezelfde woning op meerdere plekken verschijnt.",
-        },
-        {
-          title: "Opgeslagen zoekprofielen",
-          body: "Bewaar je voorkeuren en open ze later opnieuw.",
-        },
-        {
-          title: "Nieuwe matches",
-          body: "Zie sneller welke woningen bij je zoekprofiel passen.",
-        },
-      ],
-      cloudCtaTitle: "Klaar om rustiger te zoeken?",
-      cloudCtaBody:
-        "Begin direct met zoeken en vind sneller woningen die bij je passen.",
-      cloudCtaButton: "Bekijk woningen",
+      cloudCtaTitle: "Begin vandaag met zoeken.",
+      cloudCtaBody: "Gratis. Geen account nodig om te starten.",
     },
   },
   en: {
@@ -1640,49 +1608,17 @@ export const i18n = {
       selectSubtype: "House type",
     },
     landing: {
-      heroTitle: "Find what fits you",
+      heroTitle: "Find your home, without the chaos.",
       heroSubtitle:
-        "Search rental listings from multiple sources in one place.",
-      heroPrimary: "Start searching",
-      heroSecondary: "Search without an account",
+        "RentScout brings rental listings from multiple sources into one calm overview.",
       step1Label: "Choose city",
       step2Label: "Set filters",
       step3Label: "Browse results",
       phase1Heading: "Amsterdam",
       phase1Sub: "Or any other city in the Netherlands",
       phase3Heading: "12 matches found",
-      storyEyebrow: "Clarity through calm",
-      storyTitle: "Move through the clouds toward better matches.",
-      storyBody:
-        "RentScout brings sources, filters and new matches together in one calm search experience.",
-      storyEndTitle: "Fewer tabs. More clarity.",
-      storyEndBody: "Open your search overview and continue with homes that actually fit.",
-      storyCards: [
-        {
-          title: "Multiple sources",
-          body: "View rental listings from different channels in one place.",
-        },
-        {
-          title: "Smart filters",
-          body: "Refine by budget, property type, privacy and availability.",
-        },
-        {
-          title: "Less duplicate searching",
-          body: "Reduce noise when the same home appears in multiple places.",
-        },
-        {
-          title: "Saved search profiles",
-          body: "Save your preferences and open them again later.",
-        },
-        {
-          title: "New matches",
-          body: "See faster which homes fit your search profile.",
-        },
-      ],
-      cloudCtaTitle: "Ready to search with less stress?",
-      cloudCtaBody:
-        "Start searching and find homes that fit you faster.",
-      cloudCtaButton: "Browse listings",
+      cloudCtaTitle: "Start searching today.",
+      cloudCtaBody: "Free. No account needed to get started.",
     },
   },
 } as const;

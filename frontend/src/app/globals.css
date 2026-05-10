@@ -6,12 +6,12 @@
   color-scheme: light;
   --color-page: #fbfaf7;
   /* Cinematic sky */
-  --sky-top: #fff9e8;
-  --sky-mid: #f0e4c6;
-  --sky-bottom: #d8eadf;
-  --cloud-a: rgba(255, 255, 249, 0.92);
-  --cloud-b: rgba(255, 248, 222, 0.78);
-  --cloud-c: rgba(221, 239, 230, 0.68);
+  --sky-top: #f8f4e6;
+  --sky-mid: #ede4c8;
+  --sky-bottom: #e6dbc0;
+  --cloud-a: rgba(255, 251, 228, 0.78);
+  --cloud-b: rgba(252, 244, 204, 0.62);
+  --cloud-c: rgba(244, 234, 188, 0.48);
   --color-band: #f4f0e8;
   --color-header: rgba(251, 250, 247, 0.88);
   --color-footer: #f4f0e8;
@@ -49,12 +49,12 @@
   color-scheme: dark;
   --color-page: #0b1017;
   /* Cinematic sky */
-  --sky-top: #050812;
-  --sky-mid: #071a27;
-  --sky-bottom: #112f34;
-  --cloud-a: rgba(43, 82, 105, 0.78);
-  --cloud-b: rgba(35, 96, 103, 0.58);
-  --cloud-c: rgba(215, 168, 79, 0.18);
+  --sky-top: #05080f;
+  --sky-mid: #091020;
+  --sky-bottom: #0c162c;
+  --cloud-a: rgba(18, 46, 88, 0.72);
+  --cloud-b: rgba(26, 58, 102, 0.56);
+  --cloud-c: rgba(14, 36, 72, 0.44);
   --color-band: #101720;
   --color-header: rgba(11, 16, 23, 0.88);
   --color-footer: #090d13;
@@ -388,10 +388,7 @@ img {
 }
 
 .cinematic-sky-bg {
-  background:
-    radial-gradient(circle at 16% 18%, var(--color-hero-glow), transparent 24rem),
-    radial-gradient(circle at 88% 24%, var(--color-teal-soft), transparent 26rem),
-    linear-gradient(172deg, var(--sky-top) 0%, var(--sky-mid) 48%, var(--sky-bottom) 100%);
+  background: linear-gradient(172deg, var(--sky-top) 0%, var(--sky-mid) 52%, var(--sky-bottom) 100%);
 }
 
 :root[data-theme="light"] .theme-dashboard [class*="text-white"] {
