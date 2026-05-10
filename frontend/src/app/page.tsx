@@ -7,6 +7,7 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { ScrollVideoSection } from "@/components/landing/ScrollVideoSection";
 import {
   createBillingSession,
   formatProPlanPrice,
@@ -16,6 +17,7 @@ import {
 import { hasPro } from "@/lib/subscription";
 import { i18n, type Language } from "@/lib/i18n";
 import { useLanguagePreference } from "@/lib/useLanguagePreference";
+
 
 const onboardingStorageKey = "rental-radar-onboarding-complete-v1";
 type AuthMode = "login" | "register";
@@ -267,84 +269,124 @@ export default function HomePage() {
       <SiteHeader language={language} onLanguageChange={changeLanguage} />
 
       <main>
-        <section className="relative overflow-hidden">
-          <div className="animate-warm-drift absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_70%_20%,var(--color-hero-glow),transparent_34rem)]" />
-          <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:px-8 lg:py-24">
-            <div className="max-w-3xl self-center">
-              <motion.p
-                className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent-strong)]"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35 }}
-              >
-                {copy.eyebrow}
-              </motion.p>
-              <motion.h1
-                className="mt-6 max-w-4xl text-4xl font-semibold leading-[1.06] tracking-[-0.01em] text-[var(--color-text)] sm:text-5xl lg:text-6xl"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: 0.05 }}
-              >
-                {copy.title}
-              </motion.h1>
-              <motion.p
-                className="mt-6 max-w-2xl text-base leading-7 text-[var(--color-muted)] sm:text-lg"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: 0.1 }}
-              >
-                {copy.subtitle}
-              </motion.p>
+        {/* Hero — video background, centered content */}
+        <section className="relative flex min-h-[100dvh] items-center overflow-hidden sm:min-h-[620px]">
+          {/* Video backgrounds — cover on mobile (no white bars), contain on desktop */}
+          <video
+            className="hero-video-light absolute inset-0 h-full w-full object-cover sm:object-contain"
+            src="/videos/rotation.house.white.pingpong.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+          <video
+            className="hero-video-dark absolute inset-0 h-full w-full object-cover sm:object-contain"
+            src="/videos/rotation.house.dark.pingpong.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
 
-              <motion.div
-                className="mt-8 flex flex-wrap gap-3"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: 0.15 }}
+          {/* Inward masking */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[18%] sm:w-[32%]" style={{ background: "linear-gradient(to right, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[18%] sm:w-[32%]" style={{ background: "linear-gradient(to left, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[18%] sm:h-[26%]" style={{ background: "linear-gradient(to bottom, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[18%] sm:h-[26%]" style={{ background: "linear-gradient(to top, var(--color-page), transparent)" }} />
+
+          {/* Center veil */}
+          <div className="hero-center-veil pointer-events-none absolute inset-0 z-[2]" />
+
+          {/* Warm glow */}
+          <div className="animate-warm-drift pointer-events-none absolute inset-x-0 top-0 z-[3] h-48 sm:h-64 bg-[radial-gradient(circle_at_50%_20%,var(--color-hero-glow),transparent_34rem)]" />
+
+          {/* Centered content */}
+          <div className="relative z-[10] mx-auto w-full max-w-3xl px-5 py-20 text-center sm:px-6 sm:py-24 lg:px-8 lg:py-32">
+            <motion.p
+              className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent-strong)]"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+            >
+              {copy.eyebrow}
+            </motion.p>
+            <motion.h1
+              className="mt-5 text-[2.1rem] font-semibold leading-[1.08] tracking-[-0.01em] text-[var(--color-text)] sm:text-5xl lg:text-6xl"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.05 }}
+            >
+              {copy.title}
+            </motion.h1>
+            <motion.p
+              className="mx-auto mt-5 max-w-sm text-[0.95rem] leading-7 text-[var(--color-muted)] sm:max-w-xl sm:text-lg"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.1 }}
+            >
+              {copy.subtitle}
+            </motion.p>
+
+            <motion.div
+              className="mt-7 flex flex-wrap justify-center gap-3"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.15 }}
+            >
+              <button
+                type="button"
+                onClick={heroPrimaryAction}
+                className="rs-primary-button inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold sm:h-12"
               >
-                <button
-                  type="button"
-                  onClick={heroPrimaryAction}
-                  className="rs-primary-button inline-flex h-12 items-center rounded-lg px-5 text-sm font-semibold"
+                {heroPrimaryLabel}
+              </button>
+              {!auth.isAuthenticated && !hasPreviousSearch ? (
+                <Link
+                  href="/search"
+                  className="inline-flex h-11 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-border-strong)] sm:h-12"
                 >
-                  {heroPrimaryLabel}
-                </button>
-                {!auth.isAuthenticated && !hasPreviousSearch ? (
-                  <Link
-                    href="/search"
-                    className="inline-flex h-12 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-border-strong)]"
-                  >
-                    {copy.startSearchNoAccount}
-                  </Link>
-                ) : hasPreviousSearch ? (
-                  <Link
-                    href="/search"
-                    className="inline-flex h-12 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-border-strong)]"
-                  >
-                    {copy.continueSearch}
-                  </Link>
-                ) : (
-                  <a
-                    href="#pricing"
-                    className="inline-flex h-12 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-border-strong)]"
-                  >
-                    {copy.viewPlans}
-                  </a>
-                )}
-              </motion.div>
+                  {copy.startSearchNoAccount}
+                </Link>
+              ) : hasPreviousSearch ? (
+                <Link
+                  href="/search"
+                  className="inline-flex h-11 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-border-strong)] sm:h-12"
+                >
+                  {copy.continueSearch}
+                </Link>
+              ) : (
+                <a
+                  href="#pricing"
+                  className="inline-flex h-11 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-border-strong)] sm:h-12"
+                >
+                  {copy.viewPlans}
+                </a>
+              )}
+            </motion.div>
 
-              <div className="mt-10 grid max-w-2xl gap-3 sm:grid-cols-3">
-                {copy.productHighlights.map((highlight) => (
-                  <div key={highlight} className="text-sm leading-6 text-[var(--color-muted)]">
-                    <span className="mr-2 text-[var(--color-accent-strong)]">•</span>
-                    {highlight}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <ProductPreview language={language} />
+            <motion.div
+              className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2 sm:gap-x-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.45, delay: 0.22 }}
+            >
+              {copy.productHighlights.map((highlight) => (
+                <span key={highlight} className="text-sm leading-6 text-[var(--color-muted)]">
+                  <span className="mr-2 text-[var(--color-accent-strong)]">•</span>
+                  {highlight}
+                </span>
+              ))}
+            </motion.div>
           </div>
+        </section>
+
+        {/* Scroll-driven video section */}
+        <ScrollVideoSection language={language} />
+
+        {/* Product preview — shown below hero */}
+        <section className="mx-auto max-w-2xl px-4 pb-16 sm:px-6 lg:px-8">
+          <ProductPreview language={language} />
         </section>
 
         <section className="border-y border-[var(--color-border)] bg-[var(--color-band)]">

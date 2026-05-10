@@ -79,8 +79,22 @@
 }
 
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
   background: var(--color-page);
+}
+
+.hero-video-light { display: block; }
+.hero-video-dark  { display: none;  }
+
+:root[data-theme="dark"] .hero-video-light { display: none;  }
+:root[data-theme="dark"] .hero-video-dark  { display: block; }
+
+.hero-center-veil {
+  background: radial-gradient(ellipse 52% 62% at center, rgba(251, 250, 247, 0.92) 0%, rgba(251, 250, 247, 0.60) 45%, transparent 72%);
+}
+
+:root[data-theme="dark"] .hero-center-veil {
+  background: radial-gradient(ellipse 52% 62% at center, rgba(11, 16, 23, 0.94) 0%, rgba(11, 16, 23, 0.62) 45%, transparent 72%);
 }
 
 body {
@@ -88,7 +102,7 @@ body {
   min-height: 100vh;
   background: var(--color-page);
   color: var(--color-text);
-  overflow-x: hidden;
+  overflow-x: clip;
   transition: background-color 220ms ease, color 220ms ease;
 }
 
