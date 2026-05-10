@@ -800,19 +800,6 @@ export const i18n = {
       allHouses: "Alle woningtypes",
       selectSubtype: "Woningtype",
     },
-    landing: {
-      heroTitle: "Vind je thuis, zonder de chaos.",
-      heroSubtitle:
-        "RentScout brengt huurwoningen uit meerdere bronnen samen in één rustig overzicht.",
-      step1Label: "Stad kiezen",
-      step2Label: "Filters instellen",
-      step3Label: "Resultaten",
-      phase1Heading: "Amsterdam",
-      phase1Sub: "Of elke andere stad in Nederland",
-      phase3Heading: "12 matches gevonden",
-      cloudCtaTitle: "Begin vandaag met zoeken.",
-      cloudCtaBody: "Gratis. Geen account nodig om te starten.",
-    },
   },
   en: {
     site: {
@@ -1606,19 +1593,6 @@ export const i18n = {
     houseSubtypesFilter: {
       allHouses: "All house types",
       selectSubtype: "House type",
-    },
-    landing: {
-      heroTitle: "Find your home, without the chaos.",
-      heroSubtitle:
-        "RentScout brings rental listings from multiple sources into one calm overview.",
-      step1Label: "Choose city",
-      step2Label: "Set filters",
-      step3Label: "Browse results",
-      phase1Heading: "Amsterdam",
-      phase1Sub: "Or any other city in the Netherlands",
-      phase3Heading: "12 matches found",
-      cloudCtaTitle: "Start searching today.",
-      cloudCtaBody: "Free. No account needed to get started.",
     },
   },
 } as const;
