@@ -6,12 +6,12 @@
   color-scheme: light;
   --color-page: #fbfaf7;
   /* Cinematic sky */
-  --sky-top: #f8d355;
-  --sky-mid: #eba848;
-  --sky-bottom: #7fc9bc;
-  --cloud-a: rgba(255, 252, 238, 0.97);
-  --cloud-b: rgba(255, 236, 168, 0.92);
-  --cloud-c: rgba(148, 216, 202, 0.88);
+  --sky-top: #fff9e8;
+  --sky-mid: #f0e4c6;
+  --sky-bottom: #d8eadf;
+  --cloud-a: rgba(255, 255, 249, 0.92);
+  --cloud-b: rgba(255, 248, 222, 0.78);
+  --cloud-c: rgba(221, 239, 230, 0.68);
   --color-band: #f4f0e8;
   --color-header: rgba(251, 250, 247, 0.88);
   --color-footer: #f4f0e8;
@@ -49,12 +49,12 @@
   color-scheme: dark;
   --color-page: #0b1017;
   /* Cinematic sky */
-  --sky-top: #05091a;
-  --sky-mid: #091d3c;
-  --sky-bottom: #0c3042;
-  --cloud-a: rgba(70, 112, 165, 0.90);
-  --cloud-b: rgba(36, 102, 120, 0.82);
-  --cloud-c: rgba(200, 148, 50, 0.46);
+  --sky-top: #050812;
+  --sky-mid: #071a27;
+  --sky-bottom: #112f34;
+  --cloud-a: rgba(43, 82, 105, 0.78);
+  --cloud-b: rgba(35, 96, 103, 0.58);
+  --cloud-c: rgba(215, 168, 79, 0.18);
   --color-band: #101720;
   --color-header: rgba(11, 16, 23, 0.88);
   --color-footer: #090d13;
@@ -93,7 +93,7 @@
 }
 
 html {
-  overflow-x: clip;
+  overflow-x: hidden;
   background: var(--color-page);
 }
 
@@ -102,7 +102,7 @@ body {
   min-height: 100vh;
   background: var(--color-page);
   color: var(--color-text);
-  overflow-x: clip;
+  overflow-x: hidden;
   transition: background-color 220ms ease, color 220ms ease;
 }
 
@@ -381,27 +381,17 @@ img {
   70% { transform: translate(-0.8%, -0.6%) scale(0.975); }
 }
 
-@keyframes sky-cloud-d {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  45% { transform: translate(-1.6%, 1.1%) scale(1.05); }
-  82% { transform: translate(1%, -0.7%) scale(0.99); }
-}
-
 @media (prefers-reduced-motion: no-preference) {
   .sky-cloud-a { animation: sky-cloud-a 36s ease-in-out infinite; }
   .sky-cloud-b { animation: sky-cloud-b 25s ease-in-out infinite; }
   .sky-cloud-c { animation: sky-cloud-c 44s ease-in-out infinite; }
-  .sky-cloud-d { animation: sky-cloud-d 31s ease-in-out infinite; }
 }
 
 .cinematic-sky-bg {
   background:
-    radial-gradient(ellipse 88% 52% at 50% -4%, var(--cloud-a), transparent 56%),
-    radial-gradient(circle at 14% 18%, var(--cloud-b), transparent 26rem),
-    radial-gradient(circle at 82% 14%, var(--cloud-b), transparent 20rem),
-    radial-gradient(circle at 64% 82%, var(--cloud-c), transparent 28rem),
-    radial-gradient(circle at 20% 84%, var(--cloud-c), transparent 22rem),
-    linear-gradient(175deg, var(--sky-top) 0%, var(--sky-mid) 50%, var(--sky-bottom) 100%);
+    radial-gradient(circle at 16% 18%, var(--color-hero-glow), transparent 24rem),
+    radial-gradient(circle at 88% 24%, var(--color-teal-soft), transparent 26rem),
+    linear-gradient(172deg, var(--sky-top) 0%, var(--sky-mid) 48%, var(--sky-bottom) 100%);
 }
 
 :root[data-theme="light"] .theme-dashboard [class*="text-white"] {
