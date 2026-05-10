@@ -97,6 +97,16 @@ html {
   background: radial-gradient(ellipse 52% 62% at center, rgba(11, 16, 23, 0.94) 0%, rgba(11, 16, 23, 0.62) 45%, transparent 72%);
 }
 
+@media (max-width: 639px) {
+  .hero-center-veil {
+    background: radial-gradient(ellipse 88% 52% at center, rgba(251, 250, 247, 0.72) 0%, rgba(251, 250, 247, 0.28) 50%, transparent 74%);
+  }
+
+  :root[data-theme="dark"] .hero-center-veil {
+    background: radial-gradient(ellipse 88% 52% at center, rgba(11, 16, 23, 0.76) 0%, rgba(11, 16, 23, 0.30) 50%, transparent 74%);
+  }
+}
+
 body {
   margin: 0;
   min-height: 100vh;

@@ -290,10 +290,10 @@ export default function HomePage() {
           />
 
           {/* Inward masking */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[18%] sm:w-[32%]" style={{ background: "linear-gradient(to right, var(--color-page), transparent)" }} />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[18%] sm:w-[32%]" style={{ background: "linear-gradient(to left, var(--color-page), transparent)" }} />
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[18%] sm:h-[26%]" style={{ background: "linear-gradient(to bottom, var(--color-page), transparent)" }} />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[18%] sm:h-[26%]" style={{ background: "linear-gradient(to top, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[10%] sm:w-[32%]" style={{ background: "linear-gradient(to right, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[10%] sm:w-[32%]" style={{ background: "linear-gradient(to left, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[5%] sm:h-[26%]" style={{ background: "linear-gradient(to bottom, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[14%] sm:h-[26%]" style={{ background: "linear-gradient(to top, var(--color-page), transparent)" }} />
 
           {/* Center veil */}
           <div className="hero-center-veil pointer-events-none absolute inset-0 z-[2]" />
