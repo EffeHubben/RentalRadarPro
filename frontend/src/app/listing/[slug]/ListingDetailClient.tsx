@@ -9,6 +9,7 @@ import { fetchListingById } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 import type { Language } from "@/lib/i18n";
 import { i18n } from "@/lib/i18n";
+import { resolveListingImageUrl } from "@/lib/listingImage";
 import { useLanguagePreference } from "@/lib/useLanguagePreference";
 import type { Listing } from "@/types/listing";
 
@@ -155,17 +156,21 @@ export function ListingDetailClient({ slug }: { slug: string }) {
         {!loading && listing && (
           <div className="space-y-5">
             {/* Image */}
-            {listing.image_url && (
-              <div className="overflow-hidden rounded-2xl">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={listing.image_url}
-                  alt={listing.title || listing.city || "Rental listing"}
-                  className="h-72 w-full object-cover sm:h-96"
-                  loading="eager"
-                />
-              </div>
-            )}
+            {(() => {
+              const resolvedImage = resolveListingImageUrl(listing.image_url);
+              if (!resolvedImage) return null;
+              return (
+                <div className="overflow-hidden rounded-2xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={resolvedImage}
+                    alt={listing.title || listing.city || "Rental listing"}
+                    className="h-72 w-full object-cover sm:h-96"
+                    loading="eager"
+                  />
+                </div>
+              );
+            })()}
 
             {/* Header */}
             <div className="rs-card rounded-[1.5rem] p-6">

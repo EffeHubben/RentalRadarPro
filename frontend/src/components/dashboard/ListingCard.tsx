@@ -1,10 +1,10 @@
 "use client";
 
 import { forwardRef, useEffect, useState } from "react";
-import { buildApiUrl } from "@/lib/apiConfig";
 import { motion } from "framer-motion";
 import type { Listing, ListingStatus } from "@/types/listing";
 import { i18n, type Language } from "@/lib/i18n";
+import { resolveListingImageUrl } from "@/lib/listingImage";
 import {
   cleanTitle,
   createSummary,
@@ -88,61 +88,8 @@ function ImageBlock({
   );
 }
 
-const blockedImageHosts = new Set(["b.static.nbo.nl"]);
-const proxiedImageHosts = new Set([
-  "images.marktplaats.com",
-  "img.marktplaats.com",
-  "photos.zah.nl",
-  "cdn.ikwilhuren.nu",
-  "media.ikwilhuren.nu",
-  "images.pararius.nl",
-  "img.pararius.nl",
-  "images.funda.nl",
-  "cloud.funda.nl",
-]);
-
 function getUsableImageUrl(listing: Listing) {
-  const imageUrl = listing.image_url?.trim() ?? "";
-  const imageHost = imageUrl ? safeImageHost(imageUrl) : "";
-
-  if (
-    !imageUrl ||
-    blockedImageHosts.has(imageHost) ||
-    imageUrl.toLowerCase().includes("photo_waiting") ||
-    imageUrl.toLowerCase().includes("placeholder")
-  ) {
-    return "";
-  }
-
-  const resolved = upgradeImageUrl(imageUrl);
-
-  if (proxiedImageHosts.has(imageHost)) {
-    try {
-      return buildApiUrl(`/proxy/image?url=${encodeURIComponent(resolved)}`);
-    } catch {
-      return "";
-    }
-  }
-
-  return resolved;
-}
-
-function upgradeImageUrl(url: string): string {
-  try {
-    const parsed = new URL(url);
-    parsed.searchParams.delete("rule");
-    return parsed.toString();
-  } catch {
-    return url;
-  }
-}
-
-function safeImageHost(imageUrl: string) {
-  try {
-    return new URL(imageUrl).hostname.toLowerCase();
-  } catch {
-    return "";
-  }
+  return resolveListingImageUrl(listing.image_url);
 }
 
 function Badge({
