@@ -16,45 +16,104 @@ from app.models.geocode import GeocodeCache, GeocodeFailure
 LOCATION_PRECISIONS = {"exact_address", "street", "postcode", "city", "unknown"}
 GEOCODE_USER_AGENT = "RentScout/0.1 local development contact@example.com"
 GEOCODE_TIMEOUT_SECONDS = 8
-GEOCODE_MIN_INTERVAL_SECONDS = 1.0
-MAX_EXTERNAL_GEOCODES_PER_RUN = 5
+GEOCODE_MIN_INTERVAL_SECONDS = 1.1  # Nominatim hard limit: 1 req/s
+MAX_EXTERNAL_GEOCODES_PER_RUN = 60  # was 5 — PDOK is free gov API, Nominatim allows 1/s
 _last_geocode_at = 0.0
 _external_geocodes_this_run = 0
 _failed_geocode_queries: set[str] = set()
 
 
 CITY_COORDINATES: dict[str, tuple[float, float]] = {
+    # Randstad
     "amsterdam": (52.3676, 4.9041),
     "rotterdam": (51.9244, 4.4777),
     "den haag": (52.0705, 4.3007),
     "the hague": (52.0705, 4.3007),
+    "'s-gravenhage": (52.0705, 4.3007),
     "utrecht": (52.0907, 5.1214),
-    "den bosch": (51.6978, 5.3037),
-    "'s-hertogenbosch": (51.6978, 5.3037),
-    "eindhoven": (51.4416, 5.4697),
-    "groningen": (53.2194, 6.5665),
-    "tilburg": (51.5555, 5.0913),
-    "breda": (51.5719, 4.7683),
-    "nijmegen": (51.8126, 5.8372),
-    "arnhem": (51.9851, 5.8987),
-    "maastricht": (50.8514, 5.691),
     "haarlem": (52.3874, 4.6462),
     "leiden": (52.1601, 4.497),
     "delft": (52.0116, 4.3571),
+    "zoetermeer": (52.0552, 4.4941),
     "almere": (52.3508, 5.2647),
-    "amersfoort": (52.1561, 5.3878),
+    "zaandam": (52.4394, 4.8228),
+    "purmerend": (52.5028, 4.9588),
+    "hilversum": (52.2292, 5.1686),
+    "alkmaar": (52.6324, 4.7534),
+    "hoorn": (52.6435, 5.0608),
+    "amstelveen": (52.3012, 4.8676),
+    "haarlemmermeer": (52.3003, 4.6851),
+    "hoofddorp": (52.3003, 4.6851),
+    "schiedam": (51.9183, 4.3889),
+    "vlaardingen": (51.9126, 4.341),
+    "spijkenisse": (51.8444, 4.3301),
+    "capelle aan den ijssel": (51.9279, 4.5817),
+    "nieuwegein": (52.0297, 5.0876),
+    "zeist": (52.0882, 5.2291),
+    "houten": (52.0252, 5.1716),
+    "lelystad": (52.5185, 5.4714),
+    "westland": (51.9969, 4.2),
+    "naaldwijk": (51.9969, 4.2),
+    # Brabant & Zeeland
+    "eindhoven": (51.4416, 5.4697),
+    "tilburg": (51.5555, 5.0913),
+    "breda": (51.5719, 4.7683),
+    "den bosch": (51.6978, 5.3037),
+    "'s-hertogenbosch": (51.6978, 5.3037),
+    "s-hertogenbosch": (51.6978, 5.3037),
+    "nijmegen": (51.8126, 5.8372),
+    "roosendaal": (51.5308, 4.4653),
+    "bergen op zoom": (51.4946, 4.2872),
+    "etten-leur": (51.5706, 4.6367),
+    "oosterhout": (51.645, 4.8597),
+    "waalwijk": (51.6897, 5.0648),
+    "oss": (51.7667, 5.5167),
+    "helmond": (51.4822, 5.6564),
+    "veghel": (51.6167, 5.55),
+    "prinsenbeek": (51.5987, 4.7126),
+    "terheijden": (51.6439, 4.7534),
+    "made": (51.6763, 4.7933),
+    "middelburg": (51.4988, 3.6136),
+    "vlissingen": (51.4418, 3.5706),
+    "goes": (51.5042, 3.8898),
+    "terneuzen": (51.3356, 3.8281),
+    # Gelderland & Overijssel
+    "arnhem": (51.9851, 5.8987),
     "apeldoorn": (52.2112, 5.9699),
     "enschede": (52.2215, 6.8937),
     "zwolle": (52.5168, 6.083),
+    "deventer": (52.2539, 6.1552),
+    "hengelo": (52.2656, 6.7931),
+    "almelo": (52.3581, 6.6639),
+    "doetinchem": (51.9647, 6.2955),
+    "wageningen": (51.9693, 5.6653),
+    "ede": (52.0426, 5.6653),
+    "veenendaal": (52.0262, 5.5567),
+    "tiel": (51.8886, 5.4298),
+    "winterswijk": (51.9758, 6.7167),
+    # Noord-Holland & Flevoland
+    "amersfoort": (52.1561, 5.3878),
     "dordrecht": (51.8133, 4.6901),
-    "zoetermeer": (52.0552, 4.4941),
-    "prinsenbeek": (51.5987, 4.7126),
-    "terheijden": (51.6439, 4.7534),
-    "etten-leur": (51.5706, 4.6367),
-    "oosterhout": (51.645, 4.8597),
-    "roosendaal": (51.5308, 4.4653),
-    "bergen op zoom": (51.4946, 4.2872),
-    "made": (51.6763, 4.7933),
+    # Groningen, Friesland, Drenthe
+    "groningen": (53.2194, 6.5665),
+    "leeuwarden": (53.2012, 5.7999),
+    "emmen": (52.787, 6.8983),
+    "assen": (52.9931, 6.5623),
+    "hoogeveen": (52.7265, 6.4778),
+    "meppel": (52.6956, 6.1944),
+    "stadskanaal": (52.9853, 6.9508),
+    "drachten": (53.1083, 6.0985),
+    "sneek": (53.0327, 5.6605),
+    # Utrecht provincie
+    "amersfoort": (52.1561, 5.3878),
+    # Limburg
+    "maastricht": (50.8514, 5.691),
+    "sittard": (51.0, 5.8672),
+    "heerlen": (50.8882, 5.9794),
+    "venlo": (51.3703, 6.1724),
+    "roermond": (51.1942, 5.9875),
+    "weert": (51.2495, 5.7087),
+    "geleen": (50.9774, 5.8267),
 }
 
 
@@ -866,65 +925,103 @@ def enrich_location(database: Session, parts: AddressParts) -> dict:
     return location
 
 
-def backfill_listing_coordinates(database: Session, limit: int = 50) -> int:
+def backfill_listing_coordinates(database: Session, limit: int = 200) -> int:
+    """Geocode listings that have no lat/lng yet.
+
+    Runs in two passes:
+      1. Listings with a useful address (exact_address / street / postcode) — highest value.
+      2. Listings with only a city — apply city-centre fallback so every listing
+         gets at least a rough coordinate for the radius filter.
+    """
     from app.models.listing import Listing
 
     reset_geocode_run_budget()
     enriched_count = 0
-    listings = (
+
+    # ── Pass 1: listings with address data that can be precisely geocoded ──────
+    precise_listings = (
         database.query(Listing)
-        .filter(Listing.address_text.is_not(None))
+        .filter(
+            Listing.latitude.is_(None),
+            Listing.address_text.is_not(None),
+        )
+        .order_by(
+            # Prioritise listings with a postal code or street (better geocoding)
+            Listing.postal_code.is_not(None).desc(),
+            Listing.street_name.is_not(None).desc(),
+        )
+        .limit(limit * 3)
         .all()
     )
 
-    for listing in listings:
+    for listing in precise_listings:
         if enriched_count >= limit:
             break
 
-        parts = extract_address_parts(
-            " ".join(
-                [
-                    listing.address_text or "",
-                    listing.title or "",
-                    listing.description or "",
-                    slug_to_text(listing.url),
-                ]
-            ),
-            listing.city,
-        )
+        text = " ".join(filter(None, [
+            listing.address_text,
+            listing.title,
+            listing.description,
+            slug_to_text(listing.url),
+        ]))
+        parts = extract_address_parts(text, listing.city)
 
         if parts.location_precision not in {"exact_address", "street", "postcode"}:
             continue
 
         location = enrich_location(database, parts)
-        precision = location.get("location_precision")
+        lat = location.get("latitude")
+        lng = location.get("longitude")
 
-        if precision not in {"exact_address", "street", "postcode"}:
+        if lat is None or lng is None:
             continue
 
-        next_values = {
-            "address_text": location.get("address_text") or listing.address_text,
-            "street_name": location.get("street_name") or listing.street_name,
-            "house_number": location.get("house_number") or listing.house_number,
-            "postal_code": location.get("postal_code") or listing.postal_code,
-            "latitude": location.get("latitude"),
-            "longitude": location.get("longitude"),
-            "location_precision": precision,
-            "location_confidence": location.get("location_confidence") or listing.location_confidence,
-        }
+        _apply_location(listing, location)
+        enriched_count += 1
 
-        changed = any(getattr(listing, field) != value for field, value in next_values.items())
+    # ── Pass 2: listings with city but no coordinates at all ──────────────────
+    city_listings = (
+        database.query(Listing)
+        .filter(
+            Listing.latitude.is_(None),
+            Listing.city.is_not(None),
+        )
+        .limit(limit * 5)
+        .all()
+    )
 
-        if not changed:
+    for listing in city_listings:
+        if enriched_count >= limit:
+            break
+
+        coords = city_coordinates(listing.city)
+        if not coords:
             continue
 
-        for field, value in next_values.items():
-            setattr(listing, field, value)
-
+        listing.latitude = coords[0]
+        listing.longitude = coords[1]
+        if listing.location_precision in {None, "unknown"}:
+            listing.location_precision = "city"
+            listing.location_confidence = 0.35
         enriched_count += 1
 
     database.commit()
     return enriched_count
+
+
+def _apply_location(listing, location: dict) -> None:
+    listing.latitude = location.get("latitude")
+    listing.longitude = location.get("longitude")
+    listing.location_precision = location.get("location_precision", listing.location_precision)
+    listing.location_confidence = location.get("location_confidence", listing.location_confidence)
+    if location.get("address_text") and not listing.address_text:
+        listing.address_text = location["address_text"]
+    if location.get("street_name") and not listing.street_name:
+        listing.street_name = location["street_name"]
+    if location.get("house_number") and not listing.house_number:
+        listing.house_number = location["house_number"]
+    if location.get("postal_code") and not listing.postal_code:
+        listing.postal_code = location["postal_code"]
 
 
 def main() -> None:

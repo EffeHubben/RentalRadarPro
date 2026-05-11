@@ -26,6 +26,7 @@ from app.services.scanner_schedule import (
     due_sources_for_city,
     source_scan_decisions_for_city,
 )
+from app.services.location import backfill_listing_coordinates
 
 
 logging.basicConfig(
@@ -152,6 +153,19 @@ def run_cycle(
         results.append(result)
         if index < len(selected) - 1 and pause_seconds > 0:
             time.sleep(pause_seconds)
+
+    # Backfill coordinates for listings that missed geocoding (city fallback + precise)
+    if results and not dry_run:
+        try:
+            db = SessionLocal()
+            try:
+                enriched = backfill_listing_coordinates(db, limit=40)
+                if enriched:
+                    logger.info("scanner_geocode_backfill enriched=%d", enriched)
+            finally:
+                db.close()
+        except Exception as backfill_error:
+            logger.warning("scanner_geocode_backfill_failed error=%s", backfill_error)
 
     return results
 
