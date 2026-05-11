@@ -153,6 +153,59 @@ def listing_container_for_link(element, max_depth: int = 8):
     return best
 
 
+def _extract_json_ld_image(raw, search_url: str) -> str | None:
+    """Resolve image from a JSON-LD value that may be str, list, or ImageObject dict."""
+    if isinstance(raw, str):
+        candidate = raw
+    elif isinstance(raw, list) and raw:
+        first = raw[0]
+        if isinstance(first, str):
+            candidate = first
+        elif isinstance(first, dict):
+            candidate = first.get("url") or first.get("contentUrl") or ""
+        else:
+            return None
+    elif isinstance(raw, dict):
+        candidate = raw.get("url") or raw.get("contentUrl") or ""
+    else:
+        return None
+
+    cleaned = clean_image_url(candidate, search_url)
+    return cleaned if is_listing_photo_url(cleaned) else None
+
+
+def _enrich_images_from_html(
+    listings: list[ScrapedListing], soup: BeautifulSoup, search_url: str
+) -> None:
+    """Fill missing image_url by searching the Playwright-rendered page HTML."""
+    needs_image = {listing.url: listing for listing in listings if not listing.image_url}
+    if not needs_image:
+        return
+
+    for a_tag in soup.find_all("a", href=True):
+        if not needs_image:
+            break
+        full_url = canonicalize_url(urljoin(search_url, a_tag.get("href", "")))
+        listing = needs_image.get(full_url)
+        if listing is None:
+            continue
+
+        container = listing_container_for_link(a_tag, max_depth=10)
+        for img in container.find_all("img"):
+            src = (
+                img.get("src")
+                or img.get("data-src")
+                or img.get("data-lazy")
+                or img.get("data-original")
+                or ""
+            )
+            cleaned = clean_image_url(src, search_url)
+            if cleaned and is_listing_photo_url(cleaned):
+                listing.image_url = cleaned
+                needs_image.pop(full_url, None)
+                break
+
+
 def listings_from_json_ld(soup: BeautifulSoup, search_url: str, requested_city: str) -> list[ScrapedListing]:
     listings: list[ScrapedListing] = []
 
@@ -179,9 +232,7 @@ def listings_from_json_ld(soup: BeautifulSoup, search_url: str, requested_city: 
 
             offers = payload.get("offers", {}) if isinstance(payload.get("offers"), dict) else {}
             availability_status, is_available = availability_from_schema(offers.get("availability"))
-            image_url = clean_image_url(payload.get("image"), search_url)
-            if not is_listing_photo_url(image_url):
-                image_url = None
+            image_url = _extract_json_ld_image(payload.get("image"), search_url)
 
             listings.append(
                 ScrapedListing(
@@ -200,6 +251,10 @@ def listings_from_json_ld(soup: BeautifulSoup, search_url: str, requested_city: 
                     is_available=is_available,
                 )
             )
+
+    # Listings without images get a second chance via the rendered HTML
+    if listings:
+        _enrich_images_from_html(listings, soup, search_url)
 
     return listings
 
@@ -249,6 +304,21 @@ def fetch_marktplaats_listings(city: str = "Breda") -> list[ScrapedListing]:
                 continue
 
             seen_urls.add(full_url)
+            # Try container first, then search the img tags directly in the container
+            img_url = extract_listing_image(soup, search_url, element=container or link)
+            if not img_url and container:
+                for img in container.find_all("img"):
+                    src = (
+                        img.get("src")
+                        or img.get("data-src")
+                        or img.get("data-lazy")
+                        or img.get("data-original")
+                        or ""
+                    )
+                    cleaned = clean_image_url(src, search_url)
+                    if cleaned and is_listing_photo_url(cleaned):
+                        img_url = cleaned
+                        break
             listings.append(
                 ScrapedListing(
                     title=title,
@@ -258,7 +328,7 @@ def fetch_marktplaats_listings(city: str = "Breda") -> list[ScrapedListing]:
                     price=extract_price_from_text(surrounding_text),
                     area_m2=extract_area_from_text(surrounding_text),
                     rooms=extract_rooms_from_text(surrounding_text),
-                    image_url=extract_listing_image(soup, search_url, element=container or link),
+                    image_url=img_url,
                     description=surrounding_text[:1500],
                 )
             )
