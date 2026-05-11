@@ -265,11 +265,6 @@ export function FilterPanel({
     onChange({ ...filters, [key]: value, offset: 0 });
   }
 
-  function updatePropertyType(value: ListingFilters["propertyType"]) {
-    const houseSubtypes = value === "house" ? filters.houseSubtypes : [];
-    onChange({ ...filters, propertyType: value, propertyTypes: [], houseSubtypes, offset: 0 });
-  }
-
   function togglePropertyType(type: PropertyType) {
     const propertyTypes = filters.propertyTypes.includes(type)
       ? filters.propertyTypes.filter((selectedType) => selectedType !== type)
@@ -317,43 +312,43 @@ export function FilterPanel({
       initial="hidden"
       animate="visible"
       variants={{ visible: { transition: { staggerChildren: 0.045 } } }}
-      className="space-y-4"
+      className="space-y-0"
     >
-      <div className="border-b border-[var(--color-border)] pb-4">
-        <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-[var(--color-text)]">{copy.title}</h2>
-          <p className="rs-muted mt-1 text-xs leading-5">
-            {copy.intro}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onReset}
-          className="rs-control shrink-0 rounded-lg px-3 py-2 text-xs font-semibold"
-        >
-          {copy.reset}
-        </button>
+      <div className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] pb-3 mb-1">
+        <h2 className="text-sm font-semibold text-[var(--color-text)]">{copy.title}</h2>
+        <div className="flex items-center gap-2">
+          {loading ? (
+            <span className="rs-subtle text-xs">{i18n[language].dashboard.refreshing}</span>
+          ) : null}
+          <button
+            type="button"
+            onClick={onReset}
+            className="rs-control shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold"
+          >
+            {copy.reset}
+          </button>
         </div>
       </div>
 
-      <SearchProfilesPanel
-        profiles={profiles}
-        selectedProfileId={selectedProfileId}
-        profileName={profileName}
-        hasUnsavedChanges={hasUnsavedProfileChanges}
-        language={language}
-        isProUser={isProUser}
-        isAuthenticated={isAuthenticated}
-        onProfileNameChange={onProfileNameChange}
-        onSelectProfile={onSelectProfile}
-        onSaveNew={onSaveProfile}
-        onApply={onApplyProfile}
-        onUpdate={onUpdateProfile}
-        onDelete={onDeleteProfile}
-      />
+      <Section title={i18n[language].searchProfiles.title}>
+        <SearchProfilesPanel
+          profiles={profiles}
+          selectedProfileId={selectedProfileId}
+          profileName={profileName}
+          hasUnsavedChanges={hasUnsavedProfileChanges}
+          language={language}
+          isProUser={isProUser}
+          isAuthenticated={isAuthenticated}
+          onProfileNameChange={onProfileNameChange}
+          onSelectProfile={onSelectProfile}
+          onSaveNew={onSaveProfile}
+          onApply={onApplyProfile}
+          onUpdate={onUpdateProfile}
+          onDelete={onDeleteProfile}
+        />
+      </Section>
 
-      <Section title={copy.location} description={copy.locationDescription} defaultOpen>
+      <Section title={copy.location} defaultOpen>
         <label className="block">
           <FieldLabel>{copy.search}</FieldLabel>
           <input
@@ -382,7 +377,7 @@ export function FilterPanel({
         </div>
       </Section>
 
-      <Section title={copy.price} description={copy.priceDescription} defaultOpen>
+      <Section title={copy.price} defaultOpen>
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <FieldLabel>{copy.minRent}</FieldLabel>
@@ -420,39 +415,31 @@ export function FilterPanel({
         />
       </Section>
 
-      <Section title={copy.propertyType} description={copy.propertyDescription} defaultOpen>
-        <CustomSelect
-          label={copy.propertyTypeLabel}
-          value={filters.propertyType}
-          options={propertyTypes}
-          onChange={updatePropertyType}
-        />
-        <div>
-          <FieldLabel>{copy.propertyTypesLabel}</FieldLabel>
-          <div className="flex flex-wrap gap-2">
-            {propertyTypes
-              .filter((option): option is SelectOption<PropertyType> => Boolean(option.value))
-              .map((option) => {
-                const active = filters.propertyTypes.includes(option.value);
+      <Section title={copy.propertyType}>
+        <div className="flex flex-wrap gap-2">
+          {propertyTypes
+            .filter((option): option is SelectOption<PropertyType> => Boolean(option.value))
+            .map((option) => {
+              const active =
+                filters.propertyTypes.includes(option.value) ||
+                filters.propertyType === option.value;
 
-                return (
-                  <motion.button
-                    key={option.value}
-                    type="button"
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => togglePropertyType(option.value)}
-                    className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
-                      active
-                        ? "rs-chip-active"
-                        : "rs-chip hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
-                    }`}
-                  >
-                    {option.label}
-                  </motion.button>
-                );
-              })}
-          </div>
-          <p className="rs-subtle mt-2 text-xs leading-5">{copy.propertyTypesHelp}</p>
+              return (
+                <motion.button
+                  key={option.value}
+                  type="button"
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => togglePropertyType(option.value)}
+                  className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                    active
+                      ? "rs-chip-active"
+                      : "rs-chip hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
+                  }`}
+                >
+                  {option.label}
+                </motion.button>
+              );
+            })}
         </div>
 
         {houseActive && (
@@ -518,7 +505,7 @@ export function FilterPanel({
         </div>
       </Section>
 
-      <Section title={copy.privacy} description={copy.privacyDescription}>
+      <Section title={copy.privacy}>
         <BooleanListbox
           label={copy.privateKitchen}
           value={filters.privateKitchen}
@@ -554,7 +541,7 @@ export function FilterPanel({
         />
       </Section>
 
-      <Section title={copy.quality} description={copy.qualityDescription}>
+      <Section title={copy.quality}>
         <Toggle
           label={copy.hasImage}
           checked={filters.hasImage}
@@ -618,20 +605,14 @@ export function FilterPanel({
         />
       </Section>
 
-      <Section title={copy.sort}>
+      <div className="border-t border-[var(--color-border)] pt-3">
         <CustomSelect
           label={copy.sort}
           value={filters.sort}
           options={sortOptions}
           onChange={(value) => update("sort", value)}
         />
-      </Section>
-
-      {loading ? (
-        <div className="rs-chip rounded-xl px-3 py-2 text-xs font-semibold">
-          {i18n[language].dashboard.refreshing}
-        </div>
-      ) : null}
+      </div>
     </motion.div>
   );
 }
