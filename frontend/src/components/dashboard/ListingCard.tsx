@@ -89,7 +89,17 @@ function ImageBlock({
 }
 
 const blockedImageHosts = new Set(["b.static.nbo.nl"]);
-const proxiedImageHosts = new Set(["images.marktplaats.com", "img.marktplaats.com", "photos.zah.nl"]);
+const proxiedImageHosts = new Set([
+  "images.marktplaats.com",
+  "img.marktplaats.com",
+  "photos.zah.nl",
+  "cdn.ikwilhuren.nu",
+  "media.ikwilhuren.nu",
+  "images.pararius.nl",
+  "img.pararius.nl",
+  "images.funda.nl",
+  "cloud.funda.nl",
+]);
 
 function getUsableImageUrl(listing: Listing) {
   const imageUrl = listing.image_url?.trim() ?? "";
