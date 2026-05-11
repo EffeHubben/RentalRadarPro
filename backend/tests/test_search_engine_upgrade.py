@@ -77,7 +77,6 @@ def test_registry_marks_only_validated_sources_as_auto_scan() -> None:
     auto_keys = {source.source_key for source in RENTAL_SOURCES if source.auto_scan_enabled}
 
     expected_known_working = {
-        "marktplaats",
         "funda",
         "ikwilhuren",
         "heimstaden",
