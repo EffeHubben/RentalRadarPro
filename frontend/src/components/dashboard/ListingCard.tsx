@@ -87,7 +87,7 @@ function ImageBlock({
   );
 }
 
-const blockedImageHosts = new Set(["b.static.nbo.nl"]);
+const blockedImageHosts = new Set(["b.static.nbo.nl", "images.marktplaats.com", "img.marktplaats.com"]);
 
 function getUsableImageUrl(listing: Listing) {
   const imageUrl = listing.image_url?.trim() ?? "";

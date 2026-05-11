@@ -24,7 +24,7 @@ from app.services.browser_fetcher import fetch_page_with_browser
 
 SOURCE_NAME = "Ik wil huren"
 DETAIL_TIMEOUT_SECONDS = 10
-MAX_DETAIL_FETCHES_PER_RUN = 8
+MAX_DETAIL_FETCHES_PER_RUN = 20
 logger = logging.getLogger("rentscout.scrapers.ikwilhuren")
 
 
