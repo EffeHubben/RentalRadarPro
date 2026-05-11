@@ -270,7 +270,7 @@ export default function HomePage() {
 
       <main>
         {/* Hero — video background, centered content */}
-        <section className="relative flex min-h-[100dvh] items-center overflow-hidden sm:min-h-[620px]">
+        <section className="relative flex min-h-[100dvh] items-start sm:items-center overflow-hidden sm:min-h-[620px]">
           {/* Video backgrounds — cover on mobile (no white bars), contain on desktop */}
           <video
             className="hero-video-light absolute inset-0 h-full w-full object-cover sm:object-contain"
@@ -302,7 +302,7 @@ export default function HomePage() {
           <div className="animate-warm-drift pointer-events-none absolute inset-x-0 top-0 z-[3] h-48 sm:h-64 bg-[radial-gradient(circle_at_50%_20%,var(--color-hero-glow),transparent_34rem)]" />
 
           {/* Centered content */}
-          <div className="relative z-[10] mx-auto w-full max-w-3xl px-5 py-20 text-center sm:px-6 sm:py-24 lg:px-8 lg:py-32">
+          <div className="relative z-[10] mx-auto w-full max-w-3xl px-5 pt-28 pb-20 text-center sm:px-6 sm:py-24 lg:px-8 lg:py-32">
             <motion.p
               className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent-strong)]"
               initial={{ opacity: 0, y: 10 }}

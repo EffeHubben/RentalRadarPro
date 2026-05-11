@@ -99,11 +99,11 @@ html {
 
 @media (max-width: 639px) {
   .hero-center-veil {
-    background: radial-gradient(ellipse 120% 80% at 50% 55%, rgba(251, 250, 247, 0.97) 0%, rgba(251, 250, 247, 0.88) 38%, rgba(251, 250, 247, 0.55) 62%, transparent 80%);
+    background: radial-gradient(ellipse 130% 75% at 50% 38%, rgba(251, 250, 247, 0.92) 0%, rgba(251, 250, 247, 0.72) 42%, rgba(251, 250, 247, 0.32) 66%, transparent 82%);
   }
 
   :root[data-theme="dark"] .hero-center-veil {
-    background: radial-gradient(ellipse 120% 80% at 50% 55%, rgba(11, 16, 23, 0.97) 0%, rgba(11, 16, 23, 0.90) 38%, rgba(11, 16, 23, 0.58) 62%, transparent 80%);
+    background: radial-gradient(ellipse 130% 75% at 50% 38%, rgba(11, 16, 23, 0.93) 0%, rgba(11, 16, 23, 0.74) 42%, rgba(11, 16, 23, 0.34) 66%, transparent 82%);
   }
 }
 
