@@ -46,7 +46,7 @@ def test_ikwilhuren_overview_parses_photo_price_area_rooms_and_address(monkeypat
     listing = next(item for item in listings if "terheijdenstraat" in item.url.lower())
 
     assert listing.title == "Terheijdenstraat 340, Breda"
-    assert listing.image_url == "https://b.static.nbo.nl/media/23/23b9b48ab43e7b7ba6c9d5f4f738c0ab/768x510/thumb.jpg"
+    assert listing.image_url == "https://ikwilhuren.nu/media/23/23b9b48ab43e7b7ba6c9d5f4f738c0ab/394x262/thumb.jpg"
     assert listing.price == 1300
     assert listing.area_m2 == 87
     assert listing.rooms == 2

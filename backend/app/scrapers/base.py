@@ -69,6 +69,7 @@ BLOCKED_IMAGE_MARKERS = (
     "mapbox",
     "googleapis.com/maps",
     "/maps/",
+    "static.nbo.nl",
 )
 
 
@@ -406,16 +407,19 @@ def extract_url_from_srcset(value: str | None) -> str | None:
 
 
 def image_url_from_tag(tag, base_url: str) -> str | None:
-    candidate = (
-        tag.get("src")
-        or tag.get("data-src")
-        or tag.get("data-lazy")
-        or tag.get("data-original")
-        or extract_url_from_srcset(tag.get("srcset"))
-        or extract_url_from_srcset(tag.get("data-srcset"))
+    candidates = (
+        tag.get("src"),
+        tag.get("data-src"),
+        tag.get("data-lazy"),
+        tag.get("data-original"),
+        extract_url_from_srcset(tag.get("srcset")),
+        extract_url_from_srcset(tag.get("data-srcset")),
     )
-    cleaned = clean_image_url(candidate, base_url)
-    return cleaned if is_listing_photo_url(cleaned) else None
+    for candidate in candidates:
+        cleaned = clean_image_url(candidate, base_url)
+        if cleaned and is_listing_photo_url(cleaned):
+            return cleaned
+    return None
 
 
 def image_url_from_style(style: str | None, base_url: str) -> str | None:

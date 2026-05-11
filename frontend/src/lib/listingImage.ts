@@ -1,6 +1,6 @@
 import { buildApiUrl } from "@/lib/apiConfig";
 
-const blockedImageHosts = new Set(["b.static.nbo.nl"]);
+const blockedImageHosts = new Set<string>();
 
 const proxiedImageHosts = new Set([
   "images.marktplaats.com",
@@ -27,7 +27,15 @@ function safeImageHost(imageUrl: string): string {
 function upgradeImageUrl(url: string): string {
   try {
     const parsed = new URL(url);
-    if (ruleStrippableHosts.has(parsed.hostname.toLowerCase())) {
+    const host = parsed.hostname.toLowerCase();
+
+    if (host.endsWith(".static.nbo.nl") || host === "static.nbo.nl") {
+      parsed.hostname = "ikwilhuren.nu";
+      parsed.protocol = "https:";
+      return parsed.toString();
+    }
+
+    if (ruleStrippableHosts.has(host)) {
       parsed.searchParams.delete("rule");
     }
     return parsed.toString();
