@@ -32,6 +32,12 @@ The following sources were added or upgraded with specialized parsers to ensure 
 | **TVN Real Estate** | `tvn_real_estate` | Generic HTML (Custom Parser) | Marketplace | Search Results Page |
 | **Maxx Aanhuur** | `maxx_aanhuur` | Generic HTML (Custom Parser) | Marketplace | Search Results Page |
 | **VBT Verhuurmakelaars** | `vbt_verhuurmakelaars` | Generic HTML (Custom Parser) | Marketplace | Search Results Page |
+| **Maxx Aanhuur** | `maxx_aanhuur` | Generic HTML (Custom Parser) | Marketplace | Search Results Page |
+| **Friendly Housing** | `friendly_housing` | Generic HTML (Custom Parser) | Landlord | Search Results Page |
+| **Ymere (huur)** | `ymere_huur` | Generic HTML (Custom Parser) | Housing Corporation | Search Results Page |
+| **DUWO** | `duwo` | Generic HTML (Custom Parser) | Housing Corporation | Search Results Page |
+| **Xior Student Housing** | `xior` | Generic HTML (Custom Parser) | Landlord | Search Results Page |
+| **SSH XL** | `sshxl` | Generic HTML (Custom Parser) | Housing Corporation | Search Results Page |
 
 ### Extracted Fields
 For all Phase 1 sources, the following factual fields are extracted when publicly visible:
