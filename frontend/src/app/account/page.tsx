@@ -720,12 +720,6 @@ export default function AccountPage() {
                           ? copy.manageSubscription
                           : copy.upgradeToPro}
                     </button>
-                    <Link
-                      href="/reset-password"
-                      className="rs-control inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold"
-                    >
-                      {copy.resetEntry}
-                    </Link>
                   </div>
 
                   {billingError ? (
