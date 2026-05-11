@@ -7,6 +7,7 @@ import requests
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.core.security import (
     create_one_time_token,
     create_access_token,
@@ -205,6 +206,7 @@ def issue_password_reset_token(user: User) -> tuple[str, str, datetime]:
 
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
 def register(
     payload: RegisterRequest,
     request: Request,
@@ -272,6 +274,7 @@ def register(
 
 
 @router.post("/login", response_model=AuthResponse)
+@limiter.limit("10/minute")
 def login(
     payload: LoginRequest,
     request: Request,
@@ -423,8 +426,10 @@ def verify_email(
 
 
 @router.post("/password-reset/request", response_model=MessageResponse)
+@limiter.limit("5/15minutes")
 def request_password_reset(
     payload: RequestPasswordResetRequest,
+    request: Request,
     background_tasks: BackgroundTasks,
     database: Session = Depends(get_database_session),
 ):

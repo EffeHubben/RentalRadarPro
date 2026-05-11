@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.api.analytics import router as analytics_router
 from app.api.auth import router as auth_router
@@ -14,6 +16,7 @@ from app.api.scrapers import router as scrapers_router
 from app.api.proxy import router as proxy_router
 from app.api.sources import router as sources_router
 from app.core.config import settings
+from app.core.rate_limit import limiter, rate_limit_exceeded_handler
 from app.database.db import create_database_tables, get_database_session
 
 
@@ -29,6 +32,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
