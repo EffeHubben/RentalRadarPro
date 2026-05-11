@@ -444,6 +444,81 @@ function formatUpdatedAt(value: string | null, language: Language) {
   }).format(date);
 }
 
+function Pagination({
+  total,
+  limit,
+  offset,
+  onChange,
+}: {
+  total: number;
+  limit: number;
+  offset: number;
+  onChange: (newOffset: number) => void;
+}) {
+  const totalPages = Math.ceil(total / limit);
+  if (totalPages <= 1) return null;
+  const currentPage = Math.floor(offset / limit) + 1;
+
+  const pageList = (): (number | "...")[] => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const out: (number | "...")[] = [1];
+    if (currentPage > 3) out.push("...");
+    for (let p = Math.max(2, currentPage - 1); p <= Math.min(totalPages - 1, currentPage + 1); p++) {
+      out.push(p);
+    }
+    if (currentPage < totalPages - 2) out.push("...");
+    out.push(totalPages);
+    return out;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mt-6 flex items-center justify-center gap-1.5 flex-wrap"
+    >
+      <button
+        type="button"
+        disabled={currentPage === 1}
+        onClick={() => onChange((currentPage - 2) * limit)}
+        aria-label="Vorige pagina"
+        className="rs-control h-10 w-10 rounded-xl text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        ‹
+      </button>
+      {pageList().map((page, index) =>
+        page === "..." ? (
+          <span key={`ellipsis-${index}`} className="rs-subtle select-none px-1 text-sm">…</span>
+        ) : (
+          <button
+            key={page}
+            type="button"
+            onClick={() => onChange((page - 1) * limit)}
+            className={`h-10 min-w-[2.5rem] rounded-xl px-2 text-sm font-semibold transition ${
+              page === currentPage
+                ? "rs-primary-button"
+                : "rs-control"
+            }`}
+          >
+            {page}
+          </button>
+        ),
+      )}
+      <button
+        type="button"
+        disabled={currentPage === totalPages}
+        onClick={() => onChange(currentPage * limit)}
+        aria-label="Volgende pagina"
+        className="rs-control h-10 w-10 rounded-xl text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        ›
+      </button>
+    </motion.div>
+  );
+}
+
 export default function DashboardPage() {
   const auth = useAuth();
   const isProUser = hasPro(auth.user);
@@ -465,6 +540,7 @@ export default function DashboardPage() {
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [profileName, setProfileName] = useState("");
   const toastId = useRef(0);
+  const listingsSectionRef = useRef<HTMLElement>(null);
   const copy = i18n[language];
 
   const listings = useMemo(() => listingsPage?.items ?? [], [listingsPage]);
@@ -829,6 +905,13 @@ export default function DashboardPage() {
     setFilters(createInitialFilters());
   }
 
+  function goToPage(newOffset: number) {
+    setFilters((prev) => ({ ...prev, offset: newOffset }));
+    window.setTimeout(() => {
+      listingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
   function startSearch(values: Pick<
     ListingFilters,
     | "city"
@@ -1101,7 +1184,7 @@ export default function DashboardPage() {
             />
           </aside>
 
-          <section className="min-w-0">
+          <section className="min-w-0" ref={listingsSectionRef}>
             {/* Result count + sort + active filters */}
             <div className="dashboard-shell mb-5 rounded-2xl p-4">
               <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1283,6 +1366,15 @@ export default function DashboardPage() {
             ) : (
               <EmptyState language={language} />
             )}
+
+            {!loading && !freeLimitApplied && totalListings > filters.limit ? (
+              <Pagination
+                total={totalListings}
+                limit={filters.limit}
+                offset={filters.offset}
+                onChange={goToPage}
+              />
+            ) : null}
 
             {!loading && requiresPro ? (
               <PreviewBanner

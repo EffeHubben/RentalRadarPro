@@ -232,7 +232,7 @@ export function createInitialFilters(): ListingFilters {
     showHiddenListings: false,
     search: "",
     sort: "newest",
-    limit: 50,
+    limit: 10,
     offset: 0,
   };
 }
