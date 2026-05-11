@@ -11,6 +11,7 @@ from app.api.debug import router as debug_router
 from app.api.listings import router as listings_router
 from app.api.monitoring import router as monitoring_router
 from app.api.scrapers import router as scrapers_router
+from app.api.proxy import router as proxy_router
 from app.api.sources import router as sources_router
 from app.core.config import settings
 from app.database.db import create_database_tables, get_database_session
@@ -45,6 +46,7 @@ app.include_router(billing_router)
 app.include_router(debug_router)
 app.include_router(listings_router)
 app.include_router(monitoring_router)
+app.include_router(proxy_router)
 app.include_router(scrapers_router)
 app.include_router(sources_router)
 

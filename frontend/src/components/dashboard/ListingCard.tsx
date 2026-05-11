@@ -87,7 +87,8 @@ function ImageBlock({
   );
 }
 
-const blockedImageHosts = new Set(["b.static.nbo.nl", "images.marktplaats.com", "img.marktplaats.com"]);
+const blockedImageHosts = new Set(["b.static.nbo.nl"]);
+const proxiedImageHosts = new Set(["images.marktplaats.com", "img.marktplaats.com", "photos.zah.nl"]);
 
 function getUsableImageUrl(listing: Listing) {
   const imageUrl = listing.image_url?.trim() ?? "";
@@ -102,7 +103,13 @@ function getUsableImageUrl(listing: Listing) {
     return "";
   }
 
-  return upgradeImageUrl(imageUrl);
+  const resolved = upgradeImageUrl(imageUrl);
+
+  if (proxiedImageHosts.has(imageHost)) {
+    return `/api/proxy/image?url=${encodeURIComponent(resolved)}`;
+  }
+
+  return resolved;
 }
 
 function upgradeImageUrl(url: string): string {
@@ -483,20 +490,8 @@ export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function Li
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-4">
+        <div className="border-t border-[var(--color-border)] pt-4">
           <span className="rs-muted text-sm">{listing.city ?? copy.cityUnknown}</span>
-          <a
-            href={listing.url}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(event) => {
-              event.stopPropagation();
-              onToast(copy.openingAd, "info");
-            }}
-            className="rs-control rounded-lg px-3 py-2 text-xs font-semibold"
-          >
-            {copy.openAd}
-          </a>
         </div>
       </div>
     </motion.article>
