@@ -57,7 +57,13 @@ export function ScrollVideoSection({ language }: { language: Language }) {
     return () => observer.disconnect();
   }, []);
 
-  // Scroll → video scrub
+  // Force video load on mount (iOS ignores preload="auto")
+  useEffect(() => {
+    videoLightRef.current?.load();
+    videoDarkRef.current?.load();
+  }, []);
+
+  // Scroll → video scrub (scroll + touchmove for iOS)
   useEffect(() => {
     const handleScroll = () => {
       const container = containerRef.current;
@@ -71,14 +77,18 @@ export function ScrollVideoSection({ language }: { language: Language }) {
       progress.set(p);
 
       const video = isDark ? videoDarkRef.current : videoLightRef.current;
-      if (video && video.readyState >= 2 && video.duration > 0) {
-        video.currentTime = p * video.duration;
+      if (video && video.duration > 0) {
+        try { video.currentTime = p * video.duration; } catch { /* iOS may throw */ }
       }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("touchmove", handleScroll, { passive: true });
     setTimeout(handleScroll, 100);
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("touchmove", handleScroll);
+    };
   }, [progress, isDark]);
 
   const onMetadata = (ref: React.RefObject<HTMLVideoElement | null>) => () => {
@@ -126,11 +136,11 @@ export function ScrollVideoSection({ language }: { language: Language }) {
           onLoadedMetadata={onMetadata(videoDarkRef)}
         />
 
-        {/* Edge masks — narrower on mobile */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[6%] sm:w-[22%]"  style={{ background: "linear-gradient(to right, var(--color-page), transparent)" }} />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[6%] sm:w-[22%]" style={{ background: "linear-gradient(to left,  var(--color-page), transparent)" }} />
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[5%] sm:h-[16%]"   style={{ background: "linear-gradient(to bottom, var(--color-page), transparent)" }} />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[18%] sm:h-[22%]" style={{ background: "linear-gradient(to top, var(--color-page), transparent)" }} />
+        {/* Edge masks */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[18%] sm:w-[28%]"  style={{ background: "linear-gradient(to right, var(--color-page) 0%, var(--color-page) 20%, transparent)" }} />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[18%] sm:w-[28%]" style={{ background: "linear-gradient(to left,  var(--color-page) 0%, var(--color-page) 20%, transparent)" }} />
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[14%] sm:h-[20%]"   style={{ background: "linear-gradient(to bottom, var(--color-page), transparent)" }} />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[22%] sm:h-[26%]" style={{ background: "linear-gradient(to top, var(--color-page), transparent)" }} />
 
         {/* Text panels
             Mobile:  centered horizontally, text-center, wider
