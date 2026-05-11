@@ -102,7 +102,6 @@ def test_registry_marks_only_validated_sources_as_auto_scan() -> None:
 def test_registry_contains_expanded_external_sources_without_auto_enabling_them() -> None:
     external_keys = {
         "woonnet_rijnmond",
-        "klikvoorwonen",
         "wooniezie",
         "entree",
         "room_university_housing",
@@ -116,7 +115,7 @@ def test_registry_contains_expanded_external_sources_without_auto_enabling_them(
     assert external_keys.issubset(registry_by_key)
     assert all(not registry_by_key[key].auto_scan_enabled for key in external_keys)
     assert registry_by_key["klikvoorwonen"].supported_cities
-    assert registry_by_key["klikvoorwonen"].requires_login is True
+    assert registry_by_key["klikvoorwonen"].auto_scan_enabled is True
 
 
 def test_listing_quality_applies_source_reliability_weight() -> None:

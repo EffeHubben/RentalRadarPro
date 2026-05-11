@@ -12,6 +12,7 @@ from app.scrapers.generic_sources import (
 )
 from app.scrapers.holland2stay import fetch_holland2stay_listings
 from app.scrapers.ikwilhuren import fetch_ikwilhuren_listings
+from app.scrapers.klikvoorwonen import fetch_klikvoorwonen_listings
 from app.scrapers.marktplaats import fetch_marktplaats_listings
 
 
@@ -876,19 +877,31 @@ RENTAL_SOURCES: list[RentalSource] = [
         supports_property_type=True,
         priority=72,
     ),
-    make_manual_source(
+    RentalSource(
         source_key="klikvoorwonen",
         display_name="Klik voor Wonen",
+        enabled=True,
+        supports_city_search=True,
         base_url="https://www.klikvoorwonen.nl",
-        manual_search_url_template="https://www.klikvoorwonen.nl/aanbod",
-        notes="West-Brabant housing-corporation portal with current rental supply.",
-        internal_reason="Registration and passend-aanbod context are required to respond.",
-        supported_cities=("Breda", "Roosendaal", "Bergen op Zoom", "Etten-Leur", "Oosterhout", "Zevenbergen"),
+        notes="West-Brabant housing-corporation portal. Zig365 API is publicly accessible; city filter applied client-side.",
+        fetch_listings=fetch_klikvoorwonen_listings,
+        manual_search_url_template="https://www.klikvoorwonen.nl/aanbod/nu-te-huur/huurwoningen/details?dwellingID={city}",
+        category="corporation",
+        auto_scan_enabled=True,
+        scan_interval_minutes=30,
+        status="online",
+        country="NL",
+        source_type="api",
+        supported_cities=("Breda", "Roosendaal", "Oosterhout", "Zevenbergen", "Geertruidenberg"),
         supported_regions=("Noord-Brabant", "West-Brabant"),
-        requires_login=True,
-        supports_price_filter=True,
+        supports_pagination=True,
+        likely_blocks_bots=False,
+        requires_login=False,
+        supports_price_filter=False,
         supports_property_type=True,
         priority=74,
+        reliability_weight=0.85,
+        supports_automatic_scraping=True,
     ),
     make_manual_source(
         source_key="wooniezie",
