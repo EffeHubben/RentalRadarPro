@@ -12,6 +12,8 @@ const proxiedImageHosts = new Set([
   "img.pararius.nl",
   "images.funda.nl",
   "cloud.funda.nl",
+  "api.holland2stay.com",
+  "media.holland2stay.com",
 ]);
 
 const ruleStrippableHosts = new Set(["images.marktplaats.com", "img.marktplaats.com"]);

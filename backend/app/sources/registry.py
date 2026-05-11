@@ -10,6 +10,7 @@ from app.scrapers.generic_sources import (
     GenericSourceConfig,
     fetch_generic_source_listings,
 )
+from app.scrapers.holland2stay import fetch_holland2stay_listings
 from app.scrapers.ikwilhuren import fetch_ikwilhuren_listings
 from app.scrapers.marktplaats import fetch_marktplaats_listings
 
@@ -489,19 +490,31 @@ RENTAL_SOURCES: list[RentalSource] = [
         priority=80,
         reliability_weight=0.7,
     ),
-    make_generic_source(
+    RentalSource(
         source_key="holland2stay",
         display_name="Holland2Stay",
+        enabled=True,
+        supports_city_search=True,
         base_url="https://www.holland2stay.com",
-        search_url_template="https://www.holland2stay.com/residences?city={city}",
-        listing_path_markers=("/residences/", "/residence/"),
+        notes="Holland2Stay expat-focused landlord; uses public Magento GraphQL API.",
+        fetch_listings=fetch_holland2stay_listings,
+        manual_search_url_template="https://www.holland2stay.com/find-a-home",
         category="landlord",
-        notes="Holland2Stay expat-focused landlord.",
-        auto_scan_enabled=False,
-        status="limited",
-        internal_reason="Availability is app-driven and needs endpoint validation; do not scrape booking flows.",
-        priority=70,
-        reliability_weight=0.45,
+        auto_scan_enabled=True,
+        scan_interval_minutes=15,
+        status="online",
+        country="NL",
+        source_type="api",
+        priority=80,
+        reliability_weight=0.80,
+        supported_cities=tuple(name.title() for name in (
+            "amsterdam", "rotterdam", "den haag", "utrecht", "eindhoven",
+            "delft", "den bosch", "diemen", "dordrecht", "groningen",
+            "haarlem", "helmond", "leiden", "maastricht", "nieuwegein",
+            "nijmegen", "rijswijk", "tilburg", "amersfoort", "arnhem",
+            "capelle aan den ijssel", "maarssen", "sittard", "velp",
+            "zeist", "zoetermeer",
+        )),
     ),
 
     # ---------- New generic-html candidates (limited until validated) ----------

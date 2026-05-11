@@ -32,6 +32,8 @@ ALLOWED_HOSTS: frozenset[str] = frozenset(
         "img.pararius.nl",
         "images.funda.nl",
         "cloud.funda.nl",
+        "api.holland2stay.com",
+        "media.holland2stay.com",
     }
 )
 
@@ -40,6 +42,7 @@ _SOURCE_REFERERS: dict[str, str] = {
     "ikwilhuren": "https://ikwilhuren.nu/",
     "pararius": "https://www.pararius.nl/",
     "funda": "https://www.funda.nl/",
+    "holland2stay": "https://www.holland2stay.com/",
 }
 
 _HOST_REFERER: dict[str, str] = {
@@ -54,6 +57,8 @@ _HOST_REFERER: dict[str, str] = {
     "img.pararius.nl": _SOURCE_REFERERS["pararius"],
     "images.funda.nl": _SOURCE_REFERERS["funda"],
     "cloud.funda.nl": _SOURCE_REFERERS["funda"],
+    "api.holland2stay.com": _SOURCE_REFERERS["holland2stay"],
+    "media.holland2stay.com": _SOURCE_REFERERS["holland2stay"],
 }
 
 _HEADERS = {

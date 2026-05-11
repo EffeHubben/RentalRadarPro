@@ -95,7 +95,7 @@ def test_registry_marks_only_validated_sources_as_auto_scan() -> None:
     for source in RENTAL_SOURCES:
         if not source.auto_scan_enabled:
             continue
-        assert source.source_type in {"direct_scraper", "generic_html"}
+        assert source.source_type in {"direct_scraper", "generic_html", "api"}
         assert source.supports_automatic_scraping is True
         assert source.status in {"online", "degraded"}
 
