@@ -19,53 +19,86 @@ type OnboardingValues = Pick<
   | "allowSharedLaundry"
 >;
 
-const propertyOptions: Array<PropertyType | ""> = [
-  "",
-  "studio",
-  "apartment",
-  "room",
-  "house",
-];
-const selectablePropertyTypes: PropertyType[] = ["studio", "apartment", "room", "house"];
+const propertyOptions: Array<PropertyType | ""> = ["", "studio", "apartment", "room", "house"];
 
-function inputClass() {
-  return "rs-input h-12";
+function IconHome() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
+      <path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1v-9.5z" />
+      <path d="M9 21V13h6v8" />
+    </svg>
+  );
+}
+function IconPin() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
+      <path d="M12 21S5 14.5 5 9a7 7 0 1114 0c0 5.5-7 12-7 12z" />
+      <circle cx={12} cy={9} r={2.5} />
+    </svg>
+  );
+}
+function IconEuro() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
+      <path d="M17 7A6 6 0 106 12.5" />
+      <path d="M4 10.5h8M4 13.5h8" strokeLinecap="round" />
+    </svg>
+  );
+}
+function IconBuilding() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
+      <rect x={3} y={3} width={18} height={18} rx={2} />
+      <path d="M9 21V9h6v12M9 9V3" />
+    </svg>
+  );
+}
+function IconShield() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
+      <path d="M12 3l8 3.5V12c0 4.5-3.5 8-8 9-4.5-1-8-4.5-8-9V6.5L12 3z" />
+      <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconSpark() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
+    </svg>
+  );
 }
 
-function ToggleCard({
+const stepIcons = [IconHome, IconPin, IconEuro, IconBuilding, IconShield, IconSpark];
+
+function Toggle({
   label,
   checked,
   onChange,
 }: {
   label: string;
   checked: boolean;
-  onChange: (checked: boolean) => void;
+  onChange: (v: boolean) => void;
 }) {
   return (
-    <motion.button
+    <button
       type="button"
-      whileTap={{ scale: 0.98 }}
       onClick={() => onChange(!checked)}
-      className={`flex items-center justify-between rounded-xl border px-3 py-3 text-left transition ${
-        checked
-          ? "rs-chip-active"
-          : "rs-control text-[var(--color-muted)]"
-      }`}
+      className="flex w-full items-center justify-between py-3 text-left"
     >
-      <span className="text-sm font-semibold">{label}</span>
+      <span className="text-sm text-[var(--color-text)]">{label}</span>
       <span
-        className={`relative h-6 w-11 rounded-full border transition ${
-          checked
-            ? "border-[var(--color-teal)] bg-[var(--color-teal)]"
-            : "border-[var(--color-border)] bg-[var(--color-soft)]"
+        className={`relative h-6 w-10 shrink-0 rounded-full transition-colors duration-200 ${
+          checked ? "bg-[var(--color-accent)]" : "bg-[var(--color-border)]"
         }`}
       >
         <motion.span
-          animate={{ x: checked ? 20 : 0 }}
-          className="absolute left-1 top-1 h-4 w-4 rounded-full bg-[var(--color-surface)] shadow"
+          animate={{ x: checked ? 16 : 2 }}
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          className="absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm"
         />
       </span>
-    </motion.button>
+    </button>
   );
 }
 
@@ -85,6 +118,7 @@ export function WelcomeScreen({
   const propertyCopy = i18n[language].propertyTypes;
   const shouldReduceMotion = useReducedMotion();
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState(1);
   const [values, setValues] = useState<OnboardingValues>({
     city: initialCity,
     minPrice: "",
@@ -99,11 +133,7 @@ export function WelcomeScreen({
   });
 
   useEffect(() => {
-    setValues((current) => ({
-      ...current,
-      city: initialCity,
-      maxPrice: initialMaxRent,
-    }));
+    setValues((cur) => ({ ...cur, city: initialCity, maxPrice: initialMaxRent }));
   }, [initialCity, initialMaxRent]);
 
   const steps = useMemo(
@@ -117,359 +147,352 @@ export function WelcomeScreen({
     ],
     [copy.steps],
   );
-  const progress = ((step + 1) / steps.length) * 100;
-  const selectedTypeLabels = values.propertyTypes.length
-    ? values.propertyTypes.map((type) => propertyCopy[type]).join(", ")
-    : copy.noPreference;
+
+  const progress = (step + 1) / steps.length;
 
   function update<K extends keyof OnboardingValues>(key: K, value: OnboardingValues[K]) {
-    setValues((current) => ({ ...current, [key]: value }));
+    setValues((cur) => ({ ...cur, [key]: value }));
   }
 
   function togglePropertyType(type: PropertyType | "") {
-    if (!type) {
-      update("propertyTypes", []);
-      return;
-    }
-
-    const nextTypes = values.propertyTypes.includes(type)
-      ? values.propertyTypes.filter((selectedType) => selectedType !== type)
+    if (!type) { update("propertyTypes", []); return; }
+    const next = values.propertyTypes.includes(type)
+      ? values.propertyTypes.filter((t) => t !== type)
       : [...values.propertyTypes, type];
-
-    update("propertyTypes", nextTypes);
+    update("propertyTypes", next);
   }
 
   function next() {
-    if (step === steps.length - 1) {
-      onStart(values);
-      return;
-    }
-
-    setStep((current) => Math.min(steps.length - 1, current + 1));
+    if (step === steps.length - 1) { onStart(values); return; }
+    setDirection(1);
+    setStep((s) => Math.min(steps.length - 1, s + 1));
   }
 
   function back() {
-    setStep((current) => Math.max(0, current - 1));
+    setDirection(-1);
+    setStep((s) => Math.max(0, s - 1));
   }
+
+  const selectedTypeLabels = values.propertyTypes.length
+    ? values.propertyTypes.map((t) => propertyCopy[t]).join(", ")
+    : copy.noPreference;
+
+  const slideVariants = {
+    enter: (dir: number) => ({
+      x: shouldReduceMotion ? 0 : dir * 36,
+      opacity: 0,
+    }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir: number) => ({
+      x: shouldReduceMotion ? 0 : dir * -36,
+      opacity: 0,
+      position: "absolute" as const,
+      top: 0,
+      left: 0,
+      right: 0,
+    }),
+  };
+
+  const Icon = stepIcons[step];
 
   return (
     <motion.section
       key="onboarding"
-      initial={false}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.28, ease: "easeOut" }}
-      className="relative isolate px-0 py-2 sm:py-4"
+      transition={{ duration: 0.38, ease: "easeOut" }}
+      className="flex min-h-[80vh] items-center justify-center px-4 py-12"
     >
-      <div className="relative mx-auto w-full max-w-5xl">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_22rem]">
-          <motion.div
-            className="rs-card relative overflow-hidden rounded-2xl p-5 sm:p-7"
-            initial={false}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ type: "spring", damping: 24, stiffness: 150 }}
-          >
-            <div className="mb-6">
-              <div className="mb-3 flex gap-2" aria-label={copy.searchSetupProgress}>
-                {steps.map((label, index) => (
-                  <motion.button
-                    key={label}
-                    type="button"
-                    aria-label={label}
-                    onClick={() => setStep(index)}
-                    className={`h-2 rounded-full transition ${
-                      index <= step ? "bg-[var(--color-accent)]" : "bg-[var(--color-soft)]"
-                    }`}
-                    animate={{ width: index === step ? 34 : 14 }}
-                  />
-                ))}
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-soft)]">
-                <motion.div
-                  className="h-full rounded-full bg-[var(--color-accent)]"
-                  animate={{ width: `${progress}%` }}
-                  transition={{ type: "spring", damping: 24, stiffness: 160 }}
-                />
-              </div>
-            </div>
+      <div className="w-full max-w-[500px]">
 
-            <AnimatePresence mode="wait">
+        {/* Step dots + counter */}
+        <div className="mb-7 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            {steps.map((_, i) => (
+              <motion.div
+                key={i}
+                animate={{
+                  width: i === step ? 22 : 6,
+                  opacity: i < step ? 1 : i === step ? 1 : 0.28,
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 26 }}
+                className={`h-1.5 rounded-full ${
+                  i <= step ? "bg-[var(--color-accent)]" : "bg-[var(--color-border)]"
+                }`}
+              />
+            ))}
+          </div>
+          <span className="text-xs font-medium text-[var(--color-muted)]">
+            {step + 1} / {steps.length}
+          </span>
+        </div>
+
+        {/* Card */}
+        <div className="rs-card relative rounded-3xl p-7 sm:p-9">
+
+          {/* Step icon badge */}
+          <motion.div
+            key={`icon-${step}`}
+            initial={{ opacity: 0, scale: 0.75 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="mb-6 flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-accent-soft)] text-[var(--color-accent-strong)]"
+          >
+            <Icon />
+          </motion.div>
+
+          {/* Animated step content */}
+          <div className="relative min-h-[230px]">
+            <AnimatePresence mode="wait" initial={false} custom={direction}>
               <motion.div
                 key={step}
-                initial={false}
-                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, x: -16, filter: "blur(4px)" }}
-                transition={{ duration: 0.32, ease: "easeOut" }}
-                className="min-h-[15rem]"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
               >
-                {step === 0 ? (
-                  <div className="flex min-h-[15rem] flex-col justify-center">
-                    <p className="rs-eyebrow mb-4 text-sm font-semibold uppercase tracking-[0.16em]">
-                      {copy.steps.welcome}
-                    </p>
-                    <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-[var(--color-text)] sm:text-5xl">
+
+                {/* 0 — Welkom */}
+                {step === 0 && (
+                  <div className="space-y-4">
+                    <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.01em] text-[var(--color-text)] sm:text-[2rem]">
                       {copy.title}
                     </h1>
-                    <p className="rs-muted mt-5 max-w-2xl text-base leading-7">
+                    <p className="text-sm leading-6 text-[var(--color-muted)]">
                       {copy.subtitle}
                     </p>
-                    <div className="mt-8 flex flex-wrap gap-2">
-                      {copy.details.map((detail) => (
-                        <span
-                          key={detail}
-                          className="rs-chip rounded-full px-4 py-2 text-sm font-medium"
-                        >
-                          {detail}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {copy.details.map((d) => (
+                        <span key={d} className="rs-chip rounded-full px-3 py-1.5 text-xs font-medium">
+                          {d}
                         </span>
                       ))}
                     </div>
                   </div>
-                ) : null}
+                )}
 
-                {step === 1 ? (
-                  <div className="space-y-6">
-                    <h2 className="text-3xl font-semibold text-[var(--color-text)] sm:text-5xl">
-                      {copy.locationTitle}
-                    </h2>
-                    <p className="rs-muted max-w-2xl text-sm leading-6">
-                      {copy.locationHelp}
-                    </p>
+                {/* 1 — Locatie */}
+                {step === 1 && (
+                  <div className="space-y-5">
+                    <div>
+                      <h2 className="text-[1.6rem] font-semibold leading-tight tracking-[-0.01em] text-[var(--color-text)]">
+                        {copy.locationTitle}
+                      </h2>
+                      <p className="mt-2 text-sm text-[var(--color-muted)]">{copy.locationHelp}</p>
+                    </div>
                     <input
+                      autoFocus
                       value={values.city}
-                      onChange={(event) => update("city", event.target.value)}
-                      className={inputClass()}
+                      onChange={(e) => update("city", e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && next()}
+                      className="rs-input h-12 w-full"
                       placeholder={copy.cityPlaceholder}
                     />
                   </div>
-                ) : null}
+                )}
 
-                {step === 2 ? (
-                  <div className="space-y-6">
-                    <h2 className="text-3xl font-semibold text-[var(--color-text)] sm:text-5xl">
-                      {copy.budgetTitle}
-                    </h2>
-                    <p className="rs-muted max-w-2xl text-sm leading-6">
-                      {copy.budgetHelp}
-                    </p>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <input
-                        type="number"
-                        min="0"
-                        value={values.minPrice}
-                        onChange={(event) => update("minPrice", event.target.value)}
-                        className={inputClass()}
-                        placeholder={copy.minRent}
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        disabled={values.noMaxPrice}
-                        value={values.maxPrice}
-                        onChange={(event) => update("maxPrice", event.target.value)}
-                        className={`${inputClass()} disabled:cursor-not-allowed disabled:opacity-40`}
-                        placeholder={copy.maxRent}
+                {/* 2 — Budget */}
+                {step === 2 && (
+                  <div className="space-y-5">
+                    <div>
+                      <h2 className="text-[1.6rem] font-semibold leading-tight tracking-[-0.01em] text-[var(--color-text)]">
+                        {copy.budgetTitle}
+                      </h2>
+                      <p className="mt-2 text-sm text-[var(--color-muted)]">{copy.budgetHelp}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-[var(--color-muted)]">
+                          {copy.minRent}
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={values.minPrice}
+                          onChange={(e) => update("minPrice", e.target.value)}
+                          className="rs-input h-12 w-full"
+                          placeholder="€ 0"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-[var(--color-muted)]">
+                          {copy.maxRent}
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          disabled={values.noMaxPrice}
+                          value={values.maxPrice}
+                          onChange={(e) => update("maxPrice", e.target.value)}
+                          className="rs-input h-12 w-full disabled:opacity-40"
+                          placeholder="€ 1500"
+                        />
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)] px-4">
+                      <Toggle
+                        label={copy.noMaxPrice}
+                        checked={values.noMaxPrice}
+                        onChange={(v) => update("noMaxPrice", v)}
                       />
                     </div>
-                    <ToggleCard
-                      label={copy.noMaxPrice}
-                      checked={values.noMaxPrice}
-                      onChange={(checked) => update("noMaxPrice", checked)}
-                    />
                   </div>
-                ) : null}
+                )}
 
-                {step === 3 ? (
-                  <div className="space-y-6">
-                    <h2 className="text-3xl font-semibold text-[var(--color-text)] sm:text-5xl">
-                      {copy.propertyTitle}
-                    </h2>
-                    <p className="rs-muted max-w-2xl text-sm leading-6">
-                      {copy.propertyHelp}
-                    </p>
-                    <div className="grid gap-3 sm:grid-cols-2">
+                {/* 3 — Woningtype */}
+                {step === 3 && (
+                  <div className="space-y-5">
+                    <div>
+                      <h2 className="text-[1.6rem] font-semibold leading-tight tracking-[-0.01em] text-[var(--color-text)]">
+                        {copy.propertyTitle}
+                      </h2>
+                      <p className="mt-2 text-sm text-[var(--color-muted)]">{copy.propertyHelp}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
                       {propertyOptions.map((type) => {
                         const active = type
                           ? values.propertyTypes.includes(type)
                           : values.propertyTypes.length === 0;
                         const label = type ? propertyCopy[type] : copy.allTypes;
-
                         return (
                           <motion.button
                             key={type || "all"}
                             type="button"
-                            whileHover={shouldReduceMotion ? undefined : { y: -3 }}
                             whileTap={{ scale: 0.96 }}
                             onClick={() => togglePropertyType(type)}
-                            className={`rounded-2xl border p-5 text-left transition ${
+                            className={`rounded-2xl border px-4 py-3.5 text-left text-sm font-semibold transition ${
                               active
-                                ? "rs-chip-active shadow-[var(--shadow-soft)]"
-                                : "rs-control text-[var(--color-muted)]"
+                                ? "rs-chip-active"
+                                : "rs-control text-[var(--color-muted)] hover:border-[var(--color-border-strong)]"
                             }`}
                           >
-                            <div className="text-lg font-semibold">{label}</div>
-                            {!type ? (
-                              <div className="mt-1 text-xs font-normal opacity-60">
+                            {label}
+                            {!type && (
+                              <div className="mt-0.5 text-xs font-normal opacity-55">
                                 {copy.allTypesHint}
                               </div>
-                            ) : null}
-                            {active ? (
-                              <motion.div
-                                layoutId={`property-active-${type || "all"}`}
-                                className="mt-4 h-1 rounded-full bg-[var(--color-accent)]"
-                              />
-                            ) : null}
+                            )}
                           </motion.button>
                         );
                       })}
                     </div>
                   </div>
-                ) : null}
+                )}
 
-                {step === 4 ? (
-                  <div className="space-y-6">
-                    <h2 className="text-3xl font-semibold text-[var(--color-text)] sm:text-5xl">
-                      {copy.privacyTitle}
-                    </h2>
-                    <p className="rs-muted max-w-2xl text-sm leading-6">
-                      {copy.privacyHelp}
-                    </p>
-                    <p className="rs-subtle max-w-2xl rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] px-4 py-3 text-xs leading-5">
-                      {copy.privacyApartmentNote}
-                    </p>
-                    <div className="grid gap-3">
-                      <ToggleCard
+                {/* 4 — Privacy */}
+                {step === 4 && (
+                  <div className="space-y-5">
+                    <div>
+                      <h2 className="text-[1.6rem] font-semibold leading-tight tracking-[-0.01em] text-[var(--color-text)]">
+                        {copy.privacyTitle}
+                      </h2>
+                      <p className="mt-2 text-sm text-[var(--color-muted)]">{copy.privacyHelp}</p>
+                    </div>
+                    <div className="divide-y divide-[var(--color-border)] rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)] px-4">
+                      <Toggle
                         label={copy.privateKitchen}
                         checked={values.privateKitchen === true}
-                        onChange={(checked) => update("privateKitchen", checked ? true : null)}
+                        onChange={(v) => update("privateKitchen", v ? true : null)}
                       />
-                      <ToggleCard
+                      <Toggle
                         label={copy.privateBathroom}
                         checked={values.privateBathroom === true}
-                        onChange={(checked) => update("privateBathroom", checked ? true : null)}
+                        onChange={(v) => update("privateBathroom", v ? true : null)}
                       />
-                      <ToggleCard
+                      <Toggle
                         label={copy.privateToilet}
                         checked={values.privateToilet === true}
-                        onChange={(checked) => update("privateToilet", checked ? true : null)}
+                        onChange={(v) => update("privateToilet", v ? true : null)}
                       />
-                      <ToggleCard
-                        label={copy.allowSharedLaundry}
-                        checked={values.allowSharedLaundry}
-                        onChange={(checked) => update("allowSharedLaundry", checked)}
-                      />
-                      <ToggleCard
+                      <Toggle
                         label={copy.allowShared}
                         checked={values.allowShared}
-                        onChange={(checked) => update("allowShared", checked)}
+                        onChange={(v) => update("allowShared", v)}
                       />
                     </div>
+                    <p className="text-xs leading-5 text-[var(--color-subtle)]">
+                      {copy.privacyApartmentNote}
+                    </p>
                   </div>
-                ) : null}
+                )}
 
-                {step === 5 ? (
-                  <div className="space-y-6">
-                    <h2 className="text-3xl font-semibold text-[var(--color-text)] sm:text-5xl">
+                {/* 5 — Klaar */}
+                {step === 5 && (
+                  <div className="space-y-5">
+                    <h2 className="text-[1.6rem] font-semibold leading-tight tracking-[-0.01em] text-[var(--color-text)]">
                       {copy.readyTitle}
                     </h2>
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid grid-cols-2 gap-2">
                       {[
                         [copy.city, values.city || copy.any],
-                        [copy.budget, values.noMaxPrice ? copy.noMaxPrice : values.maxPrice || copy.any],
+                        [
+                          copy.budget,
+                          values.noMaxPrice
+                            ? copy.noMaxPrice
+                            : values.maxPrice
+                              ? `tot € ${values.maxPrice}`
+                              : copy.any,
+                        ],
                         [copy.privacy, values.allowShared ? copy.sharedAllowed : copy.sharedExcluded],
+                        [copy.propertyType, selectedTypeLabels],
                       ].map(([label, value]) => (
-                        <div key={label} className="rs-card-solid rounded-2xl p-4">
-                          <div className="rs-subtle text-xs uppercase tracking-[0.14em]">{label}</div>
-                          <div className="mt-2 text-sm font-semibold text-[var(--color-text)]">{value}</div>
-                        </div>
+                        <motion.div
+                          key={label}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.22, delay: 0.06 }}
+                          className="rounded-2xl bg-[var(--color-soft)] p-4"
+                        >
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-muted)]">
+                            {label}
+                          </div>
+                          <div className="mt-1.5 text-sm font-semibold leading-snug text-[var(--color-text)]">
+                            {value}
+                          </div>
+                        </motion.div>
                       ))}
-                      <div className="rs-card-solid rounded-2xl p-4 sm:col-span-2">
-                        <div className="rs-subtle text-xs uppercase tracking-[0.14em]">{copy.propertyType}</div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {values.propertyTypes.length > 0 ? (
-                            values.propertyTypes.map((type) => (
-                              <span
-                                key={type}
-                                className="rs-chip-active rounded-full px-3 py-1 text-xs font-semibold"
-                              >
-                                {propertyCopy[type]}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="rs-chip rounded-full px-3 py-1 text-xs font-semibold">
-                              {copy.noPreference}
-                            </span>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   </div>
-                ) : null}
+                )}
+
               </motion.div>
             </AnimatePresence>
+          </div>
 
-            <div className="mt-6 flex items-center justify-between gap-3">
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.98 }}
-                onClick={back}
-                disabled={step === 0}
-                className="rs-control h-11 rounded-lg px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-35"
-              >
-                {copy.back}
-              </motion.button>
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.985 }}
-                onClick={next}
-                className="rs-primary-button h-11 rounded-lg px-6 text-sm font-semibold"
-              >
-                {step === steps.length - 1 ? copy.start : copy.next}
-              </motion.button>
-            </div>
-          </motion.div>
+          {/* Navigation */}
+          <div className="mt-8 flex items-center justify-between">
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.97 }}
+              onClick={back}
+              disabled={step === 0}
+              className="h-10 rounded-xl px-4 text-sm font-medium text-[var(--color-muted)] transition hover:text-[var(--color-text)] disabled:pointer-events-none disabled:opacity-0"
+            >
+              {copy.back}
+            </motion.button>
 
-          <motion.aside
-            initial={false}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ type: "spring", damping: 26, stiffness: 170, delay: 0.1 }}
-            className="rs-card relative rounded-2xl p-5"
-          >
-            <div className="mb-4">
-              <div className="rs-eyebrow text-xs font-semibold uppercase tracking-[0.16em]">
-                {Math.round(progress)}%
-              </div>
-              <motion.div
-                key={`${step}-${values.city}-${values.maxPrice}-${values.propertyTypes.join(",")}`}
-                initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3"
-              >
-                <div className="text-sm font-semibold text-[var(--color-text)]">
-                  {values.city || copy.any}
-                </div>
-                <div className="rs-muted mt-1 text-xs leading-5">
-                  {values.noMaxPrice ? copy.noMaxPrice : values.maxPrice || copy.any} · {selectedTypeLabels}
-                </div>
-              </motion.div>
-            </div>
-            <div className="space-y-2">
-              {steps.map((label, index) => (
-                <motion.div
-                  key={label}
-                  layout
-                  className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
-                    index === step
-                      ? "rs-chip-active"
-                      : index < step
-                        ? "rs-chip-positive"
-                        : "rs-chip"
-                  }`}
-                >
-                  {label}
-                </motion.div>
-              ))}
-            </div>
-          </motion.aside>
+            <motion.button
+              type="button"
+              whileHover={shouldReduceMotion ? undefined : { scale: 1.025 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={next}
+              className="rs-primary-button h-11 rounded-xl px-7 text-sm font-semibold"
+            >
+              {step === steps.length - 1 ? copy.start : copy.next}
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Thin progress bar below card */}
+        <div className="mt-4 h-0.5 overflow-hidden rounded-full bg-[var(--color-soft)]">
+          <motion.div
+            className="h-full rounded-full bg-[var(--color-accent)]"
+            animate={{ width: `${progress * 100}%` }}
+            transition={{ type: "spring", stiffness: 180, damping: 28 }}
+          />
         </div>
       </div>
     </motion.section>
