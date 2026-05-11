@@ -1,6 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useState } from "react";
+import { buildApiUrl } from "@/lib/apiConfig";
 import { motion } from "framer-motion";
 import type { Listing, ListingStatus } from "@/types/listing";
 import { i18n, type Language } from "@/lib/i18n";
@@ -106,7 +107,11 @@ function getUsableImageUrl(listing: Listing) {
   const resolved = upgradeImageUrl(imageUrl);
 
   if (proxiedImageHosts.has(imageHost)) {
-    return `/api/proxy/image?url=${encodeURIComponent(resolved)}`;
+    try {
+      return buildApiUrl(`/proxy/image?url=${encodeURIComponent(resolved)}`);
+    } catch {
+      return "";
+    }
   }
 
   return resolved;

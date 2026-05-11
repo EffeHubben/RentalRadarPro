@@ -441,10 +441,13 @@ def get_listings(
             )
         )
 
+    has_no_image = case((Listing.image_url.is_(None), 1), (Listing.image_url == "", 1), else_=0)
+
     if sort == "cheapest":
         query = query.order_by(
             case((Listing.price.is_(None), 1), else_=0),
             Listing.price.asc(),
+            has_no_image,
             Listing.last_seen_at.desc(),
             Listing.created_at.desc(),
         )
@@ -452,17 +455,19 @@ def get_listings(
         query = query.order_by(
             case((Listing.price.is_(None), 1), else_=0),
             Listing.price.desc(),
+            has_no_image,
             Listing.last_seen_at.desc(),
             Listing.created_at.desc(),
         )
     elif sort == "recently_updated":
-        query = query.order_by(Listing.last_checked_at.desc(), Listing.updated_at.desc())
+        query = query.order_by(has_no_image, Listing.last_checked_at.desc(), Listing.updated_at.desc())
     elif sort == "newest":
-        query = query.order_by(Listing.first_seen_at.desc(), Listing.created_at.desc())
+        query = query.order_by(has_no_image, Listing.first_seen_at.desc(), Listing.created_at.desc())
     elif sort == "best_quality":
         query = query.order_by(
             case((Listing.confidence_score.is_(None), 1), else_=0),
             Listing.confidence_score.desc(),
+            has_no_image,
             Listing.last_seen_at.desc(),
             Listing.created_at.desc(),
         )

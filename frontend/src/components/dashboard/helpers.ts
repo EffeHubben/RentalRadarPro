@@ -231,7 +231,7 @@ export function createInitialFilters(): ListingFilters {
     status: "",
     showHiddenListings: false,
     search: "",
-    sort: "newest",
+    sort: "best_match",
     limit: 10,
     offset: 0,
   };
