@@ -239,8 +239,11 @@ def parse_heimstaden_listings(
     listings: list[ScrapedListing] = []
     seen_urls: set[str] = set()
 
-    for card in soup.select("div.object-card[data-object-id]"):
-        link = card.select_one("a.object-card__inner[href]")
+    for card in soup.select("div.object-card, .object-card__inner"):
+        link = card.select_one("a[href*='/huurwoningen/'], a[href*='/projecten/']") or card.find_parent("a")
+        if not link and card.name == "a":
+            link = card
+            
         full_url = absolute_listing_url(search_url, link.get("href") if link else None)
 
         if not full_url or full_url in seen_urls:
@@ -251,6 +254,12 @@ def parse_heimstaden_listings(
         location_text = first_element_text(card, ".object-card__location")
         city = location_text.split("/", 1)[0].strip() or requested_city
         address = first_element_text(card, ".object-card__address")
+        
+        # Refined extraction for price, area, rooms
+        price_text = first_element_text(card, ".object-card__data-prize, .object-card__price")
+        area_text = first_element_text(card, ".object-card__data-size, .object-card__size")
+        rooms_text = first_element_text(card, ".object-card__data-rooms, .object-card__rooms")
+        
         description = normalized_text(card)
         availability_text = first_element_text(card, ".object-card__availability")
         availability_status, is_available = detect_availability_status(availability_text or description)
@@ -262,14 +271,104 @@ def parse_heimstaden_listings(
                 source=config.display_name,
                 url=full_url,
                 city=city,
-                price=parse_price(first_element_text(card, ".object-card__data-prize")),
-                area_m2=parse_area_value(first_element_text(card, ".object-card__data-size")),
-                rooms=parse_room_value(first_element_text(card, ".object-card__data-rooms")),
+                price=parse_price(price_text or description),
+                area_m2=parse_area_value(area_text or description),
+                rooms=parse_room_value(rooms_text or description),
                 image_url=first_valid_listing_image(card, search_url, soup),
                 description=description[:1500],
                 availability_status=availability_status,
                 is_available=is_available,
                 address_text=address or None,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_interhouse_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".property-item, .listing-item, .card"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".title, h3, h2")
+        city_text = first_element_text(card, ".city, .location") or requested_city
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_huislijn_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".listing-item, article"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".title, h3")
+        city_text = first_element_text(card, ".city, .location") or requested_city
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
                 street_name=street_name,
                 house_number=house_number,
             )
@@ -325,10 +424,714 @@ def parse_vesteda_listings(
     return listings
 
 
+def parse_123wonen_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".woning-listing, .woning-omschrijving"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".woning-title, h2")
+        address = first_element_text(card, ".woning-adres, .address")
+        city = first_element_text(card, ".woning-plaats, .city") or requested_city
+        price_text = first_element_text(card, ".woning-prijs, .price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(address or title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(address or title, city, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_nederwoon_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".aanbod-item, .listing-item"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".aanbod-item-title, h3")
+        city_text = first_element_text(card, ".aanbod-item-city, .city") or requested_city
+        price_text = first_element_text(card, ".aanbod-item-price, .price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_rotsvast_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".rotsvast-listing-item, article.listing"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        address = first_element_text(card, ".address, h3")
+        city_text = first_element_text(card, ".city, .location") or requested_city
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(address)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(address, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_househunting_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".listing-item, .property-item"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".title, h2")
+        city_text = first_element_text(card, ".location, .city") or requested_city
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_huurwoningen_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".listing-search-item, .listing-item"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".listing-search-item__title, h2")
+        address = first_element_text(card, ".listing-search-item__sub-title, .address")
+        city = first_element_text(card, ".listing-search-item__city, .city") or requested_city
+        price_text = first_element_text(card, ".listing-search-item__price, .price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(address or title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(address or title, city, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_directwonen_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".listing-item, .property-item"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".title, h2")
+        city_text = first_element_text(card, ".city, .location") or requested_city
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_huurportaal_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".listing-item, .property-card"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".title, h3")
+        city_text = first_element_text(card, ".city, .location") or requested_city
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_huurwoningportaal_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".listing-item, .property-item"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".title, h3")
+        city_text = first_element_text(card, ".city, .location") or requested_city
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_pandomo_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".property-card, .listing-item"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".title, h3")
+        city_text = first_element_text(card, ".location, .city") or requested_city
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_friendly_housing_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".property-item, .listing-item"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".title, h2")
+        city_text = first_element_text(card, ".city, .location") or requested_city
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_acasa_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".listing-item, .property-card"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".title, h3")
+        city_text = first_element_text(card, ".city, .location") or requested_city
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_rentcompany_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".property-card, .listing-item"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".title, h3")
+        city_text = first_element_text(card, ".city, .location") or requested_city
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_domica_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".listing-item, .property-card"):
+        link = card.select_one("a[href]")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".title, h3")
+        city_text = first_element_text(card, ".city, .location") or requested_city
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city_text, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city_text,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_pararius_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    # Pararius often uses section.listing-search-item
+    for card in soup.select("section.listing-search-item, .listing-search-item"):
+        link = card.select_one("a[href*='-te-huur/']")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".listing-search-item__title, h2")
+        subtitle = first_element_text(card, ".listing-search-item__sub-title, .location")
+        price_text = first_element_text(card, ".listing-search-item__price, .price")
+        
+        # Pararius details are often in a list
+        details_text = normalized_text(card.select_one(".listing-search-item__features")) or normalized_text(card)
+        
+        city = requested_city
+        if subtitle and "," in subtitle:
+            city = subtitle.split(",")[-1].strip()
+
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, city, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=city,
+                price=parse_price(price_text),
+                area_m2=parse_area_value(details_text),
+                rooms=parse_room_value(details_text),
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
+def parse_kamernet_listings(
+    soup: BeautifulSoup,
+    search_url: str,
+    requested_city: str,
+    config: GenericSourceConfig,
+) -> list[ScrapedListing]:
+    listings: list[ScrapedListing] = []
+    seen_urls: set[str] = set()
+
+    for card in soup.select(".listing-item, [class*='SearchResult']"):
+        link = card.select_one("a[href*='/huren/']")
+        full_url = absolute_listing_url(search_url, link.get("href") if link else None)
+
+        if not full_url or full_url in seen_urls:
+            continue
+
+        seen_urls.add(full_url)
+        title = first_element_text(card, ".title, h3")
+        price_text = first_element_text(card, ".price")
+        details_text = normalized_text(card)
+        
+        # Kamernet is room-focused, area is often small
+        area_m2 = parse_area_value(details_text)
+        rooms = parse_room_value(details_text)
+        
+        availability_status, is_available = detect_availability_status(details_text)
+        street_name, house_number = split_street_and_number(title)
+
+        listings.append(
+            ScrapedListing(
+                title=build_address_title(title, requested_city, full_url, config.display_name),
+                source=config.display_name,
+                url=full_url,
+                city=requested_city,
+                price=parse_price(price_text),
+                area_m2=area_m2,
+                rooms=rooms,
+                image_url=first_valid_listing_image(card, search_url, soup),
+                description=details_text[:1500],
+                availability_status=availability_status,
+                is_available=is_available,
+                street_name=street_name,
+                house_number=house_number,
+            )
+        )
+
+    return listings
+
+
 SOURCE_SPECIFIC_PARSERS = {
     "expat_rentals": parse_expat_rentals_listings,
     "heimstaden": parse_heimstaden_listings,
     "vesteda": parse_vesteda_listings,
+    "123wonen": parse_123wonen_listings,
+    "nederwoon": parse_nederwoon_listings,
+    "rotsvast": parse_rotsvast_listings,
+    "househunting": parse_househunting_listings,
+    "huurwoningen": parse_huurwoningen_listings,
+    "directwonen": parse_directwonen_listings,
+    "huurportaal": parse_huurportaal_listings,
+    "huurwoningportaal": parse_huurwoningportaal_listings,
+    "pandomo": parse_pandomo_listings,
+    "friendly_housing": parse_friendly_housing_listings,
+    "acasa": parse_acasa_listings,
+    "rentcompany": parse_rentcompany_listings,
+    "domica": parse_domica_listings,
+    "pararius": parse_pararius_listings,
+    "kamernet": parse_kamernet_listings,
 }
 
 
