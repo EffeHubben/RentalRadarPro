@@ -11,6 +11,7 @@ from app.database.db import engine, get_database_session
 from app.models.email_delivery import EmailDelivery
 from app.models.listing import Listing
 from app.models.user import User
+from app.services.listing_verifier import verify_stale_listings
 from app.sources.registry import RENTAL_SOURCES
 from app.schemas.admin import (
     AdminEmailDeliveriesListResponse,
@@ -220,6 +221,17 @@ def delete_admin_user(
     database.delete(target_user)
     database.commit()
     return
+
+
+@router.post("/listings/verify-stale")
+def trigger_verify_stale_listings(
+    batch_size: int = Query(default=20, ge=1, le=100),
+    max_age_hours: int = Query(default=12, ge=1, le=168),
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    del admin_user
+    return verify_stale_listings(database, batch_size=batch_size, max_age_hours=max_age_hours)
 
 
 @router.get("/email-deliveries", response_model=AdminEmailDeliveriesListResponse)

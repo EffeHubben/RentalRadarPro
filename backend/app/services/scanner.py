@@ -27,6 +27,7 @@ from app.services.scanner_schedule import (
     source_scan_decisions_for_city,
 )
 from app.services.location import backfill_listing_coordinates
+from app.services.listing_verifier import verify_stale_listings
 
 
 logging.basicConfig(
@@ -186,6 +187,7 @@ def run_forever(
         dry_run,
     )
 
+    cycle_number = 0
     while True:
         results = run_cycle(
             cities,
@@ -198,6 +200,17 @@ def run_forever(
                 logger.info("continuous_scan_result %s", json.dumps(result, default=str))
         else:
             logger.info("continuous_scan_idle no_sources_due=true")
+
+        cycle_number += 1
+        if not dry_run and cycle_number % 6 == 0:
+            verifier_db = SessionLocal()
+            try:
+                verify_results = verify_stale_listings(verifier_db, batch_size=20, max_age_hours=12)
+                logger.info("continuous_verify_result %s", json.dumps(verify_results, default=str))
+            except Exception as verify_error:
+                logger.warning("continuous_verify_failed error=%s", verify_error)
+            finally:
+                verifier_db.close()
 
         time.sleep(sleep_seconds)
 
