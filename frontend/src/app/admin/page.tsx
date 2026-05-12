@@ -20,6 +20,7 @@ import {
   fetchAdminUsers,
   updateAdminUserAdminStatus,
   updateAdminUserPlan,
+  deleteAdminUser,
 } from "@/lib/admin";
 import type { Language } from "@/lib/i18n";
 import { useLanguagePreference } from "@/lib/useLanguagePreference";
@@ -35,7 +36,7 @@ import type {
 import type { SourceInfo } from "@/types/listing";
 
 type ToastType = Toast["type"];
-type UserActionMode = "grant_admin" | "revoke_admin" | "set_free" | "set_pro";
+type UserActionMode = "grant_admin" | "revoke_admin" | "set_free" | "set_pro" | "delete_user";
 
 type UserActionState = {
   mode: UserActionMode;
@@ -83,6 +84,7 @@ type PageCopy = {
     recentRegistrations: string;
     recentEmails: string;
     subscriptionAttention: string;
+    sources: string;
   };
   usersTitle: string;
   usersSummary: string;
@@ -92,6 +94,7 @@ type PageCopy = {
     removeAdmin: string;
     setFree: string;
     setPro: string;
+    deleteUser: string;
   };
   emailsTitle: string;
   emailsEmpty: string;
@@ -177,7 +180,7 @@ const copy: Record<Language, PageCopy> = {
     unauthorizedTitle: "Niet geautoriseerd",
     unauthorizedBody: "Je bent ingelogd, maar dit account heeft geen admin-rechten.",
     loading: "Admin-gegevens worden geladen...",
-    failedToLoad: "Admin-gegevens konden niet worden geladen.",
+    failedToLoad: "Admin-gegevens kon niet worden geladen.",
     refresh: "Vernieuwen",
     openAccount: "Open account",
     signedInAs: "Ingelogd als",
@@ -208,6 +211,7 @@ const copy: Record<Language, PageCopy> = {
       recentRegistrations: "Registraties, laatste 7 dagen",
       recentEmails: "E-mails, laatste 7 dagen",
       subscriptionAttention: "Canceled + past due + inactive",
+      sources: "Bronnen (totaal / online)",
     },
     usersTitle: "Gebruikers",
     usersSummary: "Zoeken, filteren en veilige accountwijzigingen uitvoeren zonder destructieve acties.",
@@ -217,6 +221,7 @@ const copy: Record<Language, PageCopy> = {
       removeAdmin: "Verwijder admin",
       setFree: "Zet op Free",
       setPro: "Zet op Pro",
+      deleteUser: "Verwijderen",
     },
     emailsTitle: "E-mailleveringen",
     emailsEmpty: "Geen e-mailleveringen voor deze filters.",
@@ -255,12 +260,14 @@ const copy: Record<Language, PageCopy> = {
         revoke_admin: "Admin-rechten verwijderen",
         set_free: "Gebruiker naar Free zetten",
         set_pro: "Gebruiker naar Pro zetten",
+        delete_user: "Gebruiker verwijderen",
       },
       body: {
         grant_admin: "Deze gebruiker krijgt toegang tot admin-endpoints en het admin-dashboard.",
         revoke_admin: "Deze gebruiker verliest toegang tot admin-endpoints en het admin-dashboard.",
         set_free: "Deze gebruiker wordt handmatig op Free gezet. Dit verwijdert geen externe Stripe-abonnementen.",
         set_pro: "Deze gebruiker wordt handmatig op Pro gezet. Een einddatum is optioneel voor tijdelijke toegang.",
+        delete_user: "Weet je zeker dat je deze gebruiker wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
       },
       expiryLabel: "Optionele einddatum",
       expiryHint: "Laat leeg voor handmatige Pro zonder verloopdatum.",
@@ -341,6 +348,7 @@ const copy: Record<Language, PageCopy> = {
       recentRegistrations: "Registrations, last 7 days",
       recentEmails: "Emails, last 7 days",
       subscriptionAttention: "Canceled + past due + inactive",
+      sources: "Sources (total / online)",
     },
     usersTitle: "Users",
     usersSummary: "Search, filter, and apply safe account changes without destructive actions.",
@@ -350,6 +358,7 @@ const copy: Record<Language, PageCopy> = {
       removeAdmin: "Remove admin",
       setFree: "Set Free",
       setPro: "Set Pro",
+      deleteUser: "Delete",
     },
     emailsTitle: "Email deliveries",
     emailsEmpty: "No email deliveries match these filters.",
@@ -388,12 +397,14 @@ const copy: Record<Language, PageCopy> = {
         revoke_admin: "Remove admin access",
         set_free: "Set user to Free",
         set_pro: "Set user to Pro",
+        delete_user: "Delete user",
       },
       body: {
         grant_admin: "This user will gain access to admin endpoints and the admin dashboard.",
         revoke_admin: "This user will lose access to admin endpoints and the admin dashboard.",
         set_free: "This user will be manually switched to Free. This does not cancel any external Stripe subscription.",
         set_pro: "This user will be manually switched to Pro. An expiry date is optional for temporary access.",
+        delete_user: "Are you sure you want to delete this user? This action cannot be undone.",
       },
       expiryLabel: "Optional expiry date",
       expiryHint: "Leave empty for manual Pro access with no expiry.",
@@ -943,6 +954,8 @@ export default function AdminPage() {
         await updateAdminUserAdminStatus(auth.accessToken, actionState.user.id, true);
       } else if (actionState.mode === "revoke_admin") {
         await updateAdminUserAdminStatus(auth.accessToken, actionState.user.id, false);
+      } else if (actionState.mode === "delete_user") {
+        await deleteAdminUser(auth.accessToken, actionState.user.id);
       } else if (actionState.mode === "set_free") {
         await updateAdminUserPlan(auth.accessToken, actionState.user.id, {
           plan: "free",
@@ -1030,6 +1043,14 @@ export default function AdminPage() {
           className="rs-primary-button rounded-lg px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pageCopy.usersActions.setPro}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActionState({ mode: "delete_user", user })}
+          disabled={mutatingUser || user.id === currentUserId}
+          className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/20 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+        >
+          {pageCopy.usersActions.deleteUser}
         </button>
       </div>
     </article>
@@ -1154,6 +1175,19 @@ export default function AdminPage() {
                   </Reveal>
                   <Reveal delay={0.21}>
                     <MetricCard title={pageCopy.metrics.subscriptionAttention} value={subscriptionAttentionCount} />
+                  </Reveal>
+                  <Reveal delay={0.24}>
+                    <div className="rs-card-solid rounded-[1.35rem] p-5">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-subtle)]">
+                        {pageCopy.metrics.sources}
+                      </div>
+                      <div className="mt-3 text-3xl font-semibold text-[var(--color-text)]">
+                        {overview.total_sources}{" "}
+                        <span className="text-xl font-normal text-mint">
+                          / {overview.online_sources}
+                        </span>
+                      </div>
+                    </div>
                   </Reveal>
                 </div>
 
@@ -1361,6 +1395,14 @@ export default function AdminPage() {
                                         className="rs-primary-button rounded-lg px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                                       >
                                         {pageCopy.usersActions.setPro}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setActionState({ mode: "delete_user", user })}
+                                        disabled={mutatingUser || user.id === currentUserId}
+                                        className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/20 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                                      >
+                                        {pageCopy.usersActions.deleteUser}
                                       </button>
                                     </div>
                                   </td>

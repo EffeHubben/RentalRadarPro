@@ -83,6 +83,12 @@ export function updateAdminUserPlan(
   });
 }
 
+export function deleteAdminUser(accessToken: string, userId: number) {
+  return adminRequest<void>(`/admin/users/${userId}`, accessToken, {
+    method: "DELETE",
+  });
+}
+
 export function fetchAdminEmailDeliveries(
   accessToken: string,
   options?: {

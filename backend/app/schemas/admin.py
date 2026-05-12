@@ -15,6 +15,8 @@ class AdminOverviewResponse(BaseModel):
     total_listings: int
     recent_registrations_count: int
     recent_email_deliveries_count: int
+    total_sources: int
+    online_sources: int
 
 
 class AdminUserResponse(BaseModel):

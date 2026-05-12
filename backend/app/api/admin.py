@@ -11,6 +11,7 @@ from app.database.db import engine, get_database_session
 from app.models.email_delivery import EmailDelivery
 from app.models.listing import Listing
 from app.models.user import User
+from app.sources.registry import RENTAL_SOURCES
 from app.schemas.admin import (
     AdminEmailDeliveriesListResponse,
     AdminEmailDeliveryResponse,
@@ -96,6 +97,9 @@ def get_admin_overview(
             or 0
         )
 
+    total_sources = len(RENTAL_SOURCES)
+    online_sources = sum(1 for s in RENTAL_SOURCES if s.status == "online")
+
     return AdminOverviewResponse(
         total_users=int(total_users),
         free_users=int(free_users),
@@ -107,6 +111,8 @@ def get_admin_overview(
         total_listings=int(total_listings),
         recent_registrations_count=int(recent_registrations_count),
         recent_email_deliveries_count=int(recent_email_deliveries_count),
+        total_sources=total_sources,
+        online_sources=online_sources,
     )
 
 
@@ -195,6 +201,25 @@ def update_admin_user_plan(
     database.commit()
     database.refresh(target_user)
     return serialize_admin_user(target_user)
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_admin_user(
+    user_id: int = Path(..., ge=1),
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    target_user = get_target_user(database, user_id)
+
+    if admin_user.id == target_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot delete your own admin account",
+        )
+
+    database.delete(target_user)
+    database.commit()
+    return
 
 
 @router.get("/email-deliveries", response_model=AdminEmailDeliveriesListResponse)

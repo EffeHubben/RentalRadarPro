@@ -11,6 +11,8 @@ export type AdminOverview = {
   total_listings: number;
   recent_registrations_count: number;
   recent_email_deliveries_count: number;
+  total_sources: number;
+  online_sources: number;
 };
 
 export type AdminUser = {
