@@ -1656,11 +1656,11 @@ export default function AdminPage() {
                                     ) : null}
                                   </div>
 
-                              <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
-                                <div>
-                                  <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.lastScan}</div>
-                                  <div className="mt-1 text-[var(--color-text)]">
-                                    {formatDate(source.last_scan_finished_at, language, pageCopy.unknown)}
+                                  <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
+                                    <div>
+                                      <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.lastScan}</div>
+                                      <div className="mt-1 text-[var(--color-text)]">
+                                        {formatDate(source.last_scan_finished_at, language, pageCopy.unknown)}
                                       </div>
                                     </div>
                                     <div>
@@ -1672,8 +1672,8 @@ export default function AdminPage() {
                                       </div>
                                     </div>
                                     <div>
-                                    <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.listingCount}</div>
-                                    <div className="mt-1 text-[var(--color-text)]">
+                                      <div className="font-semibold text-[var(--color-subtle)]">{pageCopy.table.listingCount}</div>
+                                      <div className="mt-1 text-[var(--color-text)]">
                                         {source.total_listing_count ?? source.listings_found_last_scan ?? 0}
                                         <span className="ml-2 text-xs text-[var(--color-muted)]">
                                           +{source.listings_added_today ?? 0} {pageCopy.today}
