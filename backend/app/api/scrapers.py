@@ -263,19 +263,15 @@ def build_location_metadata(database: Session, scraped_listing, city: str) -> di
 
 
 def fetch_source_with_timeout(source, city: str):
-    executor = ThreadPoolExecutor(max_workers=1)
-    future = executor.submit(source.fetch_listings, city)
-    try:
-        return future.result(timeout=source.timeout_seconds)
-    except FutureTimeoutError as error:
-        future.cancel()
-        executor.shutdown(wait=False, cancel_futures=True)
-        raise TimeoutError(
-            f"Source scan exceeded {source.timeout_seconds}s timeout."
-        ) from error
-    finally:
-        if future.done():
-            executor.shutdown(wait=False, cancel_futures=True)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(source.fetch_listings, city)
+        try:
+            return future.result(timeout=source.timeout_seconds)
+        except FutureTimeoutError as error:
+            future.cancel()
+            raise TimeoutError(
+                f"Source scan exceeded {source.timeout_seconds}s timeout."
+            ) from error
 
 
 def mark_source_result(source, source_summary: dict, finished_at: datetime) -> None:
