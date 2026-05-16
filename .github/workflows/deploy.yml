@@ -3,7 +3,7 @@ name: Deploy to VPS
 on:
   push:
     branches:
-      - animated-landing-page
+      - main
 
 jobs:
   deploy:
@@ -57,8 +57,8 @@ jobs:
           PROJECT_PATH="${VPS_PROJECT_PATH/#\~/\$HOME}"
           cd "$PROJECT_PATH"
           git fetch origin
-          git checkout animated-landing-page
-          git pull origin animated-landing-page
+          git checkout main
+          git pull origin main
           docker compose up -d --build
           docker compose ps
           if command -v curl >/dev/null 2>&1; then
