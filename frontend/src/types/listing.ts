@@ -121,6 +121,14 @@ export type LocalListingWorkflow = {
 
 export type LocalListingWorkflowState = Record<string, LocalListingWorkflow>;
 
+export type LocationSuggestion = {
+  label: string;
+  city: string | null;
+  province: string | null;
+  lat: number;
+  lng: number;
+};
+
 export type SearchProfileFilters = {
   city: string;
   source: string;
@@ -152,6 +160,10 @@ export type SearchProfileFilters = {
   show_hidden_listings: boolean;
   search: string;
   sort: ListingSort;
+  location_label?: string;
+  location_lat?: string;
+  location_lng?: string;
+  location_radius_km?: number;
 };
 
 export type SearchProfile = {
@@ -164,6 +176,10 @@ export type SearchProfile = {
 
 export type ListingFilters = {
   city: string;
+  locationLabel: string;
+  locationLat: string;
+  locationLng: string;
+  locationRadiusKm: number;
   source: string;
   excludedSources: string[];
   minPrice: string;

@@ -8,6 +8,8 @@ import { hasPro } from "@/lib/subscription";
 import { ActiveFilters } from "@/components/dashboard/ActiveFilters";
 import { ExternalSourcesPanel } from "@/components/dashboard/ExternalSourcesPanel";
 import { FilterPanel } from "@/components/dashboard/FilterPanel";
+import { LocationAutocomplete } from "@/components/dashboard/LocationAutocomplete";
+import { RadiusSelector } from "@/components/dashboard/RadiusSelector";
 import { ListingCard } from "@/components/dashboard/ListingCard";
 import { ListingModal } from "@/components/dashboard/ListingModal";
 import { EmptyState, SkeletonGrid } from "@/components/dashboard/States";
@@ -44,6 +46,7 @@ import type {
   ListingStatus,
   ListingsPage,
   LocalListingWorkflowState,
+  LocationSuggestion,
   PropertyType,
   ScraperFreshness,
   SearchProfile,
@@ -216,16 +219,30 @@ function QuickEditPanel({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="rs-subtle mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em]">
-            {onbCopy.city}
-          </label>
-          <input
-            value={filters.city}
-            onChange={(e) => onUpdate({ city: e.target.value, offset: 0 })}
-            className="rs-input h-10 w-full"
-            placeholder={onbCopy.cityPlaceholder}
-          />
+        <div className="space-y-3">
+          <div>
+            <label className="rs-subtle mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em]">
+              {copy.filters.city}
+            </label>
+            <LocationAutocomplete
+              value={filters.locationLabel || filters.city}
+              language={language}
+              onSelect={(s: LocationSuggestion) =>
+                onUpdate({ locationLabel: s.label, locationLat: String(s.lat), locationLng: String(s.lng), city: "", offset: 0 })
+              }
+              onClear={() =>
+                onUpdate({ locationLabel: "", locationLat: "", locationLng: "", city: "", offset: 0 })
+              }
+              className="w-full"
+            />
+          </div>
+          {filters.locationLat && (
+            <RadiusSelector
+              value={filters.locationRadiusKm}
+              language={language}
+              onChange={(km) => onUpdate({ locationRadiusKm: km, offset: 0 })}
+            />
+          )}
         </div>
 
         <div>
@@ -915,6 +932,10 @@ export default function DashboardPage() {
   function startSearch(values: Pick<
     ListingFilters,
     | "city"
+    | "locationLabel"
+    | "locationLat"
+    | "locationLng"
+    | "locationRadiusKm"
     | "minPrice"
     | "maxPrice"
     | "noMaxPrice"

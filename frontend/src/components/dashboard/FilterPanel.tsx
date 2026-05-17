@@ -6,6 +6,7 @@ import type {
   HouseSubType,
   ListingFilters,
   ListingSort,
+  LocationSuggestion,
   PropertyType,
   SearchProfile,
 } from "@/types/listing";
@@ -13,6 +14,8 @@ import { i18n, type Language } from "@/lib/i18n";
 import { listingStatuses } from "@/lib/listingWorkflow";
 import { CustomSelect, SelectOption } from "./CustomSelect";
 import { SearchProfilesPanel } from "./SearchProfilesPanel";
+import { LocationAutocomplete } from "./LocationAutocomplete";
+import { RadiusSelector } from "./RadiusSelector";
 
 const sectionVariants = {
   hidden: { opacity: 0, y: 10 },
@@ -358,16 +361,30 @@ export function FilterPanel({
             placeholder={copy.searchPlaceholder}
           />
         </label>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block">
+        <div className="space-y-3">
+          <div>
             <FieldLabel>{copy.city}</FieldLabel>
-            <input
-              value={filters.city}
-              onChange={(event) => update("city", event.target.value)}
-              className={inputClass()}
-              placeholder={copy.cityPlaceholder}
+            <LocationAutocomplete
+              value={filters.locationLabel || filters.city}
+              language={language}
+              onSelect={(s: LocationSuggestion) =>
+                onChange({ ...filters, locationLabel: s.label, locationLat: String(s.lat), locationLng: String(s.lng), city: "", offset: 0 })
+              }
+              onClear={() =>
+                onChange({ ...filters, locationLabel: "", locationLat: "", locationLng: "", city: "", offset: 0 })
+              }
+              className="w-full"
             />
-          </label>
+          </div>
+          {filters.locationLat && (
+            <RadiusSelector
+              value={filters.locationRadiusKm}
+              language={language}
+              onChange={(km) => onChange({ ...filters, locationRadiusKm: km, offset: 0 })}
+            />
+          )}
+        </div>
+        <div className="grid grid-cols-1 gap-3">
           <CustomSelect
             label={copy.sourceFilter}
             value={filters.source}

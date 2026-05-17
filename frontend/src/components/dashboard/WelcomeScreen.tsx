@@ -2,12 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import type { ListingFilters, PropertyType } from "@/types/listing";
+import type { ListingFilters, LocationSuggestion, PropertyType } from "@/types/listing";
 import { i18n, type Language } from "@/lib/i18n";
+import { LocationAutocomplete } from "./LocationAutocomplete";
+import { RadiusSelector } from "./RadiusSelector";
 
 type OnboardingValues = Pick<
   ListingFilters,
   | "city"
+  | "locationLabel"
+  | "locationLat"
+  | "locationLng"
+  | "locationRadiusKm"
   | "minPrice"
   | "maxPrice"
   | "noMaxPrice"
@@ -121,6 +127,10 @@ export function WelcomeScreen({
   const [direction, setDirection] = useState(1);
   const [values, setValues] = useState<OnboardingValues>({
     city: initialCity,
+    locationLabel: "",
+    locationLat: "",
+    locationLng: "",
+    locationRadiusKm: 20,
     minPrice: "",
     maxPrice: initialMaxRent,
     noMaxPrice: false,
@@ -283,14 +293,30 @@ export function WelcomeScreen({
                       </h2>
                       <p className="mt-2 text-sm text-[var(--color-muted)]">{copy.locationHelp}</p>
                     </div>
-                    <input
+                    <LocationAutocomplete
                       autoFocus
-                      value={values.city}
-                      onChange={(e) => update("city", e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && next()}
-                      className="rs-input h-12 w-full"
-                      placeholder={copy.cityPlaceholder}
+                      value={values.locationLabel || values.city}
+                      language={language}
+                      onSelect={(s: LocationSuggestion) => {
+                        update("locationLabel", s.label);
+                        update("locationLat", String(s.lat));
+                        update("locationLng", String(s.lng));
+                        update("city", "");
+                      }}
+                      onClear={() => {
+                        update("locationLabel", "");
+                        update("locationLat", "");
+                        update("locationLng", "");
+                        update("city", "");
+                      }}
                     />
+                    {values.locationLat && (
+                      <RadiusSelector
+                        value={values.locationRadiusKm}
+                        language={language}
+                        onChange={(km) => update("locationRadiusKm", km)}
+                      />
+                    )}
                   </div>
                 )}
 

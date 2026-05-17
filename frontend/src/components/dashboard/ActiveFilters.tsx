@@ -9,6 +9,7 @@ type FilterPill = {
   key: keyof ListingFilters;
   label: string;
   resetValue: ListingFilters[keyof ListingFilters];
+  clearKeys?: (keyof ListingFilters)[];
 };
 
 function boolLabel(value: boolean | null, language: Language) {
@@ -52,7 +53,14 @@ export function getActiveFilters(filters: ListingFilters, language: Language): F
   if (filters.search) {
     pills.push({ key: "search", label: `${copy.search}: ${filters.search}`, resetValue: "" });
   }
-  if (filters.city) {
+  if (filters.locationLat && filters.locationLabel) {
+    pills.push({
+      key: "locationLabel",
+      label: `${copy.locationRadius}: ${filters.locationLabel} + ${filters.locationRadiusKm} km`,
+      resetValue: "",
+      clearKeys: ["locationLabel", "locationLat", "locationLng"],
+    });
+  } else if (filters.city) {
     pills.push({ key: "city", label: `${copy.city}: ${filters.city}`, resetValue: "" });
   }
   if (filters.source) {
@@ -230,13 +238,15 @@ export function ActiveFilters({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.96 }}
                 aria-label={`${filter.label} ${copy.remove}`}
-                onClick={() =>
-                  onChange({
-                    ...filters,
-                    [filter.key]: filter.resetValue,
-                    offset: 0,
-                  })
-                }
+                onClick={() => {
+                  const cleared: Partial<ListingFilters> = { [filter.key]: filter.resetValue };
+                  if (filter.clearKeys) {
+                    for (const k of filter.clearKeys) {
+                      (cleared as Record<string, unknown>)[k] = "";
+                    }
+                  }
+                  onChange({ ...filters, ...cleared, offset: 0 });
+                }}
                 className="rs-chip rounded-full px-3 py-1.5 text-xs font-medium transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
               >
                 {filter.label} <span className="rs-subtle ml-1">×</span>

@@ -203,6 +203,10 @@ export function listingDate(listing: Listing, language: Language = "nl") {
 export function createInitialFilters(): ListingFilters {
   return {
     city: "",
+    locationLabel: "",
+    locationLat: "",
+    locationLng: "",
+    locationRadiusKm: 20,
     source: "",
     excludedSources: [],
     minPrice: "",

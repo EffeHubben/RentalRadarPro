@@ -39,6 +39,10 @@ export function profileFiltersFromListingFilters(
 ): SearchProfileFilters {
   return {
     city: filters.city,
+    location_label: filters.locationLabel || undefined,
+    location_lat: filters.locationLat || undefined,
+    location_lng: filters.locationLng || undefined,
+    location_radius_km: filters.locationLat ? filters.locationRadiusKm : undefined,
     source: filters.source,
     min_price: filters.minPrice,
     max_price: filters.maxPrice,
@@ -80,6 +84,10 @@ export function listingFiltersFromProfile(
   return {
     ...defaults,
     city: profileFilters.city,
+    locationLabel: profileFilters.location_label ?? "",
+    locationLat: profileFilters.location_lat ?? "",
+    locationLng: profileFilters.location_lng ?? "",
+    locationRadiusKm: profileFilters.location_radius_km ?? 20,
     source: profileFilters.source,
     minPrice: profileFilters.min_price,
     maxPrice: profileFilters.max_price,

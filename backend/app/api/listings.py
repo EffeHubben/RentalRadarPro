@@ -1,5 +1,6 @@
 from typing import Literal
 from datetime import datetime, timedelta
+import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import and_, case, or_
@@ -31,6 +32,15 @@ FREE_LISTING_LIMIT = 10
 BEST_MATCH_DIVERSITY_WINDOW = 36
 BEST_MATCH_MAX_RANK_JUMP = 8
 BEST_MATCH_COMPARABLE_SCORE_GAP = 0.16
+_RADIUS_MAX_CANDIDATES = 2000
+
+
+def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlng = math.radians(lng2 - lng1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng / 2) ** 2
+    return R * 2 * math.asin(math.sqrt(min(1.0, a)))
 
 
 def _listing_source_id(listing: Listing) -> str:
@@ -202,6 +212,9 @@ def get_listings(
     available_now: bool = Query(default=False, description="Only listings explicitly marked available."),
     only_independent: bool = Query(default=False),
     search: str | None = Query(default=None),
+    location_lat: float | None = Query(default=None, description="Latitude of center point for radius search"),
+    location_lng: float | None = Query(default=None, description="Longitude of center point for radius search"),
+    radius_km: float | None = Query(default=None, ge=1, le=200, description="Search radius in km"),
     sort: Literal[
         "best_match",
         "newest",
@@ -527,25 +540,58 @@ def get_listings(
             Listing.created_at.desc(),
         )
 
-    total = query.count()
-    user_is_pro = current_user is not None and is_pro(current_user)
-    free_limit_applied = not user_is_pro
+    radius_active = (
+        location_lat is not None
+        and location_lng is not None
+        and radius_km is not None
+        and radius_km > 0
+    )
 
-    if sort == "best_match":
-        if free_limit_applied:
-            candidate_limit = max(FREE_LISTING_LIMIT, min(BEST_MATCH_DIVERSITY_WINDOW, total))
-            raw_listings = _diversify_best_match_listings(
-                query.offset(0).limit(candidate_limit).all()
-            )[:FREE_LISTING_LIMIT]
+    if radius_active:
+        lat_margin = radius_km / 111.0
+        lng_margin = radius_km / (111.0 * math.cos(math.radians(location_lat)))
+        query = query.filter(
+            Listing.latitude.isnot(None),
+            Listing.longitude.isnot(None),
+            Listing.latitude.between(location_lat - lat_margin, location_lat + lat_margin),
+            Listing.longitude.between(location_lng - lng_margin, location_lng + lng_margin),
+        )
+        candidates = query.limit(_RADIUS_MAX_CANDIDATES).all()
+        all_in_radius = [
+            l for l in candidates
+            if _haversine_km(location_lat, location_lng, l.latitude, l.longitude) <= radius_km
+        ]
+        total = len(all_in_radius)
+        user_is_pro = current_user is not None and is_pro(current_user)
+        free_limit_applied = not user_is_pro
+        if sort == "best_match":
+            diversity_pool = all_in_radius[:max(FREE_LISTING_LIMIT, BEST_MATCH_DIVERSITY_WINDOW)]
+            diversified = _diversify_best_match_listings(diversity_pool)
+            raw_listings = diversified[:FREE_LISTING_LIMIT] if free_limit_applied else diversified[offset: offset + limit]
+        elif free_limit_applied:
+            raw_listings = all_in_radius[:FREE_LISTING_LIMIT]
         else:
-            candidate_limit = min(max(offset + limit, BEST_MATCH_DIVERSITY_WINDOW), total)
-            raw_listings = _diversify_best_match_listings(
-                query.offset(0).limit(candidate_limit).all()
-            )[offset: offset + limit]
-    elif free_limit_applied:
-        raw_listings = query.offset(0).limit(FREE_LISTING_LIMIT).all()
+            raw_listings = all_in_radius[offset: offset + limit]
     else:
-        raw_listings = query.offset(offset).limit(limit).all()
+        total = query.count()
+        user_is_pro = current_user is not None and is_pro(current_user)
+        free_limit_applied = not user_is_pro
+
+        if sort == "best_match":
+            if free_limit_applied:
+                candidate_limit = max(FREE_LISTING_LIMIT, min(BEST_MATCH_DIVERSITY_WINDOW, total))
+                raw_listings = _diversify_best_match_listings(
+                    query.offset(0).limit(candidate_limit).all()
+                )[:FREE_LISTING_LIMIT]
+            else:
+                candidate_limit = min(max(offset + limit, BEST_MATCH_DIVERSITY_WINDOW), total)
+                raw_listings = _diversify_best_match_listings(
+                    query.offset(0).limit(candidate_limit).all()
+                )[offset: offset + limit]
+        elif free_limit_applied:
+            raw_listings = query.offset(0).limit(FREE_LISTING_LIMIT).all()
+        else:
+            raw_listings = query.offset(offset).limit(limit).all()
 
     if free_limit_applied:
         response_items = [

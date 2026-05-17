@@ -11,6 +11,7 @@ from app.api.admin import router as admin_router
 from app.api.billing import router as billing_router
 from app.api.debug import router as debug_router
 from app.api.listings import router as listings_router
+from app.api.locations import router as locations_router
 from app.api.monitoring import router as monitoring_router
 from app.api.scrapers import router as scrapers_router
 from app.api.proxy import router as proxy_router
@@ -51,6 +52,7 @@ app.include_router(admin_router)
 app.include_router(billing_router)
 app.include_router(debug_router)
 app.include_router(listings_router)
+app.include_router(locations_router)
 app.include_router(monitoring_router)
 app.include_router(proxy_router)
 app.include_router(scrapers_router)

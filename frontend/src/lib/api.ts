@@ -2,6 +2,7 @@ import type {
   Listing,
   ListingFilters,
   ListingsPage,
+  LocationSuggestion,
   ScraperFreshness,
   ScraperResult,
   SourceInfo,
@@ -29,6 +30,12 @@ export function buildListingQueryParams(filters: ListingFilters): URLSearchParam
 
   if (filters.city.trim()) {
     params.set("city", filters.city.trim());
+  }
+
+  if (filters.locationLat && filters.locationLng) {
+    params.set("location_lat", filters.locationLat);
+    params.set("location_lng", filters.locationLng);
+    params.set("radius_km", String(filters.locationRadiusKm || 20));
   }
 
   if (filters.source.trim()) {
@@ -171,6 +178,13 @@ export async function fetchListingById(
 
 export async function fetchSources(): Promise<SourceInfo[]> {
   return request<SourceInfo[]>("/sources/", {
+    cache: "no-store",
+  });
+}
+
+export async function fetchLocationSuggestions(q: string): Promise<LocationSuggestion[]> {
+  const params = new URLSearchParams({ q });
+  return request<LocationSuggestion[]>(`/locations/suggest?${params.toString()}`, {
     cache: "no-store",
   });
 }
