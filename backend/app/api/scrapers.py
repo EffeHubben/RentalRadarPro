@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 import logging
+import multiprocessing as mp
 import time
 from time import perf_counter
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -263,18 +263,78 @@ def build_location_metadata(database: Session, scraped_listing, city: str) -> di
     return enrich_location(database, merged_parts)
 
 
-_SOURCE_FETCH_EXECUTOR = ThreadPoolExecutor(max_workers=4)
+_mp_ctx = mp.get_context("fork")
+
+
+def _scan_subprocess_worker(source_key: str, city: str, result_queue):
+    """Subprocess worker — runs source.fetch_listings in isolation so it can be killed on timeout."""
+    try:
+        from app.sources.registry import RENTAL_SOURCES
+        from app.scrapers.generic_sources import SourceBlockedError as _SourceBlockedError
+    except Exception as import_error:
+        result_queue.put(("error", f"worker_import: {import_error}"))
+        return
+
+    source_obj = next((s for s in RENTAL_SOURCES if s.source_key == source_key), None)
+    if source_obj is None:
+        result_queue.put(("error", f"source_not_registered: {source_key}"))
+        return
+
+    try:
+        listings = source_obj.fetch_listings(city)
+        result_queue.put(("ok", listings))
+    except _SourceBlockedError as blocked_error:
+        result_queue.put(("blocked", str(blocked_error)))
+    except Exception as scan_error:
+        result_queue.put(("error", str(scan_error)))
 
 
 def fetch_source_with_timeout(source, city: str):
-    future = _SOURCE_FETCH_EXECUTOR.submit(source.fetch_listings, city)
+    """Run source.fetch_listings in a forked subprocess that is forcefully killed on timeout."""
+    result_queue = _mp_ctx.Queue()
+    proc = _mp_ctx.Process(
+        target=_scan_subprocess_worker,
+        args=(source.source_key, city, result_queue),
+        daemon=True,
+    )
+    started_monotonic = time.monotonic()
+
     try:
-        return future.result(timeout=source.timeout_seconds)
-    except FutureTimeoutError as error:
-        future.cancel()
+        proc.start()
+    except OSError as start_error:
+        logger.error(
+            "scan_subprocess_start_failed source=%s city=%s error=%s",
+            source.source_key, city, start_error,
+        )
+        raise TimeoutError(f"Failed to start scan subprocess: {start_error}") from start_error
+
+    proc.join(timeout=source.timeout_seconds)
+
+    if proc.is_alive():
+        elapsed = time.monotonic() - started_monotonic
+        logger.warning(
+            "scan_subprocess_killed source=%s city=%s elapsed=%.1fs pid=%s",
+            source.source_key, city, elapsed, proc.pid,
+        )
+        proc.terminate()
+        proc.join(timeout=3)
+        if proc.is_alive():
+            proc.kill()
+            proc.join(timeout=2)
+        raise TimeoutError(f"Source scan exceeded {source.timeout_seconds}s timeout.")
+
+    try:
+        kind, value = result_queue.get(timeout=2)
+    except Exception as queue_error:
         raise TimeoutError(
-            f"Source scan exceeded {source.timeout_seconds}s timeout."
-        ) from error
+            f"Source subprocess produced no result (exitcode={proc.exitcode})."
+        ) from queue_error
+
+    if kind == "ok":
+        return value
+    if kind == "blocked":
+        raise SourceBlockedError(value)
+    raise Exception(value)
 
 
 def mark_source_result(source, source_summary: dict, finished_at: datetime) -> None:
@@ -391,7 +451,7 @@ def run_scrapers(
         )
 
         _max_block_retries = 2
-        _block_retry_delay = 30
+        _block_retry_delay = 15
         _last_block_error: SourceBlockedError | None = None
         scraped_listings = None
 

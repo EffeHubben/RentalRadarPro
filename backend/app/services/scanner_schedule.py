@@ -96,7 +96,7 @@ def scan_decision_for_source(
     reason = "interval_due"
 
     if failure_streak:
-        backoff_multiplier = 2 ** min(failure_streak, 4)
+        backoff_multiplier = 2 ** min(failure_streak, 3)
         reason = f"failure_backoff:{failure_streak}"
     elif zero_streak >= ZERO_RESULT_BACKOFF_THRESHOLD:
         backoff_multiplier = min(3, zero_streak)

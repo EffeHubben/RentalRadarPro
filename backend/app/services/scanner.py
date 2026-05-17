@@ -189,17 +189,24 @@ def run_forever(
 
     cycle_number = 0
     while True:
+        cycle_started_at = time.monotonic()
+        logger.info("continuous_cycle_start cycle=%d", cycle_number)
         results = run_cycle(
             cities,
             max_cities_per_cycle=max_cities_per_cycle,
             pause_seconds=pause_seconds,
             dry_run=dry_run,
         )
+        cycle_elapsed = time.monotonic() - cycle_started_at
         if results:
             for result in results:
                 logger.info("continuous_scan_result %s", json.dumps(result, default=str))
         else:
             logger.info("continuous_scan_idle no_sources_due=true")
+        logger.info(
+            "continuous_cycle_complete cycle=%d elapsed_s=%.1f cities_scanned=%d sleep_s=%d",
+            cycle_number, cycle_elapsed, len(results), sleep_seconds,
+        )
 
         cycle_number += 1
         if not dry_run and cycle_number % 6 == 0:
