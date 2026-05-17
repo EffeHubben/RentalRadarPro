@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import logging
+import time
 from time import perf_counter
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
@@ -389,40 +390,64 @@ def run_scrapers(
             source.reliability_weight,
         )
 
+        _max_block_retries = 2
+        _block_retry_delay = 30
+        _last_block_error: SourceBlockedError | None = None
+        scraped_listings = None
+
         try:
-            scraped_listings = fetch_source_with_timeout(source, city)
-        except SourceBlockedError as error:
-            source_summary["status"] = "blocked"
-            source_summary["error"] = truncate_error_message(str(error))
-            source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
-            source_summary["failure_type"] = "blocked"
-            finished_at = datetime.utcnow()
-            LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
-            mark_source_result(source, source_summary, finished_at)
-            record_scan_history(
-                database,
-                city=city,
-                source_id=source.source_key,
-                status=source_summary["status"],
-                scraped_count=source_summary["scraped_count"],
-                created_count=source_summary["created_count"],
-                updated_count=source_summary["updated_count"],
-                skipped_count=source_summary["skipped_count"],
-                duplicate_count=source_summary["duplicate_count"],
-                duration_ms=source_summary["duration_ms"],
-                error=source_summary["error"],
-                started_at=scan_started_at,
-                finished_at=finished_at,
-            )
-            logger.warning(
-                "scan_blocked source=%s source_name=%s city=%s duration_ms=%s error=%s",
-                source.source_key,
-                source.display_name,
-                city,
-                source_summary["duration_ms"],
-                source_summary["error"],
-            )
-            continue
+            for _attempt in range(1 + _max_block_retries):
+                try:
+                    scraped_listings = fetch_source_with_timeout(source, city)
+                    _last_block_error = None
+                    break
+                except SourceBlockedError as error:
+                    _last_block_error = error
+                    if _attempt < _max_block_retries:
+                        logger.warning(
+                            "scan_blocked_retrying source=%s attempt=%d/%d city=%s delay=%ds error=%s",
+                            source.source_key,
+                            _attempt + 1,
+                            _max_block_retries,
+                            city,
+                            _block_retry_delay,
+                            str(error),
+                        )
+                        time.sleep(_block_retry_delay)
+
+            if _last_block_error is not None:
+                source_summary["status"] = "blocked"
+                source_summary["error"] = truncate_error_message(str(_last_block_error))
+                source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
+                source_summary["failure_type"] = "blocked"
+                finished_at = datetime.utcnow()
+                LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
+                mark_source_result(source, source_summary, finished_at)
+                record_scan_history(
+                    database,
+                    city=city,
+                    source_id=source.source_key,
+                    status=source_summary["status"],
+                    scraped_count=source_summary["scraped_count"],
+                    created_count=source_summary["created_count"],
+                    updated_count=source_summary["updated_count"],
+                    skipped_count=source_summary["skipped_count"],
+                    duplicate_count=source_summary["duplicate_count"],
+                    duration_ms=source_summary["duration_ms"],
+                    error=source_summary["error"],
+                    started_at=scan_started_at,
+                    finished_at=finished_at,
+                )
+                logger.warning(
+                    "scan_blocked source=%s source_name=%s city=%s attempts=%d duration_ms=%s error=%s",
+                    source.source_key,
+                    source.display_name,
+                    city,
+                    _max_block_retries + 1,
+                    source_summary["duration_ms"],
+                    source_summary["error"],
+                )
+                continue
         except TimeoutError as error:
             source_summary["status"] = "failed"
             source_summary["error"] = truncate_error_message(str(error))
