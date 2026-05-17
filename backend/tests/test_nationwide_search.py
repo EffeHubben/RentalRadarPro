@@ -26,7 +26,6 @@ from app.models.listing import Listing
 from app.models.scan_history import ScanHistory
 from app.scrapers.funda import build_funda_search_url
 from app.scrapers.ikwilhuren import build_ikwilhuren_search_url
-from app.scrapers.marktplaats import build_search_urls as build_marktplaats_search_urls
 from app.services.scanner import due_sources_for_city
 from app.services.scanner_schedule import scan_decision_for_source
 from app.sources.registry import RENTAL_SOURCES
@@ -115,14 +114,6 @@ def test_funda_url_uses_requested_city() -> None:
     assert breda != rotterdam != amsterdam
 
 
-def test_marktplaats_search_urls_use_requested_city() -> None:
-    urls = build_marktplaats_search_urls("Rotterdam")
-
-    assert urls
-    for url in urls:
-        assert "rotterdam" in url.lower()
-
-
 def test_ikwilhuren_url_uses_requested_city() -> None:
     rotterdam = build_ikwilhuren_search_url("Rotterdam")
     breda = build_ikwilhuren_search_url("Breda")
@@ -147,7 +138,8 @@ def test_due_sources_for_city_treats_unscanned_city_as_due() -> None:
         database.close()
 
     assert "funda" in due_for_rotterdam
-    assert "marktplaats" in due_for_rotterdam
+    assert "ikwilhuren" in due_for_rotterdam
+    assert "marktplaats" not in due_for_rotterdam
 
 
 def test_due_sources_for_city_skips_recently_scanned_city() -> None:
@@ -180,7 +172,8 @@ def test_due_sources_for_city_skips_recently_scanned_city() -> None:
 
     # funda should have just been scanned, but other sources should still be due.
     assert "funda" not in due_for_rotterdam
-    assert "marktplaats" in due_for_rotterdam
+    assert "ikwilhuren" in due_for_rotterdam
+    assert "marktplaats" not in due_for_rotterdam
 
 
 def source_by_key(source_key: str):
@@ -203,8 +196,8 @@ def test_limited_sources_are_not_due_unless_auto_enabled() -> None:
     reset_tables()
     database = SessionLocal()
     try:
-        pararius = source_by_key("pararius")
-        decision = scan_decision_for_source(database, "Breda", pararius)
+        rentola = source_by_key("rentola")
+        decision = scan_decision_for_source(database, "Breda", rentola)
     finally:
         database.close()
 

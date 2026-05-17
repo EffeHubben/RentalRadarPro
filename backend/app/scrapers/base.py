@@ -326,6 +326,8 @@ def parse_rooms(value: str | int | None) -> int | None:
         return None
 
     match = re.search(r"\b(\d{1,2})\s*(?:kamer(?:s)?|room(?:s)?)(?![a-z])", normalized)
+    if not match:
+        match = re.search(r"\b(?:kamer(?:s)?|room(?:s)?)\s*[:\-]?\s*(\d{1,2})\b", normalized)
 
     if not match:
         return None
@@ -347,6 +349,11 @@ def parse_bedrooms(value: str | int | None) -> int | None:
         return None
 
     match = re.search(r"\b(\d{1,2})\s*(?:slaapkamer(?:s)?|bedroom(?:s)?)(?![a-z])", normalized)
+    if not match:
+        match = re.search(
+            r"\b(?:slaapkamer(?:s)?|bedroom(?:s)?)\s*[:\-]?\s*(\d{1,2})\b",
+            normalized,
+        )
 
     if not match:
         return None

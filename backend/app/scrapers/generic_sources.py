@@ -20,6 +20,7 @@ from app.scrapers.base import (
     split_street_and_number,
 )
 from app.services.browser_fetcher import fetch_page_with_browser
+from app.scrapers.runtime_diagnostics import add_metric, set_metric
 
 
 class SourceBlockedError(Exception):
@@ -36,11 +37,13 @@ class GenericSourceConfig:
 
 
 BLOCKED_MARKERS = (
-    "captcha",
     "access denied",
-    "forbidden",
+    "request blocked",
+    "403 forbidden",
     "verify you are human",
     "unusual traffic",
+    "complete the captcha",
+    "captcha challenge",
     "login required",
     "inloggen om verder te gaan",
 )
@@ -64,9 +67,41 @@ NON_LISTING_MARKERS = (
     "wij zoeken",
 )
 
+STRICT_CITY_FILTER_SOURCE_IDS = {
+    "heimstaden",
+    "interhouse",
+    "maxx_aanhuur",
+}
+
 
 def normalize_city(city: str) -> str:
     return " ".join(city.split()).strip()
+
+
+def normalize_city_key(city: str | None) -> str:
+    return " ".join((city or "").lower().replace("-", " ").split())
+
+
+def listing_matches_requested_city(listing: ScrapedListing, requested_city: str) -> bool:
+    listing_city = normalize_city_key(listing.city)
+    if not listing_city:
+        return True
+
+    return listing_city == normalize_city_key(requested_city)
+
+
+def filter_requested_city(
+    listings: list[ScrapedListing],
+    requested_city: str,
+    *,
+    strict: bool,
+) -> list[ScrapedListing]:
+    if not strict:
+        return listings
+
+    filtered = [listing for listing in listings if listing_matches_requested_city(listing, requested_city)]
+    add_metric("city_mismatch_filtered", len(listings) - len(filtered))
+    return filtered
 
 
 def canonicalize_url(url: str) -> str:
@@ -284,7 +319,7 @@ def parse_heimstaden_listings(
             )
         )
 
-    return listings
+    return filter_requested_city(listings, requested_city, strict=True)
 
 
 def parse_interhouse_listings(
@@ -296,17 +331,32 @@ def parse_interhouse_listings(
     listings: list[ScrapedListing] = []
     seen_urls: set[str] = set()
 
-    for card in soup.select(".property-item, .listing-item, .card"):
-        link = card.select_one("a[href]")
+    for card in soup.select("a.c-result-item.building-result[href*='/vastgoed/huur/'], .property-item, .listing-item"):
+        link = card if card.name == "a" else card.select_one("a[href]")
         full_url = absolute_listing_url(search_url, link.get("href") if link else None)
 
         if not full_url or full_url in seen_urls:
             continue
 
         seen_urls.add(full_url)
-        title = first_element_text(card, ".title, h3, h2")
-        city_text = first_element_text(card, ".city, .location") or requested_city
-        price_text = first_element_text(card, ".price")
+        title = first_element_text(card, ".c-result-item__title-address, .title, h3, h2")
+        city_text = first_element_text(card, ".c-result-item__location-label, .city, .location") or requested_city
+        price_text = first_element_text(card, ".c-result-item__price-label, .price")
+        data_values = [
+            normalized_text(value)
+            for value in card.select(".c-result-item__data-value")
+            if normalized_text(value)
+        ]
+        area_text = next((value for value in data_values if "m" in value.lower()), "")
+        area_index = data_values.index(area_text) if area_text in data_values else -1
+        rooms_text = next(
+            (
+                value
+                for value in data_values[area_index + 1 :]
+                if re.fullmatch(r"\d{1,2}", value)
+            ),
+            "",
+        )
         details_text = normalized_text(card)
         availability_status, is_available = detect_availability_status(details_text)
         street_name, house_number = split_street_and_number(title)
@@ -318,18 +368,19 @@ def parse_interhouse_listings(
                 url=full_url,
                 city=city_text,
                 price=parse_price(price_text),
-                area_m2=parse_area_value(details_text),
-                rooms=parse_room_value(details_text),
+                area_m2=parse_area_value(area_text or details_text),
+                rooms=parse_room_value(rooms_text or details_text),
                 image_url=first_valid_listing_image(card, search_url, soup),
                 description=details_text[:1500],
                 availability_status=availability_status,
                 is_available=is_available,
+                address_text=f"{title}, {city_text}" if title and city_text else title or None,
                 street_name=street_name,
                 house_number=house_number,
             )
         )
 
-    return listings
+    return filter_requested_city(listings, requested_city, strict=True)
 
 
 def parse_huislijn_listings(
@@ -369,6 +420,7 @@ def parse_huislijn_listings(
                 description=details_text[:1500],
                 availability_status=availability_status,
                 is_available=is_available,
+                address_text=f"{title}, {city_text}" if title and city_text else title or None,
                 street_name=street_name,
                 house_number=house_number,
             )
@@ -462,6 +514,7 @@ def parse_123wonen_listings(
                 description=details_text[:1500],
                 availability_status=availability_status,
                 is_available=is_available,
+                address_text=f"{address or title}, {city}" if (address or title) and city else address or title or None,
                 street_name=street_name,
                 house_number=house_number,
             )
@@ -507,6 +560,7 @@ def parse_nederwoon_listings(
                 description=details_text[:1500],
                 availability_status=availability_status,
                 is_available=is_available,
+                address_text=f"{title}, {city_text}" if title and city_text else title or None,
                 street_name=street_name,
                 house_number=house_number,
             )
@@ -524,17 +578,32 @@ def parse_rotsvast_listings(
     listings: list[ScrapedListing] = []
     seen_urls: set[str] = set()
 
-    for card in soup.select(".rotsvast-listing-item, article.listing"):
-        link = card.select_one("a[href]")
+    for card in soup.select("a.card--house[href*='/huren/'], .rotsvast-listing-item, article.listing"):
+        link = card if card.name == "a" else card.select_one("a[href]")
         full_url = absolute_listing_url(search_url, link.get("href") if link else None)
 
         if not full_url or full_url in seen_urls:
             continue
 
         seen_urls.add(full_url)
-        address = first_element_text(card, ".address, h3")
-        city_text = first_element_text(card, ".city, .location") or requested_city
-        price_text = first_element_text(card, ".price")
+        address = first_element_text(card, ".card-house__title, .address, h3")
+        city_text = first_element_text(card, ".card-house__text, .city, .location") or requested_city
+        price_text = first_element_text(card, ".card-house__content > .card-house__text:last-child, .price")
+        facts = [
+            normalized_text(item)
+            for item in card.select(".card-house__list li")
+            if normalized_text(item)
+        ]
+        area_text = next((value for value in facts if "m" in value.lower()), "")
+        area_index = facts.index(area_text) if area_text in facts else -1
+        rooms_text = next(
+            (
+                value
+                for value in facts[area_index + 1 :]
+                if re.fullmatch(r"\d{1,2}", value)
+            ),
+            "",
+        )
         details_text = normalized_text(card)
         availability_status, is_available = detect_availability_status(details_text)
         street_name, house_number = split_street_and_number(address)
@@ -546,8 +615,8 @@ def parse_rotsvast_listings(
                 url=full_url,
                 city=city_text,
                 price=parse_price(price_text),
-                area_m2=parse_area_value(details_text),
-                rooms=parse_room_value(details_text),
+                area_m2=parse_area_value(area_text or details_text),
+                rooms=parse_room_value(rooms_text or details_text),
                 image_url=first_valid_listing_image(card, search_url, soup),
                 description=details_text[:1500],
                 availability_status=availability_status,
@@ -1347,17 +1416,17 @@ def parse_maxx_aanhuur_listings(
     listings: list[ScrapedListing] = []
     seen_urls: set[str] = set()
 
-    for card in soup.select(".listing-item, .property-card, .aanbod-item"):
-        link = card.select_one("a[href]")
+    for card in soup.select("a.object[href*='/objects/ads/view/'], .listing-item, .property-card, .aanbod-item"):
+        link = card if card.name == "a" else card.select_one("a[href]")
         full_url = absolute_listing_url(search_url, link.get("href") if link else None)
 
         if not full_url or full_url in seen_urls:
             continue
 
         seen_urls.add(full_url)
-        title = first_element_text(card, ".title, h3, h2")
-        city_text = first_element_text(card, ".city, .location") or requested_city
-        price_text = first_element_text(card, ".price")
+        title = first_element_text(card, ".text-block-34, .title, h3, h2")
+        city_text = first_element_text(card, ".plaatsnaam-object, .city, .location") or requested_city
+        price_text = first_element_text(card, ".huurprijs-object, .price")
         details_text = normalized_text(card)
         availability_status, is_available = detect_availability_status(details_text)
         street_name, house_number = split_street_and_number(title)
@@ -1380,7 +1449,7 @@ def parse_maxx_aanhuur_listings(
             )
         )
 
-    return listings
+    return filter_requested_city(listings, requested_city, strict=True)
 
 
 def parse_friendly_housing_listings(
@@ -1659,9 +1728,17 @@ def fetch_generic_source_listings(
         raise SourceBlockedError("Source appears blocked, requires login, or returned bot protection.")
 
     soup = BeautifulSoup(html, "html.parser")
+    raw_candidate_urls = {
+        canonicalize_url(urljoin(search_url, link.get("href", "")))
+        for link in soup.find_all("a", href=True)
+        if is_probable_listing_url(canonicalize_url(urljoin(search_url, link.get("href", ""))), config)
+    }
+    set_metric("raw_candidates_found", len(raw_candidate_urls))
     parser = SOURCE_SPECIFIC_PARSERS.get(config.source_id)
     if parser is not None:
-        return parser(soup, search_url, requested_city, config)
+        listings = parser(soup, search_url, requested_city, config)
+        set_metric("parsed_successfully", len(listings))
+        return listings
 
     listings = []
     seen_urls = set()
@@ -1726,4 +1803,10 @@ def fetch_generic_source_listings(
             )
         )
 
+    listings = filter_requested_city(
+        listings,
+        requested_city,
+        strict=config.source_id in STRICT_CITY_FILTER_SOURCE_IDS,
+    )
+    set_metric("parsed_successfully", len(listings))
     return listings

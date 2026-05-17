@@ -17,6 +17,17 @@ router = APIRouter(
     tags=["Sources"],
 )
 
+SUCCESS_SCAN_STATUSES = {"success", "no_results", "source_returned_empty", "duplicate_only"}
+FAILURE_SCAN_STATUSES = {
+    "failed",
+    "blocked",
+    "blocked_or_forbidden",
+    "timeout",
+    "invalid_response",
+    "parse_error",
+    "geocoding_failed",
+}
+
 
 def latest_scan_for_source(database: Session, city: str | None, source_id: str) -> ScanHistory | None:
     query = database.query(ScanHistory).filter(ScanHistory.source_id == source_id)
@@ -29,7 +40,7 @@ def latest_scan_for_source(database: Session, city: str | None, source_id: str) 
 def latest_success_for_source(database: Session, city: str | None, source_id: str) -> ScanHistory | None:
     query = database.query(ScanHistory).filter(
         ScanHistory.source_id == source_id,
-        ScanHistory.status.in_(["success", "no_results"]),
+        ScanHistory.status.in_(SUCCESS_SCAN_STATUSES),
     )
     if city:
         query = query.filter(func.lower(ScanHistory.city) == city.lower())
@@ -40,7 +51,7 @@ def latest_success_for_source(database: Session, city: str | None, source_id: st
 def latest_failure_for_source(database: Session, city: str | None, source_id: str) -> ScanHistory | None:
     query = database.query(ScanHistory).filter(
         ScanHistory.source_id == source_id,
-        ScanHistory.status.in_(["failed", "blocked"]),
+        ScanHistory.status.in_(FAILURE_SCAN_STATUSES),
     )
     if city:
         query = query.filter(func.lower(ScanHistory.city) == city.lower())
@@ -73,10 +84,12 @@ def listing_counts_for_source(database: Session, city: str | None, source_id: st
 
 
 def public_status_for_scan(source_status: str, scan_status: str | None) -> str:
-    if scan_status == "failed":
+    if scan_status in {"failed", "timeout", "invalid_response", "parse_error", "geocoding_failed"}:
         return "degraded"
-    if scan_status == "blocked":
+    if scan_status in {"blocked", "blocked_or_forbidden"}:
         return "limited"
+    if scan_status == "all_results_filtered_out":
+        return "degraded"
 
     return source_status
 
@@ -86,7 +99,7 @@ def next_due_from_scan(source, latest_scan: ScanHistory | None) -> str | None:
         return None
 
     backoff_minutes = 0
-    if latest_scan.status in {"failed", "blocked"}:
+    if latest_scan.status in FAILURE_SCAN_STATUSES:
         backoff_minutes = source.interval_minutes * 2
 
     interval = max(source.interval_minutes, backoff_minutes)
@@ -100,13 +113,14 @@ def next_due_from_scan(source, latest_scan: ScanHistory | None) -> str | None:
 def build_sources_payloads(database: Session, city: str | None = None) -> list[dict]:
     payloads = []
     for source in RENTAL_SOURCES:
+        manual_external = not source.supports_automatic_scraping or source.source_type == "manual"
         payload = source_payload(source, city=city)
         if city:
             decision = scan_decision_for_source(database, city, source)
             payload.update(
                 {
                     "scan_state": "due" if decision.due else "skipped",
-                    "scan_skip_reason": None if decision.due else decision.reason,
+                    "scan_skip_reason": None if decision.due else "manual_external" if manual_external else decision.reason,
                     "is_cooling_down": (not decision.due and decision.next_due_at is not None),
                     "next_due_at": decision.next_due_at.isoformat() if decision.next_due_at else payload.get("next_due_at"),
                 }
@@ -115,7 +129,11 @@ def build_sources_payloads(database: Session, city: str | None = None) -> list[d
             payload.update(
                 {
                     "scan_state": "manual" if not source.auto_scan_enabled else "auto",
-                    "scan_skip_reason": None if source.auto_scan_enabled else f"{source.source_type}_not_auto_scanned",
+                    "scan_skip_reason": (
+                        None
+                        if source.auto_scan_enabled
+                        else "manual_external" if manual_external else f"{source.source_type}_not_auto_scanned"
+                    ),
                     "is_cooling_down": False,
                 }
             )
@@ -132,7 +150,7 @@ def build_sources_payloads(database: Session, city: str | None = None) -> list[d
             }
         )
 
-        if latest_scan:
+        if latest_scan and not manual_external:
             payload.update(
                 {
                     "status": public_status_for_scan(source.status, latest_scan.status),
@@ -159,9 +177,9 @@ def build_sources_payloads(database: Session, city: str | None = None) -> list[d
             if not city:
                 payload["next_due_at"] = next_due_from_scan(source, latest_scan)
 
-        if latest_success:
+        if latest_success and not manual_external:
             payload["last_success_at"] = latest_success.finished_at.isoformat() if latest_success.finished_at else None
-        if latest_failure:
+        if latest_failure and not manual_external:
             payload["last_failed_at"] = latest_failure.finished_at.isoformat() if latest_failure.finished_at else None
             payload["last_failed_error"] = truncate_error_message(latest_failure.error)
 

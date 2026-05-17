@@ -19,6 +19,7 @@ from app.scrapers.base import (
     split_street_and_number,
 )
 from app.scrapers.generic_sources import SourceBlockedError
+from app.scrapers.runtime_diagnostics import set_metric
 from app.services.browser_fetcher import fetch_page_with_browser
 
 
@@ -196,6 +197,7 @@ def fetch_ikwilhuren_listings(city: str = "Breda") -> list[ScrapedListing]:
     listings: list[ScrapedListing] = []
     seen_urls: set[str] = set()
     detail_fetches = 0
+    raw_candidates = len(soup.select(".card.card-woning"))
 
     for card in soup.select(".card.card-woning"):
         listing = parse_card(card, search_url, requested_city)
@@ -237,4 +239,6 @@ def fetch_ikwilhuren_listings(city: str = "Breda") -> list[ScrapedListing]:
         len(listings),
         detail_fetches,
     )
+    set_metric("raw_candidates_found", raw_candidates)
+    set_metric("parsed_successfully", len(listings))
     return listings

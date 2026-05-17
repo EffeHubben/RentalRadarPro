@@ -35,6 +35,10 @@ PRO_SUBSCRIPTION_STATUSES = {"active", "trialing"}
 RECENT_ACTIVITY_WINDOW_DAYS = 7
 USER_SEGMENTS = {"all", "free", "pro", "admin", "inactive", "past_due", "canceled"}
 EMAIL_DELIVERY_STATUSES = {"all", "sent", "failed"}
+SCAN_SUCCESS_STATUSES = {"success", "duplicate_only"}
+SCAN_NO_RESULT_STATUSES = {"no_results", "source_returned_empty", "all_results_filtered_out"}
+SCAN_BLOCKED_STATUSES = {"blocked", "blocked_or_forbidden"}
+SCAN_FAILED_STATUSES = {"failed", "timeout", "invalid_response", "parse_error", "geocoding_failed"}
 
 
 def email_deliveries_table_exists() -> bool:
@@ -350,7 +354,7 @@ def get_admin_coverage(
             func.count(ScanHistory.id),
             func.max(ScanHistory.finished_at),
         )
-        .filter(ScanHistory.status.in_(["failed", "blocked"]))
+        .filter(ScanHistory.status.in_(SCAN_FAILED_STATUSES | SCAN_BLOCKED_STATUSES))
         .group_by(ScanHistory.source_id, ScanHistory.city, ScanHistory.status)
         .order_by(func.max(ScanHistory.finished_at).desc())
         .limit(60)
@@ -458,13 +462,13 @@ def get_admin_scan_health(
         n = int(count or 0)
         bucket["scans_total"] += n
         bucket["listings_created"] += int(created_sum or 0)
-        if status_value == "success":
+        if status_value in SCAN_SUCCESS_STATUSES:
             bucket["scans_success"] += n
-        elif status_value == "failed":
+        elif status_value in SCAN_FAILED_STATUSES:
             bucket["scans_failed"] += n
-        elif status_value == "blocked":
+        elif status_value in SCAN_BLOCKED_STATUSES:
             bucket["scans_blocked"] += n
-        elif status_value == "no_results":
+        elif status_value in SCAN_NO_RESULT_STATUSES:
             bucket["scans_no_results"] += n
 
     payloads = build_sources_payloads(database)

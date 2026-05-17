@@ -15,6 +15,7 @@ from app.scrapers.base import (
     parse_postcode_city,
 )
 from app.scrapers.generic_sources import SourceBlockedError
+from app.scrapers.runtime_diagnostics import set_metric
 from app.services.browser_fetcher import fetch_page_with_browser
 
 
@@ -55,6 +56,9 @@ def is_obvious_non_listing(text: str, url: str) -> bool:
         "privacy",
         "inloggen",
         "bewaar",
+        "parkeergelegenheid",
+        "parkeerplaats",
+        "garage",
     ]
     return any(keyword in combined_text for keyword in blocked)
 
@@ -175,6 +179,7 @@ def fetch_funda_listings(city: str = "Breda") -> list[ScrapedListing]:
     room_hints = extract_funda_room_hints(soup)
     listings = []
     seen_urls = set()
+    raw_candidates = 0
 
     for link in soup.find_all("a", href=True):
         href = link.get("href")
@@ -188,6 +193,7 @@ def fetch_funda_listings(city: str = "Breda") -> list[ScrapedListing]:
         if not is_funda_listing_url(full_url) or full_url in seen_urls:
             continue
 
+        raw_candidates += 1
         container = listing_container_for_link(link)
         surrounding_text = container.get_text(" ", strip=True) if container else text
 
@@ -216,4 +222,6 @@ def fetch_funda_listings(city: str = "Breda") -> list[ScrapedListing]:
             )
         )
 
+    set_metric("raw_candidates_found", raw_candidates)
+    set_metric("parsed_successfully", len(listings))
     return listings

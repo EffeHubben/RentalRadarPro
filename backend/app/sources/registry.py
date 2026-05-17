@@ -13,7 +13,6 @@ from app.scrapers.generic_sources import (
 from app.scrapers.holland2stay import fetch_holland2stay_listings
 from app.scrapers.ikwilhuren import fetch_ikwilhuren_listings
 from app.scrapers.klikvoorwonen import fetch_klikvoorwonen_listings
-from app.scrapers.marktplaats import fetch_marktplaats_listings
 
 
 FetchListings = Callable[[str], list]
@@ -243,20 +242,21 @@ RENTAL_SOURCES: list[RentalSource] = [
         enabled=True,
         supports_city_search=True,
         base_url="https://www.marktplaats.nl",
-        notes="Custom Marktplaats rental search across multiple keyword templates.",
-        fetch_listings=fetch_marktplaats_listings,
+        notes="External marketplace link only; Marktplaats is not scanned by RentScout.",
+        fetch_listings=manual_only_fetcher(),
         manual_search_url_template="https://www.marktplaats.nl/q/{city}+huurwoning/",
         category="marketplace",
         auto_scan_enabled=False,
         scan_interval_minutes=15,
-        status="offline",
+        status="manual",
         country="NL",
-        source_type="direct_scraper",
+        source_type="manual",
         supports_pagination=False,
         likely_blocks_bots=True,
         priority=75,
-        reliability_weight=0.70,
-        internal_reason="Disabled: too many inaccurate listings flooding results.",
+        reliability_weight=0.0,
+        supports_automatic_scraping=False,
+        internal_reason="Manual/external only: do not scrape Marktplaats listings.",
     ),
     RentalSource(
         source_key="funda",
@@ -285,7 +285,7 @@ RENTAL_SOURCES: list[RentalSource] = [
         base_url="https://ikwilhuren.nu",
         notes="MVGM / Ik wil huren landlord portal with detail-page enrichment.",
         fetch_listings=fetch_ikwilhuren_listings,
-        manual_search_url_template="https://ikwilhuren.nu/aanbod?gemeente={city}",
+        manual_search_url_template="https://ikwilhuren.nu/aanbod/{city}",
         category="landlord",
         auto_scan_enabled=True,
         scan_interval_minutes=5,
@@ -467,7 +467,7 @@ RENTAL_SOURCES: list[RentalSource] = [
         display_name="Interhouse",
         base_url="https://interhouse.nl",
         search_url_template="https://interhouse.nl/huurwoningen/?keyword={city}",
-        listing_path_markers=("/huurwoningen/", "/woning/"),
+        listing_path_markers=("/vastgoed/huur/",),
         category="marketplace",
         notes="Interhouse rental network.",
         auto_scan_enabled=True,
@@ -480,16 +480,32 @@ RENTAL_SOURCES: list[RentalSource] = [
         source_key="maxx_aanhuur",
         display_name="Maxx Aanhuur",
         base_url="https://maxx-rental.com",
-        search_url_template="https://maxx-rental.com/woningaanbod/?location={city}",
-        listing_path_markers=("/woningaanbod/", "/aanbod/", "/huurwoning/"),
+        search_url_template="https://maxx-rental.com/woonruimte-huren/?city={city}",
+        listing_path_markers=("/objects/ads/view/",),
         category="marketplace",
-        notes="Maxx Aanhuur rental network (Groningen/Utrecht focus).",
+        notes="Maxx Aanhuur rental network (Groningen/Utrecht/Zwolle focus).",
         auto_scan_enabled=True,
         scan_interval_minutes=25,
         status="online",
         internal_reason=None,
         priority=70,
         reliability_weight=0.75,
+        supported_cities=(
+            "Assen",
+            "Borger",
+            "Emmen",
+            "Enschede",
+            "Groningen",
+            "Harderwijk",
+            "Hattem",
+            "Kampen",
+            "Leek",
+            "Leeuwarden",
+            "Meppel",
+            "Utrecht",
+            "Zeist",
+            "Zwolle",
+        ),
     ),
     make_generic_source(
         source_key="friendly_housing",
@@ -1181,9 +1197,10 @@ RENTAL_SOURCES: list[RentalSource] = [
         listing_path_markers=("/woningen/", "/woning/"),
         category="landlord",
         notes="Commercial rental platform with homes in major Dutch cities.",
-        auto_scan_enabled=True,
+        auto_scan_enabled=False,
         scan_interval_minutes=30,
-        status="online",
+        status="limited",
+        internal_reason="External source pending live parser validation; keep out of automatic scanner rotation.",
         supported_cities=("Amsterdam", "Rotterdam", "Den Haag", "Utrecht", "Alkmaar"),
         supported_regions=("Randstad", "Noord-Holland", "Zuid-Holland", "Utrecht"),
         priority=65,
@@ -1266,6 +1283,20 @@ RENTAL_SOURCES: list[RentalSource] = [
 LAST_SOURCE_RUNS: dict[str, dict] = {}
 
 
+def normalize_city_key(city: str | None) -> str:
+    return " ".join((city or "").lower().replace("-", " ").split())
+
+
+def source_supports_city(source: RentalSource, city: str | None) -> bool:
+    supported_cities = getattr(source, "supported_cities", None)
+    if not supported_cities or not city:
+        return True
+
+    requested_city = normalize_city_key(city)
+    normalized_supported_cities = {normalize_city_key(candidate) for candidate in supported_cities}
+    return requested_city in normalized_supported_cities
+
+
 def enabled_sources(source_ids: list[str] | None = None, auto_only: bool = False) -> list[RentalSource]:
     if source_ids is None:
         return [
@@ -1320,6 +1351,7 @@ def source_payload(source: RentalSource, city: str | None = None) -> dict:
         "country": source.country,
         "source_type": source.source_type,
         "supported_cities": list(source.supported_cities) if source.supported_cities else None,
+        "supports_requested_city": source_supports_city(source, city),
         "supported_regions": list(source.supported_regions) if source.supported_regions else None,
         "requires_login": source.requires_login,
         "supports_price_filter": source.supports_price_filter,

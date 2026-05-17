@@ -17,6 +17,7 @@ from typing import Any
 import httpx
 
 from app.scrapers.base import ScrapedListing
+from app.scrapers.runtime_diagnostics import add_metric, record_fetch, set_metric
 
 SOURCE_NAME = "Klik voor Wonen"
 API_URL = "https://klikvoorwonen-aanbodapi.zig365.nl/api/v1/actueel-aanbod"
@@ -137,12 +138,18 @@ def fetch_klikvoorwonen_listings(city: str = "Breda") -> list[ScrapedListing]:
                     json={},
                 )
                 response.raise_for_status()
+                record_fetch(
+                    url=str(response.request.url),
+                    status_code=response.status_code,
+                    response_size=len(response.content),
+                )
                 data = response.json()
             except Exception:
                 logger.exception("klikvoorwonen_fetch_failed city=%s page=%s", city, page)
                 break
 
             items = data.get("data") or []
+            add_metric("raw_candidates_found", len(items))
             meta = data.get("_metadata") or {}
             total_pages = meta.get("page_count", 0)
 
@@ -163,4 +170,5 @@ def fetch_klikvoorwonen_listings(city: str = "Breda") -> list[ScrapedListing]:
                 break
 
     logger.info("klikvoorwonen_scrape city=%s listings_found=%s", city, len(listings))
+    set_metric("parsed_successfully", len(listings))
     return listings

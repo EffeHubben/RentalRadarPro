@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 import re
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from app.scrapers.base import ScrapedListing
 
@@ -75,6 +75,20 @@ KNOWN_CITY_TITLECASE = {
     "s-hertogenbosch": "'s-Hertogenbosch",
 }
 
+TRACKING_QUERY_PREFIXES = ("utm_",)
+TRACKING_QUERY_PARAMS = {
+    "fbclid",
+    "gclid",
+    "gbraid",
+    "wbraid",
+    "mc_cid",
+    "mc_eid",
+    "msclkid",
+    "yclid",
+    "_gl",
+    "_ga",
+}
+
 
 def normalize_space(value: str | None) -> str:
     return " ".join((value or "").replace("\xa0", " ").split()).strip()
@@ -115,8 +129,15 @@ def normalize_listing_url(url: str | None) -> str | None:
     path = re.sub(r"/{2,}", "/", parsed.path or "/")
     if path != "/" and path.endswith("/"):
         path = path.rstrip("/")
+    query_pairs = [
+        (key, value)
+        for key, value in parse_qsl(parsed.query, keep_blank_values=False)
+        if key.lower() not in TRACKING_QUERY_PARAMS
+        and not key.lower().startswith(TRACKING_QUERY_PREFIXES)
+    ]
+    query = urlencode(sorted(query_pairs), doseq=True)
 
-    return urlunsplit((scheme, netloc, path, "", ""))
+    return urlunsplit((scheme, netloc, path, query, ""))
 
 
 def normalize_optional_url(url: str | None) -> str | None:

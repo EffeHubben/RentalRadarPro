@@ -18,6 +18,15 @@ logger = logging.getLogger("rentscout.monitoring")
 
 UPTIME_HISTORY_LIMIT = 20
 SCANNER_FAILURE_LIMIT = 5
+SCANNER_FAILURE_STATUSES = {
+    "failed",
+    "blocked",
+    "blocked_or_forbidden",
+    "timeout",
+    "invalid_response",
+    "parse_error",
+    "geocoding_failed",
+}
 
 
 def _check_database(database: Session) -> dict:
@@ -52,7 +61,7 @@ def _scanner_status(database: Session) -> dict:
 def _recent_failures(database: Session) -> list:
     failures = (
         database.query(ScanHistory)
-        .filter(ScanHistory.status.in_(["failed", "blocked"]))
+        .filter(ScanHistory.status.in_(SCANNER_FAILURE_STATUSES))
         .order_by(ScanHistory.finished_at.desc())
         .limit(SCANNER_FAILURE_LIMIT)
         .all()

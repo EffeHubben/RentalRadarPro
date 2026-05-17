@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import logging
 import multiprocessing as mp
+from queue import Empty
 import time
 from time import perf_counter
 
@@ -36,7 +37,7 @@ from app.services.location import (
     reset_geocode_run_budget,
     slug_to_text,
 )
-from app.sources.registry import LAST_SOURCE_RUNS, enabled_sources
+from app.sources.registry import LAST_SOURCE_RUNS, enabled_sources, source_supports_city
 
 
 router = APIRouter(
@@ -51,6 +52,16 @@ class ScraperRunRequest(BaseModel):
 
 
 FRESHNESS_WINDOW_MINUTES = 60
+SUCCESS_SCAN_STATUSES = {"success", "source_returned_empty", "duplicate_only"}
+FAILURE_SCAN_STATUSES = {
+    "failed",
+    "blocked",
+    "blocked_or_forbidden",
+    "timeout",
+    "invalid_response",
+    "parse_error",
+    "geocoding_failed",
+}
 logger = logging.getLogger("rentscout.scanner")
 
 
@@ -79,6 +90,18 @@ def create_source_summary(source_id: str, source_name: str, manual_search_url: s
         "error": None,
         "duration_ms": None,
         "manual_search_url": manual_search_url,
+        "requested_url": manual_search_url,
+        "requested_urls": [],
+        "http_status": None,
+        "http_statuses": [],
+        "response_size_bytes": 0,
+        "fetch_count": 0,
+        "debug_files": [],
+        "raw_candidates_found": 0,
+        "parsed_successfully": 0,
+        "city_mismatch_filtered": 0,
+        "validation_filtered": 0,
+        "blocked_detected": False,
         "failure_type": None,
         "skip_reasons": {},
         "detail_pages_fetched": 0,
@@ -93,6 +116,77 @@ def create_source_summary(source_id: str, source_name: str, manual_search_url: s
         "unavailable_detected": 0,
         "malformed_skipped": 0,
     }
+
+
+def merge_scraper_diagnostics(source_summary: dict, diagnostics: dict | None) -> None:
+    if not diagnostics:
+        return
+
+    requested_urls = [
+        url for url in diagnostics.get("requested_urls", []) if isinstance(url, str) and url
+    ]
+    http_statuses = [
+        status for status in diagnostics.get("http_statuses", []) if isinstance(status, int)
+    ]
+    response_sizes = [
+        size for size in diagnostics.get("response_sizes", []) if isinstance(size, int)
+    ]
+    debug_files = [
+        debug_file
+        for debug_file in diagnostics.get("debug_files", [])
+        if isinstance(debug_file, str) and debug_file
+    ]
+
+    if requested_urls:
+        source_summary["requested_url"] = requested_urls[0]
+        source_summary["requested_urls"] = requested_urls[:8]
+    if http_statuses:
+        source_summary["http_status"] = http_statuses[0]
+        source_summary["http_statuses"] = http_statuses[:12]
+    if response_sizes:
+        source_summary["response_size_bytes"] = sum(response_sizes)
+    if debug_files:
+        source_summary["debug_files"] = debug_files[:8]
+
+    source_summary["fetch_count"] = len(diagnostics.get("fetches", []) or requested_urls)
+    for key in (
+        "raw_candidates_found",
+        "parsed_successfully",
+        "city_mismatch_filtered",
+        "validation_filtered",
+    ):
+        source_summary[key] = int(diagnostics.get(key, source_summary.get(key, 0)) or 0)
+
+    if diagnostics.get("blocked_detected"):
+        source_summary["blocked_detected"] = True
+
+
+def status_for_empty_result(source_summary: dict) -> str:
+    if source_summary.get("city_mismatch_filtered", 0) > 0:
+        return "all_results_filtered_out"
+    if source_summary.get("raw_candidates_found", 0) > 0:
+        return "parse_error"
+    return "source_returned_empty"
+
+
+def finalize_source_status(source_summary: dict) -> None:
+    if source_summary["scraped_count"] == 0:
+        source_summary["status"] = status_for_empty_result(source_summary)
+        return
+
+    if source_summary["created_count"] or source_summary["updated_count"]:
+        source_summary["status"] = "success"
+        return
+
+    if source_summary["duplicate_count"] >= source_summary["scraped_count"]:
+        source_summary["status"] = "duplicate_only"
+        return
+
+    if source_summary["skipped_count"] >= source_summary["scraped_count"]:
+        source_summary["status"] = "all_results_filtered_out"
+        return
+
+    source_summary["status"] = "success"
 
 
 def update_source_quality_summary(source_summary: dict, scraped_listing) -> None:
@@ -271,22 +365,29 @@ def _scan_subprocess_worker(source_key: str, city: str, result_queue):
     try:
         from app.sources.registry import RENTAL_SOURCES
         from app.scrapers.generic_sources import SourceBlockedError as _SourceBlockedError
+        from app.scrapers.runtime_diagnostics import (
+            reset_scraper_diagnostics as _reset_scraper_diagnostics,
+            scraper_diagnostics_snapshot as _scraper_diagnostics_snapshot,
+            set_metric as _set_metric,
+        )
     except Exception as import_error:
-        result_queue.put(("error", f"worker_import: {import_error}"))
+        result_queue.put(("error", f"worker_import: {import_error}", {}))
         return
 
     source_obj = next((s for s in RENTAL_SOURCES if s.source_key == source_key), None)
     if source_obj is None:
-        result_queue.put(("error", f"source_not_registered: {source_key}"))
+        result_queue.put(("error", f"source_not_registered: {source_key}", {}))
         return
 
+    _reset_scraper_diagnostics(source_key=source_key, city=city)
     try:
         listings = source_obj.fetch_listings(city)
-        result_queue.put(("ok", listings))
+        _set_metric("parsed_successfully", len(listings))
+        result_queue.put(("ok", listings, _scraper_diagnostics_snapshot()))
     except _SourceBlockedError as blocked_error:
-        result_queue.put(("blocked", str(blocked_error)))
+        result_queue.put(("blocked", str(blocked_error), _scraper_diagnostics_snapshot()))
     except Exception as scan_error:
-        result_queue.put(("error", str(scan_error)))
+        result_queue.put(("error", str(scan_error), _scraper_diagnostics_snapshot()))
 
 
 def fetch_source_with_timeout(source, city: str):
@@ -308,9 +409,28 @@ def fetch_source_with_timeout(source, city: str):
         )
         raise TimeoutError(f"Failed to start scan subprocess: {start_error}") from start_error
 
-    proc.join(timeout=source.timeout_seconds)
+    deadline = started_monotonic + source.timeout_seconds
+    result = None
+    while result is None:
+        remaining_seconds = deadline - time.monotonic()
+        if remaining_seconds <= 0:
+            break
 
-    if proc.is_alive():
+        try:
+            result = result_queue.get(timeout=min(0.25, remaining_seconds))
+            break
+        except Empty:
+            if not proc.is_alive():
+                proc.join(timeout=1)
+                try:
+                    result = result_queue.get_nowait()
+                    break
+                except Empty as queue_error:
+                    raise TimeoutError(
+                        f"Source subprocess produced no result (exitcode={proc.exitcode})."
+                    ) from queue_error
+
+    if result is None:
         elapsed = time.monotonic() - started_monotonic
         logger.warning(
             "scan_subprocess_killed source=%s city=%s elapsed=%.1fs pid=%s",
@@ -323,33 +443,55 @@ def fetch_source_with_timeout(source, city: str):
             proc.join(timeout=2)
         raise TimeoutError(f"Source scan exceeded {source.timeout_seconds}s timeout.")
 
-    try:
-        kind, value = result_queue.get(timeout=2)
-    except Exception as queue_error:
-        raise TimeoutError(
-            f"Source subprocess produced no result (exitcode={proc.exitcode})."
-        ) from queue_error
+    proc.join(timeout=3)
+    if proc.is_alive():
+        logger.warning(
+            "scan_subprocess_cleanup_killed source=%s city=%s pid=%s",
+            source.source_key,
+            city,
+            proc.pid,
+        )
+        proc.terminate()
+        proc.join(timeout=2)
+
+    if len(result) == 2:
+        kind, value = result
+        diagnostics = {}
+    else:
+        kind, value, diagnostics = result
 
     if kind == "ok":
-        return value
+        return value, diagnostics
     if kind == "blocked":
-        raise SourceBlockedError(value)
-    raise Exception(value)
+        blocked_error = SourceBlockedError(value)
+        blocked_error.diagnostics = diagnostics
+        raise blocked_error
+    scan_error = Exception(value)
+    scan_error.diagnostics = diagnostics
+    raise scan_error
 
 
 def mark_source_result(source, source_summary: dict, finished_at: datetime) -> None:
     source.last_scan_finished_at = finished_at
     source.listings_found_last_scan = source_summary["scraped_count"]
 
-    if source_summary["status"] in {"success", "no_results"}:
+    if source_summary["status"] in SUCCESS_SCAN_STATUSES:
         source.failure_count = 0
         source.last_success_at = finished_at
-        source.status = "online" if source_summary["status"] == "success" else "degraded"
+        source.status = "online" if source_summary["status"] in {"success", "duplicate_only"} else "degraded"
+        source.last_error = None
+        return
+
+    if source_summary["status"] == "unsupported_city":
         return
 
     source.failure_count += 1
     source.last_error = source_summary["error"]
-    source.status = "limited" if source_summary["status"] == "blocked" else "degraded"
+    source.status = (
+        "limited"
+        if source_summary["status"] in {"blocked", "blocked_or_forbidden"}
+        else "degraded"
+    )
 
 
 def add_location_quality_boost(listing_metadata: dict, location_metadata: dict) -> None:
@@ -432,6 +574,34 @@ def run_scrapers(
             manual_search_url=source.manual_search_url(city),
         )
         source_summaries.append(source_summary)
+        if not getattr(source, "supports_automatic_scraping", True) or getattr(source, "source_type", None) == "manual":
+            source_summary["status"] = "manual_external"
+            source_summary["error"] = (
+                f"{source.display_name} is configured as a manual/external source and is not scraped."
+            )
+            source_summary["duration_ms"] = 0
+            LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
+            logger.info(
+                "scan_skipped source=%s source_name=%s city=%s reason=manual_external",
+                source.source_key,
+                source.display_name,
+                city,
+            )
+            continue
+
+        if not source_supports_city(source, city):
+            source_summary["status"] = "unsupported_city"
+            source_summary["error"] = f"{source.display_name} is not configured for automatic scans in {city}."
+            source_summary["duration_ms"] = 0
+            LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
+            logger.info(
+                "scan_skipped source=%s source_name=%s city=%s reason=unsupported_city",
+                source.source_key,
+                source.display_name,
+                city,
+            )
+            continue
+
         logger.info(
             "scan_start source=%s source_name=%s city=%s timeout_seconds=%s",
             source.source_key,
@@ -453,16 +623,28 @@ def run_scrapers(
         _max_block_retries = 2
         _block_retry_delay = 15
         _last_block_error: SourceBlockedError | None = None
+        _last_error_diagnostics: dict | None = None
         scraped_listings = None
+        scrape_diagnostics: dict | None = None
 
         try:
             for _attempt in range(1 + _max_block_retries):
                 try:
-                    scraped_listings = fetch_source_with_timeout(source, city)
+                    fetch_result = fetch_source_with_timeout(source, city)
+                    if (
+                        isinstance(fetch_result, tuple)
+                        and len(fetch_result) == 2
+                        and isinstance(fetch_result[1], dict)
+                    ):
+                        scraped_listings, scrape_diagnostics = fetch_result
+                    else:
+                        scraped_listings = fetch_result
+                        scrape_diagnostics = {}
                     _last_block_error = None
                     break
                 except SourceBlockedError as error:
                     _last_block_error = error
+                    _last_error_diagnostics = getattr(error, "diagnostics", None)
                     if _attempt < _max_block_retries:
                         logger.warning(
                             "scan_blocked_retrying source=%s attempt=%d/%d city=%s delay=%ds error=%s",
@@ -476,10 +658,16 @@ def run_scrapers(
                         time.sleep(_block_retry_delay)
 
             if _last_block_error is not None:
-                source_summary["status"] = "blocked"
+                merge_scraper_diagnostics(source_summary, _last_error_diagnostics)
+                http_statuses = set(source_summary.get("http_statuses") or [])
+                source_summary["status"] = (
+                    "blocked_or_forbidden"
+                    if source_summary.get("blocked_detected") or http_statuses & {401, 403, 429}
+                    else "invalid_response"
+                )
                 source_summary["error"] = truncate_error_message(str(_last_block_error))
                 source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
-                source_summary["failure_type"] = "blocked"
+                source_summary["failure_type"] = source_summary["status"]
                 finished_at = datetime.utcnow()
                 LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
                 mark_source_result(source, source_summary, finished_at)
@@ -509,7 +697,7 @@ def run_scrapers(
                 )
                 continue
         except TimeoutError as error:
-            source_summary["status"] = "failed"
+            source_summary["status"] = "timeout"
             source_summary["error"] = truncate_error_message(str(error))
             source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
             source_summary["failure_type"] = "timeout"
@@ -541,10 +729,11 @@ def run_scrapers(
             )
             continue
         except Exception as error:
-            source_summary["status"] = "failed"
+            merge_scraper_diagnostics(source_summary, getattr(error, "diagnostics", None))
+            source_summary["status"] = "parse_error"
             source_summary["error"] = truncate_error_message(str(error))
             source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
-            source_summary["failure_type"] = "exception"
+            source_summary["failure_type"] = "parse_error"
             finished_at = datetime.utcnow()
             LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
             mark_source_result(source, source_summary, finished_at)
@@ -573,8 +762,8 @@ def run_scrapers(
             )
             continue
 
+        merge_scraper_diagnostics(source_summary, scrape_diagnostics)
         source_summary["scraped_count"] = len(scraped_listings)
-        source_summary["status"] = "success" if scraped_listings else "no_results"
 
         for scraped_listing in scraped_listings:
             sanitized_listing, skip_reason = sanitize_scraped_listing(
@@ -590,6 +779,7 @@ def run_scrapers(
                         source_summary["skip_reasons"].get(skip_reason, 0) + 1
                     )
                 source_summary["malformed_skipped"] += 1
+                source_summary["validation_filtered"] += 1
                 logger.info(
                     "scan_listing_skipped source=%s source_name=%s city=%s reason=%s",
                     source.source_key,
@@ -737,6 +927,7 @@ def run_scrapers(
                 }
             )
 
+        finalize_source_status(source_summary)
         source_summary["duration_ms"] = round((perf_counter() - perf_started_at) * 1000)
         finished_at = datetime.utcnow()
         LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
@@ -757,11 +948,16 @@ def run_scrapers(
             finished_at=finished_at,
         )
         logger.info(
-            "scan_finished source=%s source_name=%s city=%s status=%s scraped=%s created=%s updated=%s skipped=%s duplicates=%s detail_pages_fetched=%s images_found=%s missing_image=%s missing_area=%s missing_rooms=%s unavailable_detected=%s duration_ms=%s",
+            "scan_finished source=%s source_name=%s city=%s requested_url=%s http_status=%s response_size_bytes=%s status=%s raw_candidates=%s parsed=%s scraped=%s created=%s updated=%s skipped=%s duplicates=%s detail_pages_fetched=%s images_found=%s missing_image=%s missing_area=%s missing_rooms=%s unavailable_detected=%s duration_ms=%s",
             source.source_key,
             source.display_name,
             city,
+            source_summary["requested_url"],
+            source_summary["http_status"],
+            source_summary["response_size_bytes"],
             source_summary["status"],
+            source_summary["raw_candidates_found"],
+            source_summary["parsed_successfully"],
             source_summary["scraped_count"],
             source_summary["created_count"],
             source_summary["updated_count"],

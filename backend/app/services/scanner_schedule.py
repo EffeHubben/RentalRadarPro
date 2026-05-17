@@ -8,10 +8,19 @@ from sqlalchemy import func
 
 from app.models.listing import Listing
 from app.models.scan_history import ScanHistory
-from app.sources.registry import RENTAL_SOURCES, RentalSource
+from app.sources.registry import RENTAL_SOURCES, RentalSource, source_supports_city
 
 
-FAILURE_BACKOFF_STATUSES = {"failed", "blocked"}
+FAILURE_BACKOFF_STATUSES = {
+    "failed",
+    "blocked",
+    "blocked_or_forbidden",
+    "timeout",
+    "invalid_response",
+    "parse_error",
+    "geocoding_failed",
+}
+ZERO_RESULT_STATUSES = {"no_results", "source_returned_empty", "all_results_filtered_out"}
 ZERO_RESULT_BACKOFF_THRESHOLD = 3
 
 
@@ -78,6 +87,8 @@ def scan_decision_for_source(
         return SourceScanDecision(source.source_key, False, "disabled")
     if not source.auto_scan_enabled:
         return SourceScanDecision(source.source_key, False, f"{source.source_type}_not_auto_scanned")
+    if not source_supports_city(source, city):
+        return SourceScanDecision(source.source_key, False, "unsupported_city")
 
     scans = recent_scans(database, source.source_key, city)
     if not scans:
@@ -91,7 +102,7 @@ def scan_decision_for_source(
     latest = scans[0]
     base_interval = max(source.interval_minutes, 0)
     failure_streak = leading_status_count(scans, FAILURE_BACKOFF_STATUSES)
-    zero_streak = leading_status_count(scans, {"no_results"})
+    zero_streak = leading_status_count(scans, ZERO_RESULT_STATUSES)
     backoff_multiplier = 1
     reason = "interval_due"
 
