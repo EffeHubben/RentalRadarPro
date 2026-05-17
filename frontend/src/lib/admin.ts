@@ -6,6 +6,8 @@ import type {
   AdminEmailDeliveriesResponse,
   AdminHealth,
   AdminOverview,
+  AdminScanHealthResponse,
+  AdminScansResponse,
   AdminUserSegment,
   AdminSourcesResponse,
   AdminUser,
@@ -148,4 +150,24 @@ export function fetchAdminAnalyticsLive(accessToken: string) {
 
 export function fetchAdminHealth(accessToken: string) {
   return adminRequest<AdminHealth>("/admin/health", accessToken);
+}
+
+export function fetchAdminScans(
+  accessToken: string,
+  options?: { limit?: number; hours?: number; sourceId?: string; status?: string },
+) {
+  const params = new URLSearchParams();
+  params.set("limit", String(options?.limit ?? 50));
+  params.set("hours", String(options?.hours ?? 24));
+  if (options?.sourceId) params.set("source_id", options.sourceId);
+  if (options?.status) params.set("status", options.status);
+  return adminRequest<AdminScansResponse>(`/admin/scans?${params.toString()}`, accessToken);
+}
+
+export function fetchAdminScanHealth(accessToken: string, hours = 24) {
+  const params = new URLSearchParams({ hours: String(hours) });
+  return adminRequest<AdminScanHealthResponse>(
+    `/admin/scan-health?${params.toString()}`,
+    accessToken,
+  );
 }

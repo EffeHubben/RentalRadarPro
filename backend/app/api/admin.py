@@ -10,6 +10,7 @@ from app.core.admin import require_admin
 from app.database.db import engine, get_database_session
 from app.models.email_delivery import EmailDelivery
 from app.models.listing import Listing
+from app.models.scan_history import ScanHistory
 from app.models.user import User
 from app.services.listing_verifier import verify_stale_listings
 from app.sources.registry import RENTAL_SOURCES
@@ -17,8 +18,12 @@ from app.schemas.admin import (
     AdminEmailDeliveriesListResponse,
     AdminEmailDeliveryResponse,
     AdminOverviewResponse,
+    AdminScanEntryResponse,
+    AdminScanHealthResponse,
+    AdminScansListResponse,
     AdminSetUserAdminRequest,
     AdminSetUserPlanRequest,
+    AdminSourceHealthEntry,
     AdminUserResponse,
     AdminUsersListResponse,
 )
@@ -367,3 +372,157 @@ def get_admin_coverage(
         "listings_by_source": listings_by_source,
         "failed_source_city_combos": failed_combos,
     }
+
+
+@router.get("/scans", response_model=AdminScansListResponse)
+def get_admin_recent_scans(
+    limit: int = Query(default=50, ge=1, le=200),
+    hours: int = Query(default=24, ge=1, le=168),
+    source_id: str | None = Query(default=None),
+    status_filter: str | None = Query(default=None, alias="status"),
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    del admin_user
+    since = datetime.utcnow() - timedelta(hours=hours)
+    query = database.query(ScanHistory).filter(ScanHistory.started_at >= since)
+    if source_id:
+        query = query.filter(ScanHistory.source_id == source_id)
+    if status_filter:
+        query = query.filter(ScanHistory.status == status_filter)
+    total = query.count()
+    items = (
+        query.order_by(ScanHistory.finished_at.desc().nullslast(), ScanHistory.started_at.desc())
+        .limit(limit)
+        .all()
+    )
+    return AdminScansListResponse(
+        items=[
+            AdminScanEntryResponse(
+                id=entry.id,
+                source_id=entry.source_id,
+                city=entry.city,
+                status=entry.status,
+                scraped_count=entry.scraped_count or 0,
+                created_count=entry.created_count or 0,
+                updated_count=entry.updated_count or 0,
+                duplicate_count=entry.duplicate_count or 0,
+                duration_ms=entry.duration_ms,
+                error=(entry.error[:240] if entry.error else None),
+                started_at=entry.started_at,
+                finished_at=entry.finished_at,
+            )
+            for entry in items
+        ],
+        total=total,
+        window_hours=hours,
+    )
+
+
+@router.get("/scan-health", response_model=AdminScanHealthResponse)
+def get_admin_scan_health(
+    hours: int = Query(default=24, ge=1, le=168),
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    """Aggregated per-source scan health for the last N hours."""
+    del admin_user
+    now = datetime.utcnow()
+    since = now - timedelta(hours=hours)
+
+    aggregates = (
+        database.query(
+            ScanHistory.source_id,
+            ScanHistory.status,
+            func.count(ScanHistory.id),
+            func.sum(ScanHistory.created_count),
+        )
+        .filter(ScanHistory.started_at >= since)
+        .group_by(ScanHistory.source_id, ScanHistory.status)
+        .all()
+    )
+
+    per_source: dict[str, dict] = {}
+    for source_id, status_value, count, created_sum in aggregates:
+        bucket = per_source.setdefault(
+            source_id,
+            {
+                "scans_total": 0,
+                "scans_success": 0,
+                "scans_failed": 0,
+                "scans_blocked": 0,
+                "scans_no_results": 0,
+                "listings_created": 0,
+            },
+        )
+        n = int(count or 0)
+        bucket["scans_total"] += n
+        bucket["listings_created"] += int(created_sum or 0)
+        if status_value == "success":
+            bucket["scans_success"] += n
+        elif status_value == "failed":
+            bucket["scans_failed"] += n
+        elif status_value == "blocked":
+            bucket["scans_blocked"] += n
+        elif status_value == "no_results":
+            bucket["scans_no_results"] += n
+
+    payloads = build_sources_payloads(database)
+    payload_by_key = {p["source_id"]: p for p in payloads}
+
+    items: list[AdminSourceHealthEntry] = []
+    for source in RENTAL_SOURCES:
+        bucket = per_source.get(source.source_key, {
+            "scans_total": 0,
+            "scans_success": 0,
+            "scans_failed": 0,
+            "scans_blocked": 0,
+            "scans_no_results": 0,
+            "listings_created": 0,
+        })
+        total = bucket["scans_total"]
+        good = bucket["scans_success"] + bucket["scans_no_results"]
+        success_rate = (good / total) if total else 0.0
+
+        payload = payload_by_key.get(source.source_key, {})
+        last_run = payload.get("last_run") or {}
+        last_status = last_run.get("status")
+        last_finished_at = last_run.get("finished_at") or payload.get("last_scan_finished_at")
+        if isinstance(last_finished_at, str):
+            try:
+                last_finished_at = datetime.fromisoformat(last_finished_at.replace("Z", "+00:00")).replace(tzinfo=None)
+            except ValueError:
+                last_finished_at = None
+        next_due_at = payload.get("next_due_at")
+        if isinstance(next_due_at, str):
+            try:
+                next_due_at = datetime.fromisoformat(next_due_at.replace("Z", "+00:00")).replace(tzinfo=None)
+            except ValueError:
+                next_due_at = None
+
+        items.append(AdminSourceHealthEntry(
+            source_id=source.source_key,
+            display_name=source.display_name,
+            auto_scan_enabled=bool(source.auto_scan_enabled),
+            scans_total=total,
+            scans_success=bucket["scans_success"],
+            scans_failed=bucket["scans_failed"],
+            scans_blocked=bucket["scans_blocked"],
+            scans_no_results=bucket["scans_no_results"],
+            success_rate=round(success_rate, 3),
+            listings_created=bucket["listings_created"],
+            last_status=last_status,
+            last_finished_at=last_finished_at if isinstance(last_finished_at, datetime) else None,
+            last_error=(last_run.get("error") or payload.get("last_error") or None),
+            is_cooling_down=bool(payload.get("is_cooling_down")),
+            next_due_at=next_due_at if isinstance(next_due_at, datetime) else None,
+        ))
+
+    items.sort(key=lambda i: (
+        not i.auto_scan_enabled,
+        i.success_rate if i.scans_total else 1.0,
+        -i.scans_total,
+        i.display_name.lower(),
+    ))
+
+    return AdminScanHealthResponse(items=items, window_hours=hours, generated_at=now)

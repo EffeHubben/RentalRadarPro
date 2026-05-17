@@ -16,6 +16,8 @@ import {
   fetchAdminEmailDeliveries,
   fetchAdminHealth,
   fetchAdminOverview,
+  fetchAdminScanHealth,
+  fetchAdminScans,
   fetchAdminSources,
   fetchAdminUsers,
   updateAdminUserAdminStatus,
@@ -30,6 +32,8 @@ import type {
   AdminEmailDeliveryStatus,
   AdminHealth,
   AdminOverview,
+  AdminScanEntry,
+  AdminSourceHealth,
   AdminUser,
   AdminUserSegment,
 } from "@/types/admin";
@@ -167,6 +171,25 @@ type PageCopy = {
   healthLoading: string;
   analyticsError: string;
   healthError: string;
+  scanHealthTitle: string;
+  scanHealthSummary: string;
+  scanHealthEmpty: string;
+  scanHealthSuccessRate: string;
+  scanHealthScans: string;
+  scanHealthCreated: string;
+  scanHealthBackingOff: string;
+  scanHealthLastStatus: string;
+  scanHealthNeverScanned: string;
+  scansTitle: string;
+  scansSummary: string;
+  scansEmpty: string;
+  scansShowAll: string;
+  scansHideFailed: string;
+  scansOnlyFailed: string;
+  scansSourceLabel: string;
+  scansCityLabel: string;
+  scansCreatedShort: string;
+  scansDurationShort: string;
 };
 
 const copy: Record<Language, PageCopy> = {
@@ -306,6 +329,25 @@ const copy: Record<Language, PageCopy> = {
     healthLoading: "Status laden…",
     analyticsError: "Analytics konden niet worden geladen.",
     healthError: "Systeemstatus kon niet worden geladen.",
+    scanHealthTitle: "Scangezondheid per bron",
+    scanHealthSummary: "Per bron: succespercentage, scans en toegevoegde listings in de laatste 24 uur.",
+    scanHealthEmpty: "Nog geen scandata beschikbaar.",
+    scanHealthSuccessRate: "Succesratio",
+    scanHealthScans: "scans",
+    scanHealthCreated: "nieuw vandaag",
+    scanHealthBackingOff: "Backoff actief",
+    scanHealthLastStatus: "Laatste",
+    scanHealthNeverScanned: "Nog niet gescand",
+    scansTitle: "Recente scans",
+    scansSummary: "Laatste 50 scanpogingen — chronologisch, met status en duur per bron en stad.",
+    scansEmpty: "Geen scans in dit tijdvenster.",
+    scansShowAll: "Alle scans",
+    scansHideFailed: "Verberg mislukt",
+    scansOnlyFailed: "Alleen problemen",
+    scansSourceLabel: "Bron",
+    scansCityLabel: "Stad",
+    scansCreatedShort: "nieuw",
+    scansDurationShort: "duur",
   },
   en: {
     title: "Admin dashboard",
@@ -443,6 +485,25 @@ const copy: Record<Language, PageCopy> = {
     healthLoading: "Loading health…",
     analyticsError: "Analytics could not be loaded.",
     healthError: "Health status could not be loaded.",
+    scanHealthTitle: "Scan health per source",
+    scanHealthSummary: "Per source: success rate, scan count and listings added in the last 24 hours.",
+    scanHealthEmpty: "No scan data available yet.",
+    scanHealthSuccessRate: "Success rate",
+    scanHealthScans: "scans",
+    scanHealthCreated: "added today",
+    scanHealthBackingOff: "Backoff active",
+    scanHealthLastStatus: "Last",
+    scanHealthNeverScanned: "Not yet scanned",
+    scansTitle: "Recent scans",
+    scansSummary: "Last 50 scan attempts — chronological, with status and duration per source and city.",
+    scansEmpty: "No scans in this time window.",
+    scansShowAll: "All scans",
+    scansHideFailed: "Hide failed",
+    scansOnlyFailed: "Problems only",
+    scansSourceLabel: "Source",
+    scansCityLabel: "City",
+    scansCreatedShort: "new",
+    scansDurationShort: "dur",
   },
 };
 
@@ -732,10 +793,14 @@ export default function AdminPage() {
   const [analyticsOverview, setAnalyticsOverview] = useState<AdminAnalyticsOverview | null>(null);
   const [adminHealth, setAdminHealth] = useState<AdminHealth | null>(null);
   const [liveSessions, setLiveSessions] = useState<number | null>(null);
+  const [recentScans, setRecentScans] = useState<AdminScanEntry[]>([]);
+  const [scanHealth, setScanHealth] = useState<AdminSourceHealth[]>([]);
+  const [scansFilter, setScansFilter] = useState<"all" | "problems">("all");
   const [loadingOverview, setLoadingOverview] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [loadingSources, setLoadingSources] = useState(false);
+  const [loadingScans, setLoadingScans] = useState(false);
   const [analyticsError, setAnalyticsError] = useState(false);
   const [healthError, setHealthError] = useState(false);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
@@ -879,6 +944,25 @@ export default function AdminPage() {
     }
   }, [auth.accessToken, isAdmin]);
 
+  const loadScans = useCallback(async () => {
+    if (!auth.accessToken || !isAdmin) {
+      return;
+    }
+    setLoadingScans(true);
+    try {
+      const [scansResponse, healthResponse] = await Promise.all([
+        fetchAdminScans(auth.accessToken, { limit: 50, hours: 24 }),
+        fetchAdminScanHealth(auth.accessToken, 24),
+      ]);
+      setRecentScans(scansResponse.items);
+      setScanHealth(healthResponse.items);
+    } catch {
+      // non-blocking
+    } finally {
+      setLoadingScans(false);
+    }
+  }, [auth.accessToken, isAdmin]);
+
   const refreshAll = useCallback(async () => {
     if (!auth.accessToken || !isAdmin) {
       return;
@@ -888,13 +972,13 @@ export default function AdminPage() {
     setError("");
 
     try {
-      await Promise.all([loadOverview(), loadUsers(), loadEmailDeliveries(), loadSources(), loadAnalytics(), loadHealth()]);
+      await Promise.all([loadOverview(), loadUsers(), loadEmailDeliveries(), loadSources(), loadAnalytics(), loadHealth(), loadScans()]);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : pageCopy.failedToLoad);
     } finally {
       setRefreshingAll(false);
     }
-  }, [auth.accessToken, isAdmin, loadAnalytics, loadEmailDeliveries, loadHealth, loadOverview, loadSources, loadUsers, pageCopy.failedToLoad]);
+  }, [auth.accessToken, isAdmin, loadAnalytics, loadEmailDeliveries, loadHealth, loadOverview, loadScans, loadSources, loadUsers, pageCopy.failedToLoad]);
 
   useEffect(() => {
     if (!auth.accessToken || !isAdmin) {
@@ -909,7 +993,8 @@ export default function AdminPage() {
     });
     void loadAnalytics().catch(() => {});
     void loadHealth().catch(() => {});
-  }, [auth.accessToken, isAdmin, loadAnalytics, loadHealth, loadOverview, loadSources, pageCopy.failedToLoad]);
+    void loadScans().catch(() => {});
+  }, [auth.accessToken, isAdmin, loadAnalytics, loadHealth, loadOverview, loadScans, loadSources, pageCopy.failedToLoad]);
 
   useEffect(() => {
     if (!auth.accessToken || !isAdmin) {
@@ -1742,6 +1827,184 @@ export default function AdminPage() {
                       </section>
                     </Reveal>
                   </div>
+
+                  <Reveal delay={0.12}>
+                    <section className="rs-card rounded-[1.5rem] p-5 sm:p-6">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h2 className="text-lg font-semibold text-[var(--color-text)]">{pageCopy.scanHealthTitle}</h2>
+                          <p className="mt-1 text-sm text-[var(--color-muted)]">{pageCopy.scanHealthSummary}</p>
+                        </div>
+                        <span className="rounded-full bg-[var(--color-soft)] px-3 py-1 text-xs font-semibold text-[var(--color-muted)]">
+                          {scanHealth.filter((s) => s.auto_scan_enabled).length}
+                        </span>
+                      </div>
+
+                      {scanHealth.length ? (
+                        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                          {scanHealth.filter((s) => s.auto_scan_enabled).map((source) => {
+                            const rateColor = source.scans_total === 0
+                              ? "text-[var(--color-subtle)]"
+                              : source.success_rate >= 0.8
+                                ? "text-mint"
+                                : source.success_rate >= 0.4
+                                  ? "text-brass"
+                                  : "text-danger";
+                            const dotColor = source.scans_total === 0
+                              ? "bg-[var(--color-border)]"
+                              : source.success_rate >= 0.8
+                                ? "bg-mint"
+                                : source.success_rate >= 0.4
+                                  ? "bg-brass"
+                                  : "bg-danger";
+                            const ratePct = source.scans_total === 0 ? "—" : `${Math.round(source.success_rate * 100)}%`;
+                            return (
+                              <div
+                                key={source.source_id}
+                                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${dotColor}`} />
+                                    <div className="min-w-0">
+                                      <div className="text-sm font-semibold text-[var(--color-text)] truncate">{source.display_name}</div>
+                                      <div className="text-xs text-[var(--color-subtle)] truncate">{source.source_id}</div>
+                                    </div>
+                                  </div>
+                                  <div className={`text-base font-semibold ${rateColor}`}>{ratePct}</div>
+                                </div>
+
+                                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--color-muted)]">
+                                  <span>{source.scans_total} {pageCopy.scanHealthScans}</span>
+                                  {source.scans_blocked > 0 && (
+                                    <span className="text-brass">{source.scans_blocked} blocked</span>
+                                  )}
+                                  {source.scans_failed > 0 && (
+                                    <span className="text-danger">{source.scans_failed} failed</span>
+                                  )}
+                                  <span className="text-mint">+{source.listings_created} {pageCopy.scanHealthCreated}</span>
+                                </div>
+
+                                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--color-subtle)]">
+                                  <span>
+                                    {source.last_status ? `${pageCopy.scanHealthLastStatus}: ${source.last_status}` : pageCopy.scanHealthNeverScanned}
+                                  </span>
+                                  {source.is_cooling_down && (
+                                    <span className="rounded-full bg-brass/12 px-2 py-0.5 font-semibold text-brass">
+                                      {pageCopy.scanHealthBackingOff}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {source.last_error && (
+                                  <div className="mt-2 line-clamp-2 text-xs text-[var(--color-subtle)]" title={source.last_error}>
+                                    {source.last_error}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : loadingScans ? (
+                        <p className="mt-5 text-sm text-[var(--color-muted)]">{pageCopy.loading}</p>
+                      ) : (
+                        <p className="mt-5 text-sm text-[var(--color-muted)]">{pageCopy.scanHealthEmpty}</p>
+                      )}
+                    </section>
+                  </Reveal>
+
+                  <Reveal delay={0.16}>
+                    <section className="rs-card rounded-[1.5rem] p-5 sm:p-6">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h2 className="text-lg font-semibold text-[var(--color-text)]">{pageCopy.scansTitle}</h2>
+                          <p className="mt-1 text-sm text-[var(--color-muted)]">{pageCopy.scansSummary}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setScansFilter("all")}
+                            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                              scansFilter === "all"
+                                ? "bg-[var(--color-accent)] text-white"
+                                : "rs-chip"
+                            }`}
+                          >
+                            {pageCopy.scansShowAll}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setScansFilter("problems")}
+                            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                              scansFilter === "problems"
+                                ? "bg-[var(--color-accent)] text-white"
+                                : "rs-chip"
+                            }`}
+                          >
+                            {pageCopy.scansOnlyFailed}
+                          </button>
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const filtered = scansFilter === "problems"
+                          ? recentScans.filter((s) => s.status === "failed" || s.status === "blocked")
+                          : recentScans;
+                        if (filtered.length === 0) {
+                          return loadingScans ? (
+                            <p className="mt-5 text-sm text-[var(--color-muted)]">{pageCopy.loading}</p>
+                          ) : (
+                            <p className="mt-5 text-sm text-[var(--color-muted)]">{pageCopy.scansEmpty}</p>
+                          );
+                        }
+                        return (
+                          <div className="mt-5 space-y-2">
+                            {filtered.map((scan) => {
+                              const statusClass =
+                                scan.status === "success"
+                                  ? "bg-mint/12 text-mint"
+                                  : scan.status === "no_results"
+                                    ? "bg-[var(--color-soft)] text-[var(--color-muted)]"
+                                    : scan.status === "blocked"
+                                      ? "bg-brass/12 text-brass"
+                                      : "bg-danger/12 text-danger";
+                              const ts = scan.finished_at || scan.started_at;
+                              return (
+                                <div
+                                  key={scan.id}
+                                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2"
+                                >
+                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                                    <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold ${statusClass}`}>
+                                      {scan.status}
+                                    </span>
+                                    <span className="font-semibold text-[var(--color-text)] truncate max-w-[10rem]">{scan.source_id}</span>
+                                    <span className="text-[var(--color-muted)] truncate max-w-[10rem]">{scan.city || "—"}</span>
+                                    <span className="text-xs text-[var(--color-subtle)]">
+                                      {scan.created_count} {pageCopy.scansCreatedShort}
+                                    </span>
+                                    {scan.duration_ms != null && (
+                                      <span className="text-xs text-[var(--color-subtle)]">
+                                        {scan.duration_ms}ms
+                                      </span>
+                                    )}
+                                    <span className="ml-auto text-xs text-[var(--color-subtle)]">
+                                      {ts ? new Date(ts).toLocaleString(language === "nl" ? "nl-NL" : "en-GB", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" }) : "—"}
+                                    </span>
+                                  </div>
+                                  {scan.error && (
+                                    <div className="mt-1 line-clamp-1 text-xs text-[var(--color-subtle)]" title={scan.error}>
+                                      {scan.error}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </section>
+                  </Reveal>
 
                 </div>
               </>

@@ -114,3 +114,48 @@ export type AdminHealth = {
   }>;
   checked_at: string;
 };
+
+export type AdminScanEntry = {
+  id: number;
+  source_id: string;
+  city: string | null;
+  status: string;
+  scraped_count: number;
+  created_count: number;
+  updated_count: number;
+  duplicate_count: number;
+  duration_ms: number | null;
+  error: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+};
+
+export type AdminScansResponse = {
+  items: AdminScanEntry[];
+  total: number;
+  window_hours: number;
+};
+
+export type AdminSourceHealth = {
+  source_id: string;
+  display_name: string;
+  auto_scan_enabled: boolean;
+  scans_total: number;
+  scans_success: number;
+  scans_failed: number;
+  scans_blocked: number;
+  scans_no_results: number;
+  success_rate: number;
+  listings_created: number;
+  last_status: string | null;
+  last_finished_at: string | null;
+  last_error: string | null;
+  is_cooling_down: boolean;
+  next_due_at: string | null;
+};
+
+export type AdminScanHealthResponse = {
+  items: AdminSourceHealth[];
+  window_hours: number;
+  generated_at: string;
+};

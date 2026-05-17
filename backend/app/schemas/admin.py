@@ -84,3 +84,51 @@ class AdminSetUserPlanRequest(BaseModel):
         if plan == "free" and value is not None:
             raise ValueError("Free plan cannot have an expiry date")
         return value
+
+
+class AdminScanEntryResponse(BaseModel):
+    id: int
+    source_id: str
+    city: str | None
+    status: str
+    scraped_count: int
+    created_count: int
+    updated_count: int
+    duplicate_count: int
+    duration_ms: int | None
+    error: str | None
+    started_at: datetime | None
+    finished_at: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+class AdminScansListResponse(BaseModel):
+    items: list[AdminScanEntryResponse]
+    total: int
+    window_hours: int
+
+
+class AdminSourceHealthEntry(BaseModel):
+    source_id: str
+    display_name: str
+    auto_scan_enabled: bool
+    scans_total: int
+    scans_success: int
+    scans_failed: int
+    scans_blocked: int
+    scans_no_results: int
+    success_rate: float
+    listings_created: int
+    last_status: str | None
+    last_finished_at: datetime | None
+    last_error: str | None
+    is_cooling_down: bool
+    next_due_at: datetime | None
+
+
+class AdminScanHealthResponse(BaseModel):
+    items: list[AdminSourceHealthEntry]
+    window_hours: int
+    generated_at: datetime
