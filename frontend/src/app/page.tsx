@@ -292,17 +292,17 @@ export default function HomePage() {
           {/* Inward masking */}
           <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[32%] sm:w-[38%]" style={{ background: "linear-gradient(to right, var(--color-page) 0%, var(--color-page) 30%, transparent)" }} />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[32%] sm:w-[38%]" style={{ background: "linear-gradient(to left, var(--color-page) 0%, var(--color-page) 30%, transparent)" }} />
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[6%] sm:h-[26%]" style={{ background: "linear-gradient(to bottom, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[3%] sm:h-[26%]" style={{ background: "linear-gradient(to bottom, var(--color-page), transparent)" }} />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[22%] sm:h-[28%]" style={{ background: "linear-gradient(to top, var(--color-page), transparent)" }} />
 
           {/* Center veil */}
           <div className="hero-center-veil pointer-events-none absolute inset-0 z-[2]" />
 
           {/* Warm glow */}
-          <div className="animate-warm-drift pointer-events-none absolute inset-x-0 top-0 z-[3] h-48 sm:h-64 bg-[radial-gradient(circle_at_50%_20%,var(--color-hero-glow),transparent_34rem)]" />
+          <div className="animate-warm-drift pointer-events-none absolute inset-x-0 top-0 z-[3] h-20 sm:h-64 bg-[radial-gradient(circle_at_50%_20%,var(--color-hero-glow),transparent_34rem)]" />
 
           {/* Centered content */}
-          <div className="relative z-[10] mx-auto w-full max-w-3xl px-5 pt-14 pb-16 text-center sm:px-6 sm:py-24 lg:px-8 lg:py-32">
+          <div className="relative z-[10] mx-auto w-full max-w-3xl px-5 pt-5 pb-16 text-center sm:px-6 sm:py-24 lg:px-8 lg:py-32">
             <motion.p
               className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent-strong)]"
               initial={{ opacity: 0, y: 10 }}
