@@ -90,20 +90,20 @@ html {
 :root[data-theme="dark"] .hero-video-dark  { display: block; }
 
 .hero-center-veil {
-  background: radial-gradient(ellipse 52% 62% at center, rgba(251, 250, 247, 0.92) 0%, rgba(251, 250, 247, 0.60) 45%, transparent 72%);
+  background: radial-gradient(ellipse 60% 65% at center, rgba(251, 250, 247, 0.42) 0%, rgba(251, 250, 247, 0.16) 50%, transparent 75%);
 }
 
 :root[data-theme="dark"] .hero-center-veil {
-  background: radial-gradient(ellipse 52% 62% at center, rgba(11, 16, 23, 0.94) 0%, rgba(11, 16, 23, 0.62) 45%, transparent 72%);
+  background: radial-gradient(ellipse 60% 65% at center, rgba(11, 16, 23, 0.48) 0%, rgba(11, 16, 23, 0.18) 50%, transparent 75%);
 }
 
 @media (max-width: 639px) {
   .hero-center-veil {
-    background: radial-gradient(ellipse 130% 75% at 50% 38%, rgba(251, 250, 247, 0.92) 0%, rgba(251, 250, 247, 0.72) 42%, rgba(251, 250, 247, 0.32) 66%, transparent 82%);
+    background: radial-gradient(ellipse 120% 70% at 50% 36%, rgba(251, 250, 247, 0.52) 0%, rgba(251, 250, 247, 0.24) 44%, rgba(251, 250, 247, 0.06) 68%, transparent 84%);
   }
 
   :root[data-theme="dark"] .hero-center-veil {
-    background: radial-gradient(ellipse 130% 75% at 50% 38%, rgba(11, 16, 23, 0.93) 0%, rgba(11, 16, 23, 0.74) 42%, rgba(11, 16, 23, 0.34) 66%, transparent 82%);
+    background: radial-gradient(ellipse 120% 70% at 50% 36%, rgba(11, 16, 23, 0.56) 0%, rgba(11, 16, 23, 0.26) 44%, rgba(11, 16, 23, 0.06) 68%, transparent 84%);
   }
 }
 

@@ -273,7 +273,7 @@ export default function HomePage() {
         <section className="relative flex min-h-[100dvh] items-start sm:items-center overflow-hidden sm:min-h-[620px]">
           {/* Video backgrounds — cover on mobile (no white bars), contain on desktop */}
           <video
-            className="hero-video-light absolute inset-0 h-full w-full object-cover"
+            className="hero-video-light absolute inset-0 h-full w-full object-contain"
             src="/videos/rotation.house.white.pingpong.mp4"
             autoPlay
             muted
@@ -281,7 +281,7 @@ export default function HomePage() {
             playsInline
           />
           <video
-            className="hero-video-dark absolute inset-0 h-full w-full object-cover"
+            className="hero-video-dark absolute inset-0 h-full w-full object-contain"
             src="/videos/rotation.house.dark.pingpong.mp4"
             autoPlay
             muted
@@ -290,10 +290,10 @@ export default function HomePage() {
           />
 
           {/* Inward masking */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[32%] sm:w-[38%]" style={{ background: "linear-gradient(to right, var(--color-page) 0%, var(--color-page) 30%, transparent)" }} />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[32%] sm:w-[38%]" style={{ background: "linear-gradient(to left, var(--color-page) 0%, var(--color-page) 30%, transparent)" }} />
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[3%] sm:h-[26%]" style={{ background: "linear-gradient(to bottom, var(--color-page), transparent)" }} />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[22%] sm:h-[28%]" style={{ background: "linear-gradient(to top, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[10%] sm:w-[12%]" style={{ background: "linear-gradient(to right, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[10%] sm:w-[12%]" style={{ background: "linear-gradient(to left, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[3%] sm:h-[14%]" style={{ background: "linear-gradient(to bottom, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[16%] sm:h-[20%]" style={{ background: "linear-gradient(to top, var(--color-page), transparent)" }} />
 
           {/* Center veil */}
           <div className="hero-center-veil pointer-events-none absolute inset-0 z-[2]" />
