@@ -188,7 +188,10 @@ type PageCopy = {
   scansOnlyFailed: string;
   scansSourceLabel: string;
   scansCityLabel: string;
+  scansScrapedShort: string;
   scansCreatedShort: string;
+  scansUpdatedShort: string;
+  scansDuplicateShort: string;
   scansDurationShort: string;
 };
 
@@ -346,7 +349,10 @@ const copy: Record<Language, PageCopy> = {
     scansOnlyFailed: "Alleen problemen",
     scansSourceLabel: "Bron",
     scansCityLabel: "Stad",
+    scansScrapedShort: "gescraped",
     scansCreatedShort: "nieuw",
+    scansUpdatedShort: "bijgewerkt",
+    scansDuplicateShort: "dubbel",
     scansDurationShort: "duur",
   },
   en: {
@@ -502,7 +508,10 @@ const copy: Record<Language, PageCopy> = {
     scansOnlyFailed: "Problems only",
     scansSourceLabel: "Source",
     scansCityLabel: "City",
+    scansScrapedShort: "scraped",
     scansCreatedShort: "new",
+    scansUpdatedShort: "updated",
+    scansDuplicateShort: "dupes",
     scansDurationShort: "dur",
   },
 };
@@ -1981,11 +1990,26 @@ export default function AdminPage() {
                                     <span className="font-semibold text-[var(--color-text)] truncate max-w-[10rem]">{scan.source_id}</span>
                                     <span className="text-[var(--color-muted)] truncate max-w-[10rem]">{scan.city || "—"}</span>
                                     <span className="text-xs text-[var(--color-subtle)]">
-                                      {scan.created_count} {pageCopy.scansCreatedShort}
+                                      {scan.scraped_count} {pageCopy.scansScrapedShort}
                                     </span>
+                                    {scan.created_count > 0 && (
+                                      <span className="text-xs text-mint">
+                                        +{scan.created_count} {pageCopy.scansCreatedShort}
+                                      </span>
+                                    )}
+                                    {scan.updated_count > 0 && (
+                                      <span className="text-xs text-[var(--color-subtle)]">
+                                        {scan.updated_count} {pageCopy.scansUpdatedShort}
+                                      </span>
+                                    )}
+                                    {scan.duplicate_count > 0 && (
+                                      <span className="text-xs text-[var(--color-subtle)]">
+                                        {scan.duplicate_count} {pageCopy.scansDuplicateShort}
+                                      </span>
+                                    )}
                                     {scan.duration_ms != null && (
                                       <span className="text-xs text-[var(--color-subtle)]">
-                                        {scan.duration_ms}ms
+                                        {formatDuration(scan.duration_ms, pageCopy.unknown)}
                                       </span>
                                     )}
                                     <span className="ml-auto text-xs text-[var(--color-subtle)]">
