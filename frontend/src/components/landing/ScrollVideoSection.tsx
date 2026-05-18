@@ -137,19 +137,17 @@ export function ScrollVideoSection({ language }: { language: Language }) {
         />
 
         {/* Edge masks */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[18%] sm:w-[28%]"  style={{ background: "linear-gradient(to right, var(--color-page) 0%, var(--color-page) 20%, transparent)" }} />
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[18%] sm:w-[42%]"  style={{ background: "linear-gradient(to right, var(--color-page) 0%, var(--color-page) 30%, transparent)" }} />
         <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[18%] sm:w-[28%]" style={{ background: "linear-gradient(to left,  var(--color-page) 0%, var(--color-page) 20%, transparent)" }} />
         <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[14%] sm:h-[20%]"   style={{ background: "linear-gradient(to bottom, var(--color-page), transparent)" }} />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[22%] sm:h-[26%]" style={{ background: "linear-gradient(to top, var(--color-page), transparent)" }} />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[48%] sm:h-[38%]" style={{ background: "linear-gradient(to top, var(--color-page) 0%, var(--color-page) 16%, transparent)" }} />
 
-        {/* Text panels
-            Mobile:  centered horizontally, text-center, wider
-            Desktop: left-aligned at 7% */}
+        {/* Text panels */}
         {copy.map((section, i) => (
           <motion.div
             key={i}
             style={{ opacity: panels[i].op, y: panels[i].y }}
-            className="pointer-events-none absolute bottom-[22%] left-5 right-5 z-10 text-left sm:left-[7%] sm:right-auto sm:max-w-xs"
+            className="pointer-events-none absolute bottom-[26%] left-4 right-4 z-10 rounded-2xl bg-[var(--color-page)]/75 px-4 py-4 text-left backdrop-blur-[3px] sm:bottom-[22%] sm:left-[7%] sm:right-auto sm:max-w-xs sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none"
           >
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)] sm:text-[11px]">
               {section.eyebrow}
@@ -163,8 +161,8 @@ export function ScrollVideoSection({ language }: { language: Language }) {
           </motion.div>
         ))}
 
-        {/* Progress pills — centered on mobile, left-aligned on desktop */}
-        <div className="absolute bottom-7 left-5 z-10 flex items-center gap-1.5 sm:left-[7%]">
+        {/* Progress pills */}
+        <div className="absolute bottom-8 left-4 z-10 flex items-center gap-1.5 sm:bottom-7 sm:left-[7%]">
           {[pw0, pw1, pw2].map((w, i) => (
             <motion.div key={i} style={{ width: w }} className="h-1 rounded-full bg-[var(--color-accent)]" />
           ))}
