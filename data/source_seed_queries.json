@@ -1,0 +1,2340 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "description": "RentScout source discovery seed data — queries, cities and pre-known Dutch rental domains",
+    "target_count": 500,
+    "country": "nl"
+  },
+  "cities": [
+    "Amsterdam",
+    "Rotterdam",
+    "Den Haag",
+    "Utrecht",
+    "Eindhoven",
+    "Tilburg",
+    "Breda",
+    "Groningen",
+    "Nijmegen",
+    "Arnhem",
+    "Enschede",
+    "Zwolle",
+    "Maastricht",
+    "Leiden",
+    "Delft",
+    "Haarlem",
+    "Amersfoort",
+    "Den Bosch",
+    "Alkmaar",
+    "Almere",
+    "Apeldoorn",
+    "Leeuwarden",
+    "Deventer",
+    "Dordrecht",
+    "Zoetermeer",
+    "Gouda",
+    "Ede",
+    "Venlo",
+    "Roosendaal",
+    "Helmond",
+    "Zaandam",
+    "Sittard",
+    "Middelburg",
+    "Lelystad",
+    "Hilversum",
+    "Emmen",
+    "Alphen aan den Rijn",
+    "Assen",
+    "Bergen op Zoom",
+    "Amstelveen",
+    "Vlaardingen",
+    "Schiedam",
+    "Spijkenisse",
+    "Hoorn",
+    "Purmerend",
+    "Heerlen",
+    "Zeist",
+    "Woerden",
+    "Nieuwegein"
+  ],
+  "municipalities": [
+    "Amsterdam",
+    "Rotterdam",
+    "Den Haag",
+    "Utrecht",
+    "Eindhoven",
+    "Tilburg",
+    "Breda",
+    "Groningen",
+    "Nijmegen",
+    "Arnhem",
+    "Enschede",
+    "Zwolle",
+    "Maastricht",
+    "Leiden",
+    "Delft",
+    "Haarlem",
+    "Amersfoort",
+    "s-Hertogenbosch",
+    "Alkmaar",
+    "Almere",
+    "Apeldoorn",
+    "Leeuwarden",
+    "Deventer",
+    "Dordrecht",
+    "Zoetermeer",
+    "Gouda",
+    "Ede",
+    "Venlo",
+    "Roosendaal",
+    "Helmond",
+    "Westland",
+    "Haarlemmermeer",
+    "Zaanstad",
+    "Midden-Groningen",
+    "Súdwest-Fryslân",
+    "Meierijstad",
+    "Nissewaard",
+    "Lansingerland"
+  ],
+  "query_templates": {
+    "huurwoningen_stad": "huurwoningen {stad}",
+    "woning_huren_stad": "woning huren {stad}",
+    "verhuurmakelaar_stad": "verhuurmakelaar {stad}",
+    "woningaanbod_huur_stad": "woningaanbod huur {stad}",
+    "te_huur_appartement_stad": "te huur appartement {stad}",
+    "vrije_sector_stad": "vrije sector huurwoningen {stad}",
+    "nieuwbouw_huur_stad": "nieuwbouw huurwoningen {stad}",
+    "vastgoedbeheer_stad": "vastgoedbeheer huurwoningen {stad}",
+    "kamerverhuur_stad": "kamerverhuur {stad}"
+  },
+  "category_queries": {
+    "woningcorporaties": [
+      "woningcorporatie {gemeente} huurwoning",
+      "sociale huurwoning {gemeente}",
+      "sociaal wooncomplex {gemeente}",
+      "woningbouwvereniging {gemeente}"
+    ],
+    "studenten_kamers": [
+      "studentenkamer {stad} huur",
+      "studentenwoningen {stad}",
+      "studentencomplex {stad}",
+      "kamer huren student {stad}"
+    ],
+    "institutionele_verhuurders": [
+      "institutionele verhuurder huurwoningen nederland",
+      "vastgoedfonds huurwoningen nederland",
+      "woningbelegger vrije sector nederland",
+      "institutionele belegger huurwoningen"
+    ],
+    "nieuwbouw_huur": [
+      "nieuwbouw huurproject {stad}",
+      "oplevering huurwoningen {stad}",
+      "nieuw huurcomplex {stad}",
+      "huurappartementen nieuwbouw {stad}"
+    ],
+    "vastgoedbeheerders": [
+      "vastgoedbeheer huurwoningen {stad}",
+      "vastgoedbeheerder woningbeheer {stad}",
+      "woningbeheer verhuur {stad}",
+      "huurwoningen beheer {stad}"
+    ],
+    "landelijke_portals": [
+      "huurwoningen portal nederland",
+      "woning huur platform nederland",
+      "huurwoning zoeken site:nl"
+    ]
+  },
+  "known_sources": [
+    {
+      "name": "Funda Huur",
+      "domain": "funda.nl",
+      "url": "https://www.funda.nl/huur/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Pararius",
+      "domain": "pararius.nl",
+      "url": "https://www.pararius.nl/huurwoningen/nederland",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Huurwoningen.nl",
+      "domain": "huurwoningen.nl",
+      "url": "https://www.huurwoningen.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Huislijn",
+      "domain": "huislijn.nl",
+      "url": "https://www.huislijn.nl/huurwoning/nederland",
+      "category": "landelijke_platforms",
+      "source_type": "aggregator"
+    },
+    {
+      "name": "Direct Wonen",
+      "domain": "directwonen.nl",
+      "url": "https://www.directwonen.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "123Wonen",
+      "domain": "123wonen.nl",
+      "url": "https://www.123wonen.nl/huurwoningen/nederland",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Kamernet",
+      "domain": "kamernet.nl",
+      "url": "https://kamernet.nl/",
+      "category": "studenten_kamers",
+      "source_type": "portal"
+    },
+    {
+      "name": "Kamer.nl",
+      "domain": "kamer.nl",
+      "url": "https://www.kamer.nl/",
+      "category": "studenten_kamers",
+      "source_type": "portal"
+    },
+    {
+      "name": "RentSlam",
+      "domain": "rentslam.com",
+      "url": "https://rentslam.com/nl/",
+      "category": "landelijke_platforms",
+      "source_type": "aggregator"
+    },
+    {
+      "name": "HuurStunt",
+      "domain": "huurstunt.nl",
+      "url": "https://www.huurstunt.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "WoningNet",
+      "domain": "woningnet.nl",
+      "url": "https://www.woningnet.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "Entree",
+      "domain": "entree.nu",
+      "url": "https://www.entree.nu/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "Woning in Zicht",
+      "domain": "woninginzicht.nl",
+      "url": "https://www.woninginzicht.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "WoonMatch",
+      "domain": "woonmatch.nl",
+      "url": "https://www.woonmatch.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "Zig",
+      "domain": "zig.nl",
+      "url": "https://www.zig.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "Vesteda",
+      "domain": "vesteda.com",
+      "url": "https://www.vesteda.com/nl/woningaanbod/",
+      "category": "institutionele_verhuurders",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Amvest",
+      "domain": "amvest.nl",
+      "url": "https://www.amvest.nl/wonen/",
+      "category": "institutionele_verhuurders",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Heimstaden",
+      "domain": "heimstaden.com",
+      "url": "https://heimstaden.com/nl/wonen/",
+      "category": "institutionele_verhuurders",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Ymere",
+      "domain": "ymere.nl",
+      "url": "https://www.ymere.nl/woningen/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Rochdale",
+      "domain": "rochdale.nl",
+      "url": "https://www.rochdale.nl/woningen/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Eigen Haard",
+      "domain": "eigenhaard.nl",
+      "url": "https://www.eigenhaard.nl/woningaanbod/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "De Alliantie",
+      "domain": "de-alliantie.nl",
+      "url": "https://www.de-alliantie.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Stadgenoot",
+      "domain": "stadgenoot.nl",
+      "url": "https://www.stadgenoot.nl/woningaanbod/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Vestia",
+      "domain": "vestia.nl",
+      "url": "https://www.vestia.nl/wonen/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Haag Wonen",
+      "domain": "haag-wonen.nl",
+      "url": "https://www.haag-wonen.nl/woningen/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Staedion",
+      "domain": "staedion.nl",
+      "url": "https://www.staedion.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "WoonBron",
+      "domain": "woonbron.nl",
+      "url": "https://www.woonbron.nl/wonen/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonstad Rotterdam",
+      "domain": "woonstad.nl",
+      "url": "https://www.woonstad.nl/woningen/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Portaal",
+      "domain": "portaal.nl",
+      "url": "https://www.portaal.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Bo-Ex",
+      "domain": "bo-ex.nl",
+      "url": "https://www.bo-ex.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Mitros",
+      "domain": "mitros.nl",
+      "url": "https://www.mitros.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Talis",
+      "domain": "talis.nl",
+      "url": "https://www.talis.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "WoonCompagnie",
+      "domain": "wooncompagnie.nl",
+      "url": "https://www.wooncompagnie.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Intermaris",
+      "domain": "intermaris.nl",
+      "url": "https://www.intermaris.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Thuisvester",
+      "domain": "thuisvester.nl",
+      "url": "https://www.thuisvester.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Welbions",
+      "domain": "welbions.nl",
+      "url": "https://www.welbions.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Actium",
+      "domain": "actium.nl",
+      "url": "https://www.actium.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Domesta",
+      "domain": "domesta.nl",
+      "url": "https://www.domesta.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Servatius",
+      "domain": "servatius.nl",
+      "url": "https://www.servatius.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonpunt",
+      "domain": "woonpunt.nl",
+      "url": "https://www.woonpunt.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Area",
+      "domain": "area.nl",
+      "url": "https://www.area.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonbedrijf",
+      "domain": "woonbedrijf.nl",
+      "url": "https://www.woonbedrijf.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "WoonInc",
+      "domain": "wooninc.nl",
+      "url": "https://www.wooninc.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Patrimonium",
+      "domain": "patrimonium-woonstichting.nl",
+      "url": "https://www.patrimonium-woonstichting.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Pré Wonen",
+      "domain": "prewonen.nl",
+      "url": "https://www.prewonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Kennemer Wonen",
+      "domain": "kennemerwonen.nl",
+      "url": "https://www.kennemerwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Elan Wonen",
+      "domain": "elanwonen.nl",
+      "url": "https://www.elanwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "WoningStichting Volksbelang",
+      "domain": "volksbelang.nl",
+      "url": "https://www.volksbelang.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Mozaïek Wonen",
+      "domain": "mozaiekwonen.nl",
+      "url": "https://www.mozaiekwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Laurentius",
+      "domain": "laurentius.nl",
+      "url": "https://www.laurentius.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonstede",
+      "domain": "woonstede.nl",
+      "url": "https://www.woonstede.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "L&G (Woonbedrijf IHW)",
+      "domain": "woonbedrijf-ihw.nl",
+      "url": "https://www.woonbedrijf-ihw.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "SSH& Student Housing",
+      "domain": "sshxl.nl",
+      "url": "https://www.sshxl.nl/woningaanbod",
+      "category": "studenten_kamers",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "DUWO",
+      "domain": "duwo.nl",
+      "url": "https://www.duwo.nl/woningaanbod/",
+      "category": "studenten_kamers",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Xior Student Housing",
+      "domain": "xior.nl",
+      "url": "https://www.xior.nl/nl/aanbod",
+      "category": "studenten_kamers",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Idealis",
+      "domain": "idealis.nl",
+      "url": "https://www.idealis.nl/woningaanbod/",
+      "category": "studenten_kamers",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Vestide",
+      "domain": "vestide.nl",
+      "url": "https://www.vestide.nl/woningaanbod/",
+      "category": "studenten_kamers",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "STIP Wonen",
+      "domain": "stipwonen.nl",
+      "url": "https://www.stipwonen.nl/",
+      "category": "studenten_kamers",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "SJHT",
+      "domain": "sjht.nl",
+      "url": "https://www.sjht.nl/woningaanbod/",
+      "category": "studenten_kamers",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Roomspot",
+      "domain": "roomspot.nl",
+      "url": "https://www.roomspot.nl/",
+      "category": "studenten_kamers",
+      "source_type": "portal"
+    },
+    {
+      "name": "StudentenWoningen.nl",
+      "domain": "studentenwoningen.nl",
+      "url": "https://www.studentenwoningen.nl/",
+      "category": "studenten_kamers",
+      "source_type": "portal"
+    },
+    {
+      "name": "Digs",
+      "domain": "digs.nl",
+      "url": "https://www.digs.nl/",
+      "category": "studenten_kamers",
+      "source_type": "portal"
+    },
+    {
+      "name": "HousingAnywhere",
+      "domain": "housinganywhere.com",
+      "url": "https://housinganywhere.com/nl/",
+      "category": "studenten_kamers",
+      "source_type": "portal"
+    },
+    {
+      "name": "Student Experience",
+      "domain": "studentexperience.nl",
+      "url": "https://www.studentexperience.nl/",
+      "category": "studenten_kamers",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "MVGM Wonen",
+      "domain": "mvgm.nl",
+      "url": "https://www.mvgm.nl/wonen/huurwoningen/",
+      "category": "vastgoedbeheerders",
+      "source_type": "beheerder"
+    },
+    {
+      "name": "Savills Netherlands",
+      "domain": "savills.nl",
+      "url": "https://www.savills.nl/",
+      "category": "vastgoedbeheerders",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "CBRE Netherlands",
+      "domain": "cbre.nl",
+      "url": "https://www.cbre.nl/",
+      "category": "vastgoedbeheerders",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "JLL Netherlands",
+      "domain": "jll.nl",
+      "url": "https://www.jll.nl/",
+      "category": "vastgoedbeheerders",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Colliers Netherlands",
+      "domain": "colliers.nl",
+      "url": "https://www.colliers.nl/",
+      "category": "vastgoedbeheerders",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "VastNed",
+      "domain": "vastned.nl",
+      "url": "https://www.vastned.nl/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "Bouwinvest",
+      "domain": "bouwinvest.nl",
+      "url": "https://www.bouwinvest.nl/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "Syntrus Achmea Real Estate",
+      "domain": "syntrusachmea.nl",
+      "url": "https://www.syntrusachmea.nl/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "CBRE Investment Management",
+      "domain": "cbreim.com",
+      "url": "https://www.cbreim.com/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "LIV Residential",
+      "domain": "livresidential.nl",
+      "url": "https://www.livresidential.nl/woningaanbod/",
+      "category": "institutionele_verhuurders",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Rotsvast",
+      "domain": "rotsvast.nl",
+      "url": "https://www.rotsvast.nl/huurwoningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Interhouse",
+      "domain": "interhouse.nl",
+      "url": "https://www.interhouse.nl/huurwoningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "HouseHunting",
+      "domain": "househunting.nl",
+      "url": "https://www.househunting.nl/huren/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Domica",
+      "domain": "domica.nl",
+      "url": "https://www.domica.nl/huurwoningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "NederWoon",
+      "domain": "nederwoon.nl",
+      "url": "https://www.nederwoon.nl/huurwoningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "VBT Verhuurmakelaars",
+      "domain": "vbt.nl",
+      "url": "https://www.vbt.nl/huurwoningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Maxx Aanhuur",
+      "domain": "maxx-aanhuur.nl",
+      "url": "https://www.maxx-aanhuur.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Rent Company",
+      "domain": "rentcompany.nl",
+      "url": "https://www.rentcompany.nl/huurwoningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "TVN Real Estate",
+      "domain": "tvn.nl",
+      "url": "https://www.tvn.nl/aanbod/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "ERA Makelaars",
+      "domain": "era.nl",
+      "url": "https://www.era.nl/huurwoningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Century21",
+      "domain": "century21.nl",
+      "url": "https://www.century21.nl/huurwoningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "RE/MAX Netherlands",
+      "domain": "remax.nl",
+      "url": "https://www.remax.nl/huurwoningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Huurportaal",
+      "domain": "huurportaal.nl",
+      "url": "https://www.huurportaal.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "aggregator"
+    },
+    {
+      "name": "Huurwoningportaal",
+      "domain": "huurwoningportaal.nl",
+      "url": "https://www.huurwoningportaal.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "aggregator"
+    },
+    {
+      "name": "Pandomo",
+      "domain": "pandomo.nl",
+      "url": "https://www.pandomo.nl/huren/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Acasa",
+      "domain": "acasa.nl",
+      "url": "https://www.acasa.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Friendly Housing",
+      "domain": "friendlyhousing.nl",
+      "url": "https://www.friendlyhousing.nl/woningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "BW Housing",
+      "domain": "bwhousing.nl",
+      "url": "https://www.bwhousing.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Jaap",
+      "domain": "jaap.nl",
+      "url": "https://www.jaap.nl/huurwoningen/",
+      "category": "landelijke_platforms",
+      "source_type": "aggregator"
+    },
+    {
+      "name": "Wonen.nl",
+      "domain": "wonen.nl",
+      "url": "https://www.wonen.nl/huur/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "VBO Makelaars",
+      "domain": "vbo.nl",
+      "url": "https://www.vbo.nl/aanbod/huur/",
+      "category": "landelijke_platforms",
+      "source_type": "association"
+    },
+    {
+      "name": "Thuisborg",
+      "domain": "thuisborg.nl",
+      "url": "https://www.thuisborg.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "WoningZoeker",
+      "domain": "woningzoeker.nl",
+      "url": "https://www.woningzoeker.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "Ikwilhuren.nl",
+      "domain": "ikwilhuren.nl",
+      "url": "https://www.ikwilhuren.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Huurmarkt",
+      "domain": "huurmarkt.nl",
+      "url": "https://www.huurmarkt.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Nederland Huren",
+      "domain": "nederland-huren.nl",
+      "url": "https://www.nederland-huren.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Vind Huurwoning",
+      "domain": "vind-huurwoning.nl",
+      "url": "https://www.vind-huurwoning.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "aggregator"
+    },
+    {
+      "name": "Woningaanbod.nl",
+      "domain": "woningaanbod.nl",
+      "url": "https://www.woningaanbod.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Huurnet",
+      "domain": "huurnet.nl",
+      "url": "https://www.huurnet.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Eerlijk Huren",
+      "domain": "eerlijkhuren.nl",
+      "url": "https://www.eerlijkhuren.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Huurwoningen Amsterdam",
+      "domain": "huurwoningenamsterdam.nl",
+      "url": "https://www.huurwoningenamsterdam.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "NieuwbouwHuurwoningen",
+      "domain": "nieuwbouwhuurwoningen.nl",
+      "url": "https://www.nieuwbouwhuurwoningen.nl/",
+      "category": "nieuwbouw_huurprojecten",
+      "source_type": "portal"
+    },
+    {
+      "name": "BouwNet Nederland",
+      "domain": "bouwnetnederland.nl",
+      "url": "https://www.bouwnetnederland.nl/",
+      "category": "nieuwbouw_huurprojecten",
+      "source_type": "portal"
+    },
+    {
+      "name": "Greystar Netherlands",
+      "domain": "greystar.com",
+      "url": "https://www.greystar.com/nl/",
+      "category": "institutionele_verhuurders",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Round Hill Capital",
+      "domain": "roundhillcapital.com",
+      "url": "https://roundhillcapital.com/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "Altera Vastgoed",
+      "domain": "altera.nl",
+      "url": "https://www.altera.nl/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "Tristan Capital Partners",
+      "domain": "tristancap.com",
+      "url": "https://www.tristancap.com/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "Orange Capital Partners",
+      "domain": "orangecp.nl",
+      "url": "https://www.orangecp.nl/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "Sociale Verhuurkantoor",
+      "domain": "svhw.nl",
+      "url": "https://www.svhw.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "Thuis in Limburg",
+      "domain": "thuisinlimburg.nl",
+      "url": "https://www.thuisinlimburg.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "WoonKeus Stedendriehoek",
+      "domain": "woonkeusstedendriehoek.nl",
+      "url": "https://www.woonkeusstedendriehoek.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "SVNL",
+      "domain": "svnl.nl",
+      "url": "https://www.svnl.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "Huurcommissie",
+      "domain": "huurcommissie.nl",
+      "url": "https://www.huurcommissie.nl/",
+      "category": "sociale_huur",
+      "source_type": "overheid"
+    },
+    {
+      "name": "Woningcorporaties.nl",
+      "domain": "woningcorporaties.nl",
+      "url": "https://www.woningcorporaties.nl/",
+      "category": "woningcorporaties",
+      "source_type": "portal"
+    },
+    {
+      "name": "Aedes",
+      "domain": "aedes.nl",
+      "url": "https://www.aedes.nl/",
+      "category": "woningcorporaties",
+      "source_type": "branche"
+    },
+    {
+      "name": "NN Group (residentieel)",
+      "domain": "nn-group.com",
+      "url": "https://www.nn-group.com/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "APG Asset Management",
+      "domain": "apg.nl",
+      "url": "https://www.apg.nl/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "Zwarts Makelaardij",
+      "domain": "zwartsmakelaardij.nl",
+      "url": "https://www.zwartsmakelaardij.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "KlausdeBruin Makelaars",
+      "domain": "klausdebr.nl",
+      "url": "https://www.klausdebr.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "De Zekere Sleutel",
+      "domain": "dezekeresleutel.nl",
+      "url": "https://www.dezekeresleutel.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Expats Housing",
+      "domain": "expatshousing.nl",
+      "url": "https://www.expatshousing.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Amsterdam Housing",
+      "domain": "amsterdamhousing.nl",
+      "url": "https://www.amsterdamhousing.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Flow Living",
+      "domain": "flowliving.nl",
+      "url": "https://www.flowliving.nl/",
+      "category": "institutionele_verhuurders",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "The Student Hotel",
+      "domain": "thestudenthotel.com",
+      "url": "https://www.thestudenthotel.com/nl/",
+      "category": "studenten_kamers",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Sociaal Verhuurkantoor Rotterdam",
+      "domain": "svr.nl",
+      "url": "https://www.svr.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "WoningMatch Haaglanden",
+      "domain": "woningmatch.nl",
+      "url": "https://www.woningmatch.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "WoningNet Rijnstreek",
+      "domain": "woningnetrijnstreek.nl",
+      "url": "https://www.woningnetrijnstreek.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "De Woonplaats",
+      "domain": "dewoonplaats.nl",
+      "url": "https://www.dewoonplaats.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "SWZ",
+      "domain": "swz.nl",
+      "url": "https://www.swz.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Beter Wonen Vechtdal",
+      "domain": "beterwonen.nl",
+      "url": "https://www.beterwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "deltaWonen",
+      "domain": "deltawonen.nl",
+      "url": "https://www.deltawonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Openbaar Belang",
+      "domain": "openbaar-belang.nl",
+      "url": "https://www.openbaar-belang.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Connexxion Wonen (Oost)",
+      "domain": "connexxionwonen.nl",
+      "url": "https://www.connexxionwonen.nl/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Triada",
+      "domain": "triada.nl",
+      "url": "https://www.triada.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "QuaWonen",
+      "domain": "quawonen.nl",
+      "url": "https://www.quawonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "HW Wonen",
+      "domain": "hwwonen.nl",
+      "url": "https://www.hwwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Waterweg Wonen",
+      "domain": "waterweg-wonen.nl",
+      "url": "https://www.waterweg-wonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Havensteder",
+      "domain": "havensteder.nl",
+      "url": "https://www.havensteder.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Ressort Wonen",
+      "domain": "ressort-wonen.nl",
+      "url": "https://www.ressort-wonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "WoonNu",
+      "domain": "woonnu.nl",
+      "url": "https://www.woonnu.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Holland2Stay",
+      "domain": "holland2stay.com",
+      "url": "https://holland2stay.com/",
+      "category": "institutionele_verhuurders",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Urban Residences",
+      "domain": "urbanresidences.nl",
+      "url": "https://www.urbanresidences.nl/",
+      "category": "institutionele_verhuurders",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "The Living Room",
+      "domain": "thelivingroom.nl",
+      "url": "https://www.thelivingroom.nl/",
+      "category": "institutionele_verhuurders",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Bouwhuis",
+      "domain": "bouwhuis.nl",
+      "url": "https://www.bouwhuis.nl/",
+      "category": "nieuwbouw_huurprojecten",
+      "source_type": "portal"
+    },
+    {
+      "name": "NVM",
+      "domain": "nvm.nl",
+      "url": "https://www.nvm.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "branche"
+    },
+    {
+      "name": "VGM NL",
+      "domain": "vgmnl.nl",
+      "url": "https://www.vgmnl.nl/",
+      "category": "vastgoedbeheerders",
+      "source_type": "branche"
+    },
+    {
+      "name": "RealWorks",
+      "domain": "realworks.nl",
+      "url": "https://www.realworks.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "software"
+    },
+    {
+      "name": "Huurbalie",
+      "domain": "huurbalie.nl",
+      "url": "https://www.huurbalie.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Huurdirect",
+      "domain": "huurdirect.nl",
+      "url": "https://www.huurdirect.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "IkHuurVrij",
+      "domain": "ikhuurvrij.nl",
+      "url": "https://www.ikhuurvrij.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "HuurZonderBureau",
+      "domain": "huurzonderbureau.nl",
+      "url": "https://www.huurzonderbureau.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "De Goede Woning",
+      "domain": "degoedewoning.nl",
+      "url": "https://www.degoedewoning.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Omnia Wonen",
+      "domain": "omniawonen.nl",
+      "url": "https://www.omniawonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "GoedeStede",
+      "domain": "goedestede.nl",
+      "url": "https://www.goedestede.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Mooiland",
+      "domain": "mooiland.nl",
+      "url": "https://www.mooiland.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Wierden en Borgen",
+      "domain": "wierdenborgen.nl",
+      "url": "https://www.wierdenborgen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Acantus",
+      "domain": "acantus.nl",
+      "url": "https://www.acantus.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "ProWonen",
+      "domain": "prowonen.nl",
+      "url": "https://www.prowonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woningbouwvereniging Lopik",
+      "domain": "wbvlopik.nl",
+      "url": "https://www.wbvlopik.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Stichting Heuvelrug Wonen",
+      "domain": "heuvelrugwonen.nl",
+      "url": "https://www.heuvelrugwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Sint Joseph Wonen",
+      "domain": "sintjosephwonen.nl",
+      "url": "https://www.sintjosephwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "WonenBreburg",
+      "domain": "wonen-breburg.nl",
+      "url": "https://www.wonen-breburg.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "TBV Wonen",
+      "domain": "tbvwonen.nl",
+      "url": "https://www.tbvwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Wonen Midden-Brabant",
+      "domain": "wonenmiddenbrabant.nl",
+      "url": "https://www.wonenmiddenbrabant.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "WonenLimburg",
+      "domain": "wonenlimburg.nl",
+      "url": "https://www.wonenlimburg.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Wonen Zuid",
+      "domain": "wonenzuid.nl",
+      "url": "https://www.wonenzuid.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Antares Wonen",
+      "domain": "antareswonen.nl",
+      "url": "https://www.antareswonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Veluwonen",
+      "domain": "veluwonen.nl",
+      "url": "https://www.veluwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Tiwos",
+      "domain": "tiwos.nl",
+      "url": "https://www.tiwos.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonlinie",
+      "domain": "woonlinie.nl",
+      "url": "https://www.woonlinie.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Fraîche Wonen",
+      "domain": "fraichewonen.nl",
+      "url": "https://www.fraichewonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "l'Escaut",
+      "domain": "lescaut.nl",
+      "url": "https://www.lescaut.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woongoed Middelburg",
+      "domain": "woongoed-middelburg.nl",
+      "url": "https://www.woongoed-middelburg.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woongoed Zeeuws-Vlaanderen",
+      "domain": "woongoedzv.nl",
+      "url": "https://www.woongoedzv.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Zeeuwland",
+      "domain": "zeeuwland.nl",
+      "url": "https://www.zeeuwland.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Rondom Wonen",
+      "domain": "rondomwonen.nl",
+      "url": "https://www.rondomwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "De Key",
+      "domain": "dekey.nl",
+      "url": "https://www.dekey.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Dunavast",
+      "domain": "dunavast.nl",
+      "url": "https://www.dunavast.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Waterland Wonen",
+      "domain": "waterlandwonen.nl",
+      "url": "https://www.waterlandwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Uithoornse Woningbouw",
+      "domain": "uithoornsewoningbouw.nl",
+      "url": "https://www.uithoornsewoningbouw.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woningbouwvereniging Langedijk",
+      "domain": "wbvlangedijk.nl",
+      "url": "https://www.wbvlangedijk.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Casade",
+      "domain": "casade.nl",
+      "url": "https://www.casade.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Stek",
+      "domain": "stek.nl",
+      "url": "https://www.stek.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Ons Doel",
+      "domain": "onsdoel.nl",
+      "url": "https://www.onsdoel.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Plicht Getrouw",
+      "domain": "plichtgetrouw.nl",
+      "url": "https://www.plichtgetrouw.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Leystromen",
+      "domain": "leystromen.nl",
+      "url": "https://www.leystromen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "AlleeWonen",
+      "domain": "alleewonen.nl",
+      "url": "https://www.alleewonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "R&B Wonen",
+      "domain": "rbwonen.nl",
+      "url": "https://www.rbwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonstichting SSW",
+      "domain": "ssw.nl",
+      "url": "https://www.ssw.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Viveste",
+      "domain": "viveste.nl",
+      "url": "https://www.viveste.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "GroenWest",
+      "domain": "groenwest.nl",
+      "url": "https://www.groenwest.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Eigen Haard (Haarlem)",
+      "domain": "eigenhaard-haarlem.nl",
+      "url": "https://www.eigenhaard-haarlem.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Velison Wonen",
+      "domain": "velisonwonen.nl",
+      "url": "https://www.velisonwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "EcoWonen",
+      "domain": "ecowonen.nl",
+      "url": "https://www.ecowonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonservice IJsselland",
+      "domain": "woonserviceijsselland.nl",
+      "url": "https://www.woonserviceijsselland.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "SallandWonen",
+      "domain": "sallandwonen.nl",
+      "url": "https://www.sallandwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Ieder1",
+      "domain": "ieder1.nl",
+      "url": "https://www.ieder1.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "ZOwonen",
+      "domain": "zowonen.nl",
+      "url": "https://www.zowonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Clavis",
+      "domain": "clavis.nl",
+      "url": "https://www.clavis.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Vidomes",
+      "domain": "vidomes.nl",
+      "url": "https://www.vidomes.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonplus Schiedam",
+      "domain": "woonplus.nl",
+      "url": "https://www.woonplus.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Wooncomplex",
+      "domain": "wooncomplex.nl",
+      "url": "https://www.wooncomplex.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Pré Wonen",
+      "domain": "prewonen.nl",
+      "url": "https://www.prewonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Stadsgenoot",
+      "domain": "stadsgenoot.nl",
+      "url": "https://www.stadsgenoot.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Elkien",
+      "domain": "elkien.nl",
+      "url": "https://www.elkien.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Accolade",
+      "domain": "accolade.nl",
+      "url": "https://www.accolade.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "WoonFriesland",
+      "domain": "woonfriesland.nl",
+      "url": "https://www.woonfriesland.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Nijestee",
+      "domain": "nijestee.nl",
+      "url": "https://www.nijestee.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Oosterpoort",
+      "domain": "oosterpoort.nl",
+      "url": "https://www.oosterpoort.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Lefier",
+      "domain": "lefier.nl",
+      "url": "https://www.lefier.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonborg",
+      "domain": "woonborg.nl",
+      "url": "https://www.woonborg.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Wold en Waard",
+      "domain": "woldenwaard.nl",
+      "url": "https://www.woldenwaard.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Oost Flevoland Woondiensten",
+      "domain": "ofw.nl",
+      "url": "https://www.ofw.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Parteon",
+      "domain": "parteon.nl",
+      "url": "https://www.parteon.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Kleurrijk Wonen",
+      "domain": "kleurrijkwonen.nl",
+      "url": "https://www.kleurrijkwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Trudo",
+      "domain": "trudo.nl",
+      "url": "https://www.trudo.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Stadlander",
+      "domain": "stadlander.nl",
+      "url": "https://www.stadlander.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Standvast Wonen",
+      "domain": "standvastwonen.nl",
+      "url": "https://www.standvastwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Rentree",
+      "domain": "rentree.nl",
+      "url": "https://www.rentree.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Vivare",
+      "domain": "vivare.nl",
+      "url": "https://www.vivare.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Volkshuisvesting Arnhem",
+      "domain": "volkshuisvesting-arnhem.nl",
+      "url": "https://www.volkshuisvesting-arnhem.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Habion",
+      "domain": "habion.nl",
+      "url": "https://www.habion.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Site Woondiensten",
+      "domain": "site-woondiensten.nl",
+      "url": "https://www.site-woondiensten.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Alwel",
+      "domain": "alwel.nl",
+      "url": "https://www.alwel.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "BrabantWonen",
+      "domain": "brabantwonen.nl",
+      "url": "https://www.brabantwonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Tablis Wonen",
+      "domain": "tabliswonen.nl",
+      "url": "https://www.tabliswonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "WoonGroep Holland",
+      "domain": "woongroepholland.nl",
+      "url": "https://www.woongroepholland.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonveste",
+      "domain": "woonveste.nl",
+      "url": "https://www.woonveste.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonwaard",
+      "domain": "woonwaard.nl",
+      "url": "https://www.woonwaard.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "IJsseldal Wonen",
+      "domain": "ijsseldal-wonen.nl",
+      "url": "https://www.ijsseldal-wonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "De Woonmensen",
+      "domain": "dewoonmensen.nl",
+      "url": "https://www.dewoonmensen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Mercatus",
+      "domain": "mercatus.nl",
+      "url": "https://www.mercatus.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Plavei",
+      "domain": "plavei.nl",
+      "url": "https://www.plavei.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Laris Wonen en Diensten",
+      "domain": "lariswonen.nl",
+      "url": "https://www.lariswonen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Wonen Drenthe",
+      "domain": "wonendrenthe.nl",
+      "url": "https://www.wonendrenthe.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Stichting Woningbeheer Betuwe",
+      "domain": "swbbetuwe.nl",
+      "url": "https://www.swbbetuwe.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonservice Drenthe",
+      "domain": "woonservicedrenthe.nl",
+      "url": "https://www.woonservicedrenthe.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonservice Groningen",
+      "domain": "woonservice-groningen.nl",
+      "url": "https://www.woonservice-groningen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Ymere Huurwoningen",
+      "domain": "ymere-huurwoningen.nl",
+      "url": "https://www.ymere-huurwoningen.nl/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Oost Groningen",
+      "domain": "wonennoordoostgroningen.nl",
+      "url": "https://www.wonennoordoostgroningen.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Wonen Noordwest Friesland",
+      "domain": "wnf.nl",
+      "url": "https://www.wnf.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Lyaemer Wonen",
+      "domain": "lyaemer.nl",
+      "url": "https://www.lyaemer.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Woonstichting Gendt",
+      "domain": "woonstichtinggendt.nl",
+      "url": "https://www.woonstichtinggendt.nl/huren/",
+      "category": "woningcorporaties",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Huurhuis",
+      "domain": "huurhuis.nl",
+      "url": "https://www.huurhuis.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Allewoningen",
+      "domain": "allewoningen.nl",
+      "url": "https://www.allewoningen.nl/huur/",
+      "category": "landelijke_platforms",
+      "source_type": "aggregator"
+    },
+    {
+      "name": "Woningmarkt",
+      "domain": "woningmarkt.nl",
+      "url": "https://www.woningmarkt.nl/huur/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Zoekwoning",
+      "domain": "zoekwoning.nl",
+      "url": "https://www.zoekwoning.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Huurwijzer",
+      "domain": "huurwijzer.nl",
+      "url": "https://www.huurwijzer.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Verhuurders",
+      "domain": "verhuurders.nl",
+      "url": "https://www.verhuurders.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Makelaarsland",
+      "domain": "makelaarsland.nl",
+      "url": "https://www.makelaarsland.nl/huren/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Foxer",
+      "domain": "foxer.nl",
+      "url": "https://www.foxer.nl/huren/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "RentBird",
+      "domain": "rentbird.nl",
+      "url": "https://www.rentbird.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "aggregator"
+    },
+    {
+      "name": "Wondr",
+      "domain": "wondr.nl",
+      "url": "https://www.wondr.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Huurloket",
+      "domain": "huurloket.nl",
+      "url": "https://www.huurloket.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "WoningInschrijven",
+      "domain": "woninginschrijven.nl",
+      "url": "https://www.woninginschrijven.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "Huuradvies",
+      "domain": "huuradvies.nl",
+      "url": "https://www.huuradvies.nl/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Homelink",
+      "domain": "homelink.nl",
+      "url": "https://www.homelink.nl/huurwoningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "NestPick",
+      "domain": "nestpick.com",
+      "url": "https://www.nestpick.com/nl/",
+      "category": "landelijke_platforms",
+      "source_type": "aggregator"
+    },
+    {
+      "name": "RoomGo",
+      "domain": "roomgo.nl",
+      "url": "https://www.roomgo.nl/",
+      "category": "studenten_kamers",
+      "source_type": "portal"
+    },
+    {
+      "name": "Holland Housing",
+      "domain": "hollandhousing.nl",
+      "url": "https://www.hollandhousing.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Expat Rentals",
+      "domain": "expatrentals.nl",
+      "url": "https://www.expatrentals.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "The House Hunters",
+      "domain": "thehousehunters.nl",
+      "url": "https://www.thehousehunters.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "iamexpat Housing",
+      "domain": "iamexpat.nl",
+      "url": "https://www.iamexpat.nl/housing/",
+      "category": "landelijke_platforms",
+      "source_type": "portal"
+    },
+    {
+      "name": "Ooms Makelaars",
+      "domain": "ooms.com",
+      "url": "https://www.ooms.com/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Woningverhuur",
+      "domain": "woningverhuur.nl",
+      "url": "https://www.woningverhuur.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Huurzeker",
+      "domain": "huurzeker.nl",
+      "url": "https://www.huurzeker.nl/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Woonburo",
+      "domain": "woonburo.nl",
+      "url": "https://www.woonburo.nl/huurwoningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "IMakelaars",
+      "domain": "imakelaars.nl",
+      "url": "https://www.imakelaars.nl/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "MOVE Makelaars",
+      "domain": "movemakelaars.nl",
+      "url": "https://www.movemakelaars.nl/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Frisia Makelaars",
+      "domain": "frisiamakelaars.nl",
+      "url": "https://www.frisiamakelaars.nl/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Qualis Makelaars",
+      "domain": "qualismakelaars.nl",
+      "url": "https://www.qualismakelaars.nl/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Cronenberg Makelaars",
+      "domain": "cronenbergmakelaars.nl",
+      "url": "https://www.cronenbergmakelaars.nl/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Smeets Makelaars",
+      "domain": "smeetsmakelaars.nl",
+      "url": "https://www.smeetsmakelaars.nl/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Lux Makelaars",
+      "domain": "luxmakelaars.nl",
+      "url": "https://www.luxmakelaars.nl/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "GD Makelaars",
+      "domain": "gdmakelaars.nl",
+      "url": "https://www.gdmakelaars.nl/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Woonexpress",
+      "domain": "woonexpress.nl",
+      "url": "https://www.woonexpress.nl/huurwoningen/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Kruyswijk Makelaars",
+      "domain": "kruyswijk.nl",
+      "url": "https://www.kruyswijk.nl/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Mooijekind Vleut",
+      "domain": "mooijekindvleut.nl",
+      "url": "https://www.mooijekindvleut.nl/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Van der Linden Makelaars",
+      "domain": "vanderlindenmakelaars.nl",
+      "url": "https://www.vanderlindenmakelaars.nl/huur/",
+      "category": "verhuurmakelaars",
+      "source_type": "makelaar"
+    },
+    {
+      "name": "Vastgoedbeheer NL",
+      "domain": "vastgoedbeheer.nl",
+      "url": "https://www.vastgoedbeheer.nl/",
+      "category": "vastgoedbeheerders",
+      "source_type": "beheerder"
+    },
+    {
+      "name": "Woningbeheer NL",
+      "domain": "woningbeheer.nl",
+      "url": "https://www.woningbeheer.nl/",
+      "category": "vastgoedbeheerders",
+      "source_type": "beheerder"
+    },
+    {
+      "name": "Huureigenaar",
+      "domain": "huureigenaar.nl",
+      "url": "https://www.huureigenaar.nl/",
+      "category": "vastgoedbeheerders",
+      "source_type": "beheerder"
+    },
+    {
+      "name": "Camelot Europe",
+      "domain": "camelot.nl",
+      "url": "https://www.camelot.nl/huren/",
+      "category": "vastgoedbeheerders",
+      "source_type": "beheerder"
+    },
+    {
+      "name": "ReBo Wonen",
+      "domain": "rebo-wonen.nl",
+      "url": "https://www.rebo-wonen.nl/huur/",
+      "category": "vastgoedbeheerders",
+      "source_type": "beheerder"
+    },
+    {
+      "name": "Vastgoedmanager",
+      "domain": "vastgoedmanager.nl",
+      "url": "https://www.vastgoedmanager.nl/huur/",
+      "category": "vastgoedbeheerders",
+      "source_type": "beheerder"
+    },
+    {
+      "name": "Kroonenberg Groep",
+      "domain": "kroonenberggroep.nl",
+      "url": "https://www.kroonenberggroep.nl/wonen/",
+      "category": "vastgoedbeheerders",
+      "source_type": "beheerder"
+    },
+    {
+      "name": "Sustay",
+      "domain": "sustay.nl",
+      "url": "https://www.sustay.nl/huren/",
+      "category": "institutionele_verhuurders",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Urban Interest",
+      "domain": "urbaninterest.nl",
+      "url": "https://www.urbaninterest.nl/huren/",
+      "category": "institutionele_verhuurders",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "European Residential",
+      "domain": "european-residential.nl",
+      "url": "https://www.european-residential.nl/huren/",
+      "category": "institutionele_verhuurders",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Patrizia AG NL",
+      "domain": "patrizia.ag",
+      "url": "https://www.patrizia.ag/nl/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "Hines Netherlands",
+      "domain": "hines.com",
+      "url": "https://www.hines.com/nl/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "Bouwfonds IM",
+      "domain": "bim.nl",
+      "url": "https://www.bim.nl/wonen/",
+      "category": "institutionele_verhuurders",
+      "source_type": "belegger"
+    },
+    {
+      "name": "KamerZoeken",
+      "domain": "kamerzoeken.nl",
+      "url": "https://www.kamerzoeken.nl/",
+      "category": "studenten_kamers",
+      "source_type": "portal"
+    },
+    {
+      "name": "StudentKamer",
+      "domain": "studentkamer.nl",
+      "url": "https://www.studentkamer.nl/",
+      "category": "studenten_kamers",
+      "source_type": "portal"
+    },
+    {
+      "name": "Studica",
+      "domain": "studica.nl",
+      "url": "https://www.studica.nl/woningen/",
+      "category": "studenten_kamers",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Living in Cities",
+      "domain": "livingincities.nl",
+      "url": "https://www.livingincities.nl/huren/",
+      "category": "studenten_kamers",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Nido Student Living",
+      "domain": "nido-living.com",
+      "url": "https://www.nido-living.com/nl/",
+      "category": "studenten_kamers",
+      "source_type": "verhuurder"
+    },
+    {
+      "name": "Stichting Studenten Huisvesting",
+      "domain": "ssh-wonen.nl",
+      "url": "https://www.ssh-wonen.nl/woningaanbod/",
+      "category": "studenten_kamers",
+      "source_type": "corporatie"
+    },
+    {
+      "name": "Huur Nieuwbouw",
+      "domain": "huurnieuwbouw.nl",
+      "url": "https://www.huurnieuwbouw.nl/",
+      "category": "nieuwbouw_huurprojecten",
+      "source_type": "portal"
+    },
+    {
+      "name": "NewHomes NL",
+      "domain": "newhomes.nl",
+      "url": "https://www.newhomes.nl/huur/",
+      "category": "nieuwbouw_huurprojecten",
+      "source_type": "portal"
+    },
+    {
+      "name": "Bouwinfo",
+      "domain": "bouwinfo.nl",
+      "url": "https://www.bouwinfo.nl/huur/",
+      "category": "nieuwbouw_huurprojecten",
+      "source_type": "portal"
+    },
+    {
+      "name": "Duurzaam Huren",
+      "domain": "duurzaamhuren.nl",
+      "url": "https://www.duurzaamhuren.nl/",
+      "category": "nieuwbouw_huurprojecten",
+      "source_type": "portal"
+    },
+    {
+      "name": "WoonKeus",
+      "domain": "woonkeus.nl",
+      "url": "https://www.woonkeus.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "Woonruimte Verdeling",
+      "domain": "woonruimteverdeling.nl",
+      "url": "https://www.woonruimteverdeling.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "WoonNet Haaglanden",
+      "domain": "woonnet-haaglanden.nl",
+      "url": "https://www.woonnet-haaglanden.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "Thuis In Zeeland",
+      "domain": "thuisinzeeland.nl",
+      "url": "https://www.thuisinzeeland.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "KlikVoorWonen",
+      "domain": "klikvoorwonen.nl",
+      "url": "https://www.klikvoorwonen.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "Thuisvinden",
+      "domain": "thuisvinden.nl",
+      "url": "https://www.thuisvinden.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    },
+    {
+      "name": "WoonLoket",
+      "domain": "woonloket.nl",
+      "url": "https://www.woonloket.nl/",
+      "category": "sociale_huur",
+      "source_type": "portal"
+    }
+  ]
+}
