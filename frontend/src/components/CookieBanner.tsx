@@ -51,26 +51,31 @@ export function CookieBanner() {
       )}
 
       {visible && (
-        <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-xl rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-premium)] sm:bottom-6 sm:left-6 sm:right-auto sm:max-w-sm">
-          <p className="text-sm font-semibold text-[var(--color-text)]">
-            Cookies
-          </p>
-          <p className="mt-1 text-sm text-[var(--color-muted)]">
-            We gebruiken Google Analytics om te begrijpen hoe bezoekers RentScout gebruiken. Er worden geen persoonlijke gegevens gedeeld.
-          </p>
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={accept}
-              className="flex-1 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            >
-              Accepteren
-            </button>
-            <button
-              onClick={decline}
-              className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] px-4 py-2 text-sm font-semibold text-[var(--color-muted)] transition-opacity hover:opacity-80"
-            >
-              Alleen noodzakelijk
-            </button>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          {/* Backdrop — blocks interaction with the page */}
+          <div className="absolute inset-0 rs-modal-backdrop" aria-hidden="true" />
+
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-premium)]">
+            <p className="text-sm font-semibold text-[var(--color-text)]">
+              Cookies
+            </p>
+            <p className="mt-1 text-sm text-[var(--color-muted)]">
+              We gebruiken Google Analytics om te begrijpen hoe bezoekers RentScout gebruiken. Er worden geen persoonlijke gegevens gedeeld.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={accept}
+                className="flex-1 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              >
+                Accepteren
+              </button>
+              <button
+                onClick={decline}
+                className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] px-4 py-2 text-sm font-semibold text-[var(--color-muted)] transition-opacity hover:opacity-80"
+              >
+                Alleen noodzakelijk
+              </button>
+            </div>
           </div>
         </div>
       )}
