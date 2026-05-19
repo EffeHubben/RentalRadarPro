@@ -349,8 +349,12 @@ export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function Li
     listing.availability_status === "rented" ||
     listing.availability_status === "under_option" ||
     listing.availability_status === "reserved";
-  const strongMatch = confidence >= 0.75 && !unavailable;
   const newListing = isNewListing(listing);
+  const recentListing = wasSeenRecently(listing);
+  // Chance badge: newer listing = higher chance of getting it
+  const highChance = !unavailable && newListing && confidence >= 0.55;
+  const goodChance = !unavailable && !highChance && recentListing && confidence >= 0.65;
+  const strongMatch = !unavailable && !highChance && !goodChance && confidence >= 0.75;
 
   return (
     <motion.article
@@ -375,6 +379,8 @@ export const ListingCard = forwardRef<HTMLElement, ListingCardProps>(function Li
         <div className="absolute left-4 top-4 flex flex-wrap gap-2">
           <Badge>{listingTypeLabel(listing.property_type, listing.property_type_sub, language)}</Badge>
           {newListing ? <Badge accent>{copy.newBadge}</Badge> : null}
+          {highChance ? <Badge accent>{copy.highChance}</Badge> : null}
+          {goodChance ? <Badge accent>{copy.goodChance}</Badge> : null}
           {strongMatch ? <Badge accent>{copy.strongMatch}</Badge> : null}
           {unavailable ? (
             <Badge muted>{copy.availability[listing.availability_status]}</Badge>
