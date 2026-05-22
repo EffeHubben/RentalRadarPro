@@ -54,6 +54,7 @@ import type {
 } from "@/types/listing";
 
 const onboardingStorageKey = "rental-radar-onboarding-complete-v1";
+const lockedPreviewPlaceholderCount = 4;
 
 function PreviewBanner({
   visibleCount,
@@ -167,6 +168,89 @@ function PreviewLockedDialog({
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+function LockedPreviewPlaceholderCard({
+  index,
+  language,
+  onClick,
+}: {
+  index: number;
+  language: Language;
+  onClick: () => void;
+}) {
+  const copy = i18n[language].listing;
+
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.992 }}
+      transition={{ duration: 0.35, delay: Math.min(index * 0.035, 0.28) }}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      className="group cursor-pointer overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-soft)] outline-none transition duration-300 hover:-translate-y-1 hover:border-[var(--color-border-strong)] hover:shadow-[var(--shadow-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-teal)]"
+      aria-label={copy.lockedPlaceholderCta}
+    >
+      <div className="relative flex h-56 items-center justify-center overflow-hidden border-b border-[var(--color-border)] bg-[var(--color-soft)]">
+        <div className="absolute left-4 top-4">
+          <span className="rs-chip rounded-full border px-2.5 py-1 text-[11px] font-semibold">
+            {copy.lockedPlaceholderRecent}
+          </span>
+        </div>
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-subtle)]">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            className="h-8 w-8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="11" width="18" height="10" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </div>
+      </div>
+
+      <div className="space-y-4 p-5">
+        <div>
+          <h3 className="text-base font-semibold text-[var(--color-text)]">
+            {copy.lockedPlaceholderTitle}
+          </h3>
+          <p className="rs-muted mt-1 text-sm">{copy.lockedPlaceholderDetails}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="rounded-lg bg-[var(--color-soft)] p-3">
+            <div className="rs-subtle">{copy.rent}</div>
+            <div className="mt-1 font-semibold text-[var(--color-accent-strong)]">
+              {copy.lockedPlaceholderPrice}
+            </div>
+          </div>
+          <div className="rounded-lg bg-[var(--color-soft)] p-3">
+            <div className="rs-subtle">{copy.location}</div>
+            <div className="mt-1 font-semibold text-[var(--color-text)]">
+              {copy.lockedPlaceholderRegion}
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] px-3 py-3 text-xs font-semibold text-[var(--color-teal)]">
+          {copy.lockedPlaceholderCta}
+        </div>
+      </div>
+    </motion.article>
   );
 }
 
@@ -1363,10 +1447,24 @@ export default function DashboardPage() {
               <ErrorPanel message={error} help={copy.toast.backendOfflineHelp} />
             ) : null}
 
+            {!loading && requiresPro ? (
+              <PreviewBanner
+                visibleCount={listings.length}
+                totalCount={totalListings}
+                isGuest={!auth.user}
+                banner={copy.previewBanner}
+              />
+            ) : null}
+
             {loading ? (
               <SkeletonGrid />
             ) : visibleListings.length ? (
-              <motion.div layout className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              <motion.div
+                layout
+                className={`grid gap-5 md:grid-cols-2 xl:grid-cols-3 ${
+                  requiresPro ? "mt-5" : ""
+                }`}
+              >
                 <AnimatePresence mode="popLayout">
                   {visibleListings.map((listing, index) => (
                     <ListingCard
@@ -1382,6 +1480,16 @@ export default function DashboardPage() {
                       onPreviewLocked={() => setPreviewLockedOpen(true)}
                     />
                   ))}
+                  {requiresPro
+                    ? Array.from({ length: lockedPreviewPlaceholderCount }, (_, placeholderIndex) => (
+                        <LockedPreviewPlaceholderCard
+                          key={`locked-preview-placeholder-${placeholderIndex}`}
+                          index={visibleListings.length + placeholderIndex}
+                          language={language}
+                          onClick={() => setPreviewLockedOpen(true)}
+                        />
+                      ))
+                    : null}
                 </AnimatePresence>
               </motion.div>
             ) : (
@@ -1394,15 +1502,6 @@ export default function DashboardPage() {
                 limit={filters.limit}
                 offset={filters.offset}
                 onChange={goToPage}
-              />
-            ) : null}
-
-            {!loading && requiresPro ? (
-              <PreviewBanner
-                visibleCount={listings.length}
-                totalCount={totalListings}
-                isGuest={!auth.user}
-                banner={copy.previewBanner}
               />
             ) : null}
 
