@@ -863,6 +863,16 @@ export default function DashboardPage() {
     };
   }, [listings, visibleListings, workflowState]);
 
+  const resultStatValue =
+    freeLimitApplied && totalListings > visibleListings.length
+      ? `${visibleListings.length} / ${totalListings}`
+      : isProUser
+        ? totalListings
+        : visibleListings.length;
+  const resultStatLabel = freeLimitApplied
+    ? copy.dashboard.visibleResults
+    : copy.dashboard.results;
+
   const selectedListingStatus = selectedListing
     ? workflowStatusForListing(workflowState, selectedListing)
     : "new";
@@ -1182,15 +1192,15 @@ export default function DashboardPage() {
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
                   <div className="rs-subtle text-xs uppercase tracking-[0.16em]">
-                    {copy.dashboard.results}
+                    {resultStatLabel}
                   </div>
                   <div className="mt-2 text-2xl font-semibold text-[var(--color-text)]">
-                    <AnimatedValue value={visibleListings.length} />
+                    <AnimatedValue value={resultStatValue} />
                   </div>
                 </div>
                 <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
                   <div className="rs-subtle text-xs uppercase tracking-[0.16em]">
-                    {copy.dashboard.private}
+                    {copy.dashboard.privateVisible}
                   </div>
                   <div className="mt-2 text-2xl font-semibold text-[var(--color-teal)]">
                     <AnimatedValue value={stats.privateCount} />
@@ -1198,7 +1208,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-3">
                   <div className="rs-subtle text-xs uppercase tracking-[0.16em]">
-                    {copy.dashboard.lowestRent}
+                    {copy.dashboard.lowestVisibleRent}
                   </div>
                   <div className="mt-2 text-lg font-semibold text-[var(--color-accent-strong)]">
                     <AnimatedValue
