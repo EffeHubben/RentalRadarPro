@@ -235,12 +235,27 @@ export default function HomePage() {
         ? copy.proPlanManageCta
         : copy.proPlanCta;
   const proPlanButtonMode: BillingMode = isPro ? "portal" : "checkout";
-  const proPlanPrice = paymentReady
-    ? formatProPlanPrice(language, monthlyPriceAmount, monthlyPriceCurrency)
-    : copy.proPlanComingSoon;
-  const proPlanPriceSuffix = paymentReady
-    ? formatProPlanPriceSuffix(language, monthlyPriceInterval)
-    : "";
+
+  // Paddle uses 1/2/3 month passes — show "vanaf €14,99 eenmalig" as a teaser
+  // and link to /pricing where the three passes are listed in full.
+  const paddleStartingPrice = language === "nl" ? "Vanaf €14,99" : "From €14.99";
+  const paddleStartingSuffix = language === "nl" ? "eenmalig" : "one-time";
+  const paddleProDescription =
+    language === "nl"
+      ? "Kies een Pro-pas van 1, 2 of 3 maanden. Eenmalige betaling, stopt automatisch."
+      : "Choose a 1, 2, or 3 month Pro pass. One-time payment, ends automatically.";
+
+  const proPlanPrice = usePaddle
+    ? paddleStartingPrice
+    : paymentReady
+      ? formatProPlanPrice(language, monthlyPriceAmount, monthlyPriceCurrency)
+      : copy.proPlanComingSoon;
+  const proPlanPriceSuffix = usePaddle
+    ? paddleStartingSuffix
+    : paymentReady
+      ? formatProPlanPriceSuffix(language, monthlyPriceInterval)
+      : "";
+  const proPlanDescriptionText = usePaddle ? paddleProDescription : copy.proPlanDescription;
   const freePlanButtonLabel = !auth.isAuthenticated
     ? copy.startSearch
     : isPro
@@ -530,7 +545,7 @@ export default function HomePage() {
                       <span className="text-sm text-[var(--color-muted)]">{proPlanPriceSuffix}</span>
                     ) : null}
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{copy.proPlanDescription}</p>
+                  <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{proPlanDescriptionText}</p>
                   <ul className="mt-5 flex-1 space-y-2">
                     {copy.proPlanFeatures.map((feature) => (
                       <li key={feature} className="flex items-start gap-2 text-sm text-[var(--color-muted)]">
