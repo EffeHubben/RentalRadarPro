@@ -12,7 +12,11 @@ import {
   type PaddlePlan,
 } from "@/lib/billing";
 import type { Language } from "@/lib/i18n";
-import { openPaddleCheckoutByTransaction } from "@/lib/paddle";
+import {
+  openPaddleCheckout,
+  PaddleLoadError,
+  PaddleNotConfiguredError,
+} from "@/lib/paddle";
 import { useLanguagePreference } from "@/lib/useLanguagePreference";
 
 const copy = languageRecord(
@@ -50,6 +54,7 @@ const copy = languageRecord(
     loginRequired: "Log in of maak een account om Pro te activeren.",
     loadingCheckout: "Checkout openen...",
     checkoutFailed: "Het is niet gelukt om de Paddle-checkout te openen.",
+    checkoutNotConfigured: "Paddle is niet correct geconfigureerd. Probeer het later opnieuw.",
     proPlanName: "Pro",
     proPlanPrice: "€19,99",
     proPlanPriceSuffix: "/ maand",
@@ -117,6 +122,7 @@ const copy = languageRecord(
     loginRequired: "Log in or create an account to activate Pro.",
     loadingCheckout: "Opening checkout...",
     checkoutFailed: "Could not open Paddle checkout.",
+    checkoutNotConfigured: "Paddle is not configured correctly. Please try again later.",
     proPlanName: "Pro",
     proPlanPrice: "€19.99",
     proPlanPriceSuffix: "/ month",
@@ -222,6 +228,10 @@ export default function PricingClient() {
   const [error, setError] = useState("");
 
   async function handlePaddleCheckout(plan: PaddlePlan) {
+    if (loadingPlan !== null) {
+      return;
+    }
+
     setError("");
 
     if (!auth.isAuthenticated || !auth.accessToken) {
@@ -232,17 +242,23 @@ export default function PricingClient() {
     setLoadingPlan(plan);
     try {
       const session = await createPaddleCheckout(plan, auth.accessToken);
-
-      if (session.checkout_url) {
-        window.location.assign(session.checkout_url);
-        return;
-      }
-
-      await openPaddleCheckoutByTransaction(session.transaction_id);
+      await openPaddleCheckout(session.transaction_id);
     } catch (caughtError) {
-      setError(
-        caughtError instanceof Error ? caughtError.message : c.checkoutFailed,
-      );
+      if (caughtError instanceof PaddleNotConfiguredError) {
+        console.error("paddle.checkout.not_configured");
+        setError(c.checkoutNotConfigured);
+      } else if (caughtError instanceof PaddleLoadError) {
+        console.error("paddle.checkout.load_failed", caughtError.message);
+        setError(c.checkoutFailed);
+      } else {
+        console.error(
+          "paddle.checkout.unexpected_error",
+          caughtError instanceof Error ? caughtError.message : caughtError,
+        );
+        setError(
+          caughtError instanceof Error ? caughtError.message : c.checkoutFailed,
+        );
+      }
     } finally {
       setLoadingPlan(null);
     }

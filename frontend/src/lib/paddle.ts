@@ -1,64 +1,86 @@
 import { getPaddleClientToken, getPaddleEnv } from "@/lib/billing";
 
-type PaddleInstance = {
-  Checkout: {
-    open: (options: Record<string, unknown>) => void;
-  };
-  Environment?: {
-    set: (env: string) => void;
-  };
+type PaddleCheckoutSettings = {
+  displayMode?: "overlay" | "inline";
+  theme?: "light" | "dark";
+  successUrl?: string;
 };
 
-type PaddleGlobal = PaddleInstance & {
+type PaddleInstance = {
+  Checkout?: {
+    open: (options: {
+      transactionId?: string;
+      settings?: PaddleCheckoutSettings;
+      [key: string]: unknown;
+    }) => void;
+  };
+  Environment?: {
+    set: (env: "sandbox" | "production") => void;
+  };
+  Initialize?: (options: { token: string; [key: string]: unknown }) => void;
   Initialized?: boolean;
 };
 
 declare global {
   interface Window {
-    Paddle?: PaddleGlobal;
-    PaddleInitOptions?: Record<string, unknown>;
+    Paddle?: PaddleInstance;
   }
 }
 
 const PADDLE_SCRIPT_SRC = "https://cdn.paddle.com/paddle/v2/paddle.js";
 
-let loadPromise: Promise<PaddleInstance> | null = null;
+let scriptPromise: Promise<PaddleInstance> | null = null;
+let initialized = false;
+
+export class PaddleNotConfiguredError extends Error {
+  constructor() {
+    super("Paddle client token is not configured (NEXT_PUBLIC_PADDLE_CLIENT_TOKEN)");
+    this.name = "PaddleNotConfiguredError";
+  }
+}
+
+export class PaddleLoadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PaddleLoadError";
+  }
+}
 
 function loadPaddleScript(): Promise<PaddleInstance> {
   if (typeof window === "undefined") {
-    return Promise.reject(new Error("Paddle.js can only load in the browser"));
+    return Promise.reject(new PaddleLoadError("Paddle.js can only load in the browser"));
   }
 
   if (window.Paddle) {
     return Promise.resolve(window.Paddle);
   }
 
-  if (loadPromise) {
-    return loadPromise;
+  if (scriptPromise) {
+    return scriptPromise;
   }
 
-  loadPromise = new Promise<PaddleInstance>((resolve, reject) => {
+  scriptPromise = new Promise<PaddleInstance>((resolve, reject) => {
+    const finishWhenReady = () => {
+      if (window.Paddle) {
+        resolve(window.Paddle);
+      } else {
+        reject(new PaddleLoadError("Paddle.js loaded but Paddle global is missing"));
+      }
+    };
+
     const existing = document.querySelector<HTMLScriptElement>(
       `script[src="${PADDLE_SCRIPT_SRC}"]`,
     );
 
-    const onReady = () => {
-      if (window.Paddle) {
-        resolve(window.Paddle);
-      } else {
-        reject(new Error("Paddle.js loaded but Paddle global is missing"));
-      }
-    };
-
     if (existing) {
       if (window.Paddle) {
-        onReady();
+        finishWhenReady();
         return;
       }
-      existing.addEventListener("load", onReady, { once: true });
+      existing.addEventListener("load", finishWhenReady, { once: true });
       existing.addEventListener(
         "error",
-        () => reject(new Error("Failed to load Paddle.js")),
+        () => reject(new PaddleLoadError("Failed to load Paddle.js")),
         { once: true },
       );
       return;
@@ -67,36 +89,77 @@ function loadPaddleScript(): Promise<PaddleInstance> {
     const script = document.createElement("script");
     script.src = PADDLE_SCRIPT_SRC;
     script.async = true;
-    script.onload = onReady;
-    script.onerror = () => reject(new Error("Failed to load Paddle.js"));
+    script.onload = finishWhenReady;
+    script.onerror = () => {
+      scriptPromise = null;
+      reject(new PaddleLoadError("Failed to load Paddle.js"));
+    };
     document.head.appendChild(script);
   });
 
-  return loadPromise;
+  return scriptPromise;
 }
 
 export async function initializePaddle(): Promise<PaddleInstance> {
-  const paddle = (await loadPaddleScript()) as PaddleGlobal;
-  const env = getPaddleEnv();
   const token = getPaddleClientToken();
-
-  if (env === "sandbox" && paddle.Environment?.set) {
-    paddle.Environment.set("sandbox");
+  if (!token) {
+    throw new PaddleNotConfiguredError();
   }
 
-  if (!paddle.Initialized) {
-    const initFn = (paddle as unknown as { Initialize?: (opts: Record<string, unknown>) => void })
-      .Initialize;
-    if (initFn && token) {
-      initFn({ token });
-      paddle.Initialized = true;
+  const paddle = await loadPaddleScript();
+
+  if (initialized) {
+    return paddle;
+  }
+
+  if (getPaddleEnv() === "sandbox" && paddle.Environment?.set) {
+    try {
+      paddle.Environment.set("sandbox");
+    } catch (error) {
+      console.warn("paddle.environment.set_failed", error);
     }
   }
+
+  if (typeof paddle.Initialize !== "function") {
+    throw new PaddleLoadError("Paddle.Initialize is not available on the loaded SDK");
+  }
+
+  paddle.Initialize({ token });
+  paddle.Initialized = true;
+  initialized = true;
 
   return paddle;
 }
 
-export async function openPaddleCheckoutByTransaction(transactionId: string): Promise<void> {
+function defaultSuccessUrl(): string | undefined {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+  return `${window.location.origin}/account?billing=success`;
+}
+
+export type OpenCheckoutOptions = {
+  successUrl?: string;
+  theme?: "light" | "dark";
+  displayMode?: "overlay" | "inline";
+};
+
+export async function openPaddleCheckout(
+  transactionId: string,
+  options: OpenCheckoutOptions = {},
+): Promise<void> {
   const paddle = await initializePaddle();
-  paddle.Checkout.open({ transactionId });
+
+  if (!paddle.Checkout || typeof paddle.Checkout.open !== "function") {
+    throw new PaddleLoadError("Paddle.Checkout.open is not available on the loaded SDK");
+  }
+
+  paddle.Checkout.open({
+    transactionId,
+    settings: {
+      displayMode: options.displayMode ?? "overlay",
+      theme: options.theme ?? "light",
+      successUrl: options.successUrl ?? defaultSuccessUrl(),
+    },
+  });
 }
