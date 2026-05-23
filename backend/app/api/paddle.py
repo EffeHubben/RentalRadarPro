@@ -30,12 +30,11 @@ PLAN_TO_PRICE_ENV_NAME = {
     "3m": "PADDLE_PRO_3M_PRICE_ID",
 }
 
-# Subscription model: the three Paddle prices referenced by the env vars are
-# recurring prices (€14.99 / 1 month, €24.99 / 2 months, €34.99 / 3 months).
-# Pro access is granted via subscription_status (active/trialing) and revoked
-# when Paddle marks the subscription canceled past its paid-through date.
-
-PRO_STATUSES = {"active", "trialing"}
+# One-time Pro pass model: each Paddle price referenced by these env vars MUST be
+# configured as a one-time (non-recurring) price in the Paddle dashboard. Pro
+# access is granted by extending user.pro_expires_at on `transaction.completed`.
+# We do not manage Paddle subscriptions. iDEAL requires one-time prices on the
+# Paddle side, which is why we use this model.
 
 
 def paddle_api_base_url() -> str:
@@ -82,11 +81,6 @@ class CreateCheckoutResponse(BaseModel):
     checkout_url: str | None
     plan: str
     duration_months: int
-
-
-class ManageSubscriptionResponse(BaseModel):
-    cancel_url: str | None
-    update_payment_method_url: str | None
 
 
 def _paddle_request(method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -155,7 +149,7 @@ def create_paddle_checkout(
             "user_id": str(current_user.id),
             "duration_months": duration_months,
             "provider": "paddle",
-            "product": "rentscout_pro_subscription",
+            "product": "rentscout_pro_pass",
             "plan": payload.plan,
         },
     }
@@ -201,27 +195,13 @@ def create_paddle_checkout(
     )
 
 
-@router.get("/manage", response_model=ManageSubscriptionResponse)
-def get_manage_subscription(
-    current_user: User = Depends(get_current_user),
-) -> ManageSubscriptionResponse:
-    require_paddle_configured()
-
-    subscription_id = current_user.paddle_subscription_id
-    if not subscription_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No Paddle subscription is linked to this account",
-        )
-
-    response = _paddle_request("GET", f"/subscriptions/{subscription_id}")
-    data = response.get("data") or {}
-    management_urls = data.get("management_urls") or {}
-
-    return ManageSubscriptionResponse(
-        cancel_url=management_urls.get("cancel"),
-        update_payment_method_url=management_urls.get("update_payment_method"),
-    )
+def _add_months(base: datetime, months: int) -> datetime:
+    year = base.year + (base.month - 1 + months) // 12
+    month = (base.month - 1 + months) % 12 + 1
+    is_leap = year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+    days_per_month = [31, 29 if is_leap else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    day = min(base.day, days_per_month[month - 1])
+    return base.replace(year=year, month=month, day=day)
 
 
 def verify_paddle_signature(signature_header: str, raw_body: bytes, secret: str) -> bool:
@@ -252,96 +232,18 @@ def verify_paddle_signature(signature_header: str, raw_body: bytes, secret: str)
     return any(hmac.compare_digest(expected, candidate) for candidate in signature_values)
 
 
-def _parse_paddle_datetime(value: Any) -> datetime | None:
-    """Parse a Paddle ISO-8601 timestamp (e.g. '2026-06-01T10:00:00Z')."""
-    if not value or not isinstance(value, str):
-        return None
-    try:
-        normalized = value.replace("Z", "+00:00")
-        return datetime.fromisoformat(normalized).replace(tzinfo=None)
-    except ValueError:
-        return None
-
-
-def _subscription_period_end(subscription: dict[str, Any]) -> datetime | None:
-    period = subscription.get("current_billing_period") or {}
-    if isinstance(period, dict):
-        end = _parse_paddle_datetime(period.get("ends_at"))
-        if end:
-            return end
-
-    scheduled = subscription.get("scheduled_change") or {}
-    if isinstance(scheduled, dict):
-        effective = _parse_paddle_datetime(scheduled.get("effective_at"))
-        if effective:
-            return effective
-
-    return _parse_paddle_datetime(subscription.get("next_billed_at"))
-
-
-def _find_user_for_subscription(database: Session, subscription: dict[str, Any]) -> User | None:
-    subscription_id = subscription.get("id")
-    customer_id = subscription.get("customer_id")
-    custom_data = subscription.get("custom_data") or {}
-    user_id_raw = custom_data.get("user_id") if isinstance(custom_data, dict) else None
-
-    if user_id_raw:
-        try:
-            user = database.query(User).filter(User.id == int(user_id_raw)).first()
-        except (TypeError, ValueError):
-            user = None
-        if user:
-            return user
-
-    if subscription_id:
-        user = (
-            database.query(User)
-            .filter(User.paddle_subscription_id == str(subscription_id))
-            .first()
-        )
-        if user:
-            return user
-
-    if customer_id:
-        user = (
-            database.query(User)
-            .filter(User.paddle_customer_id == str(customer_id))
-            .first()
-        )
-        if user:
-            return user
-
-    return None
-
-
-def _apply_subscription_state(user: User, subscription: dict[str, Any]) -> None:
-    """Update user fields from a Paddle subscription payload."""
-    subscription_id = subscription.get("id")
-    customer_id = subscription.get("customer_id")
-    sub_status = (subscription.get("status") or "").lower() or "inactive"
-    period_end = _subscription_period_end(subscription)
-    scheduled = subscription.get("scheduled_change") or {}
-    scheduled_action = (
-        scheduled.get("action") if isinstance(scheduled, dict) else None
+def _apply_pro_pass(user: User, duration_months: int) -> None:
+    """Stack `duration_months` of Pro access onto the user's existing expiry."""
+    now = datetime.utcnow()
+    base = (
+        user.pro_expires_at
+        if user.pro_expires_at and user.pro_expires_at > now
+        else now
     )
-
-    if subscription_id:
-        user.paddle_subscription_id = str(subscription_id)
-    if customer_id:
-        user.paddle_customer_id = str(customer_id)
-
+    user.pro_expires_at = _add_months(base, duration_months)
+    user.plan = "pro"
+    user.subscription_status = "active"
     user.billing_provider = "paddle"
-    user.subscription_status = sub_status
-    user.subscription_current_period_end = period_end
-    user.subscription_cancel_at_period_end = scheduled_action == "cancel"
-
-    grants_pro = sub_status in PRO_STATUSES or (
-        sub_status == "canceled" and period_end is not None and period_end > datetime.utcnow()
-    )
-    user.plan = "pro" if grants_pro else "free"
-
-    if period_end is not None and grants_pro:
-        user.pro_expires_at = period_end
 
 
 def _handle_transaction_completed(
@@ -361,29 +263,32 @@ def _handle_transaction_completed(
 
     custom_data = data.get("custom_data") or {}
     user_id_raw = custom_data.get("user_id") if isinstance(custom_data, dict) else None
+    duration_raw = custom_data.get("duration_months") if isinstance(custom_data, dict) else None
 
     try:
         user_id = int(user_id_raw) if user_id_raw is not None else None
     except (TypeError, ValueError):
         user_id = None
 
-    user: User | None = None
-    if user_id is not None:
-        user = database.query(User).filter(User.id == user_id).first()
+    try:
+        duration_months = int(duration_raw) if duration_raw is not None else None
+    except (TypeError, ValueError):
+        duration_months = None
 
-    if user is None:
-        customer_id = data.get("customer_id")
-        if customer_id:
-            user = (
-                database.query(User)
-                .filter(User.paddle_customer_id == str(customer_id))
-                .first()
-            )
+    if user_id is None or duration_months is None or duration_months <= 0:
+        logger.warning(
+            "paddle_webhook_missing_custom_data transaction_id=%s custom_data_keys=%s",
+            transaction_id,
+            list(custom_data.keys()) if isinstance(custom_data, dict) else None,
+        )
+        return {"received": True, "ignored": "missing custom_data"}
 
+    user = database.query(User).filter(User.id == user_id).first()
     if user is None:
         logger.warning(
-            "paddle_webhook_transaction_unknown_user transaction_id=%s",
+            "paddle_webhook_unknown_user transaction_id=%s user_id=%s",
             transaction_id,
+            user_id,
         )
         return {"received": True, "ignored": "unknown user"}
 
@@ -391,29 +296,8 @@ def _handle_transaction_completed(
     if customer_id:
         user.paddle_customer_id = str(customer_id)
 
-    subscription_id = data.get("subscription_id")
-    if subscription_id:
-        user.paddle_subscription_id = str(subscription_id)
-
     user.paddle_transaction_id = str(transaction_id)
-    user.billing_provider = "paddle"
-
-    # If we get the subscription id, fetch it so the state matches subscription truth.
-    if subscription_id and settings.paddle_api_key:
-        try:
-            sub_response = _paddle_request("GET", f"/subscriptions/{subscription_id}")
-            sub_data = sub_response.get("data") or {}
-            if sub_data:
-                _apply_subscription_state(user, sub_data)
-        except HTTPException:
-            # Don't fail the webhook if the API lookup hiccups; activate Pro optimistically.
-            user.plan = "pro"
-            if user.subscription_status not in PRO_STATUSES:
-                user.subscription_status = "active"
-    else:
-        user.plan = "pro"
-        if user.subscription_status not in PRO_STATUSES:
-            user.subscription_status = "active"
+    _apply_pro_pass(user, duration_months)
 
     database.add(
         PaddleEvent(
@@ -421,13 +305,25 @@ def _handle_transaction_completed(
             transaction_id=str(transaction_id),
             event_type="transaction.completed",
             user_id=user.id,
+            duration_months=duration_months,
         )
     )
     database.commit()
+
+    logger.info(
+        "paddle_webhook_pro_pass_applied user_id=%s transaction_id=%s duration_months=%s pro_expires_at=%s",
+        user.id,
+        transaction_id,
+        duration_months,
+        user.pro_expires_at,
+    )
     return {"received": True}
 
 
-SUBSCRIPTION_EVENT_TYPES = {
+# One-time pass mode: subscription.* events are not authoritative because we do
+# not create recurring Paddle subscriptions. They are logged so we can spot
+# unexpected activity, but they do NOT revoke or change Pro access.
+SUBSCRIPTION_EVENT_TYPES_LOGGED = {
     "subscription.created",
     "subscription.activated",
     "subscription.updated",
@@ -477,29 +373,14 @@ async def paddle_webhook(
     if event_type == "transaction.completed":
         return _handle_transaction_completed(database, data, event_id)
 
-    if event_type in SUBSCRIPTION_EVENT_TYPES:
-        user = _find_user_for_subscription(database, data)
-        if user is None:
-            logger.warning(
-                "paddle_webhook_subscription_unknown_user event_type=%s subscription_id=%s",
-                event_type,
-                data.get("id"),
-            )
-            return {"received": True, "ignored": "unknown user"}
-
-        previous_plan = user.plan
-        _apply_subscription_state(user, data)
-        database.commit()
-
+    if event_type in SUBSCRIPTION_EVENT_TYPES_LOGGED:
         logger.info(
-            "paddle_webhook_subscription_applied event_type=%s user_id=%s previous_plan=%s new_plan=%s status=%s",
+            "paddle_webhook_subscription_event_ignored event_type=%s event_id=%s "
+            "reason=one_time_pass_mode",
             event_type,
-            user.id,
-            previous_plan,
-            user.plan,
-            user.subscription_status,
+            event_id,
         )
-        return {"received": True}
+        return {"received": True, "logged": True}
 
     if event_type == "transaction.payment_failed":
         logger.info(

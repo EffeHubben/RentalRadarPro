@@ -54,28 +54,6 @@ export async function createPaddleCheckout(
   return response.json() as Promise<PaddleCheckoutResponse>;
 }
 
-export type PaddleManageResponse = {
-  cancel_url: string | null;
-  update_payment_method_url: string | null;
-};
-
-export async function fetchPaddleManageUrls(
-  accessToken: string,
-): Promise<PaddleManageResponse> {
-  const response = await fetch(buildApiUrl("/billing/paddle/manage"), {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(await getApiErrorMessage(response));
-  }
-
-  return response.json() as Promise<PaddleManageResponse>;
-}
-
 type BillingSessionResponse = {
   url: string;
 };

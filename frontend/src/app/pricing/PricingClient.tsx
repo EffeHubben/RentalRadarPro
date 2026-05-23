@@ -24,7 +24,7 @@ const copy = languageRecord(
     eyebrow: "Abonnementen",
     title: "Eenvoudig beginnen, altijd gratis.",
     intro:
-      "Start gratis en upgrade naar Pro wanneer je meer nodig hebt. RentScout Pro is een doorlopend abonnement voor serieuze woningzoekers.",
+      "Start gratis en upgrade naar Pro wanneer je meer nodig hebt. RentScout Pro is een tijdelijke Pro-pas voor serieuze woningzoekers.",
     freePlanName: "Gratis",
     freePlanPrice: "€0",
     freePlanPriceSuffix: "voor altijd",
@@ -35,25 +35,26 @@ const copy = languageRecord(
       "Maximaal 10 zichtbare advertenties",
     ],
     freeCta: "Gratis zoeken",
-    proPassesTitle: "Kies je Pro-abonnement",
+    proPassesTitle: "Kies je Pro-pas",
     proPassesIntro:
-      "Automatisch verlengend. Je kunt opzeggen via je account.",
+      "Eenmalige betaling. Geen abonnement. Je Pro-toegang stopt automatisch.",
     plan1mTitle: "1 maand Pro",
     plan2mTitle: "2 maanden Pro",
     plan3mTitle: "3 maanden Pro",
     plan1mPrice: "€14,99",
     plan2mPrice: "€24,99",
     plan3mPrice: "€34,99",
-    plan1mInterval: "/ maand",
-    plan2mInterval: "/ 2 maanden",
-    plan3mInterval: "/ 3 maanden",
+    plan1mInterval: "eenmalig",
+    plan2mInterval: "eenmalig",
+    plan3mInterval: "eenmalig",
     plan2mSave: "Bespaar €4,99",
     plan3mSave: "Bespaar €9,98",
     plan3mBadge: "Beste deal",
     plan1mCta: "Kies 1 maand",
     plan2mCta: "Kies 2 maanden",
     plan3mCta: "Kies 3 maanden",
-    autoRenewNote: "Automatisch verlengend. Je kunt opzeggen via je account.",
+    oneTimeNote: "Eenmalige betaling — geen abonnement, stopt automatisch.",
+    idealNote: "Betaal veilig met iDEAL, creditcard of PayPal.",
     billingNote: "Betalingen worden veilig verwerkt via Paddle.",
     loginRequired: "Log in of maak een account om Pro te activeren.",
     loadingCheckout: "Checkout openen...",
@@ -83,8 +84,8 @@ const copy = languageRecord(
         a: "Pro geeft volledige toegang tot advertentiedetails, meer resultaten, geavanceerde filters, opgeslagen zoekprofielen en workflow- en statustracking per woning.",
       },
       {
-        q: "Hoe werkt het Pro-abonnement?",
-        a: "Je kiest een verlengperiode (1, 2 of 3 maanden). Het abonnement verlengt automatisch tegen hetzelfde tarief totdat je opzegt. Opzeggen kan op elk moment via je accountpagina.",
+        q: "Hoe werkt een Pro-pas?",
+        a: "Een Pro-pas is een eenmalige betaling. Na een succesvolle betaling krijg je 1, 2 of 3 maanden Pro-toegang. Daarna stopt je Pro-toegang automatisch — je hoeft niets op te zeggen.",
       },
       {
         q: "Wie verwerkt de betaling?",
@@ -96,7 +97,7 @@ const copy = languageRecord(
     eyebrow: "Plans",
     title: "Start for free, always.",
     intro:
-      "Begin for free and upgrade to Pro when you need more. RentScout Pro is a recurring subscription for serious renters.",
+      "Begin for free and upgrade to Pro when you need more. RentScout Pro is a temporary Pro pass for serious renters.",
     freePlanName: "Free",
     freePlanPrice: "€0",
     freePlanPriceSuffix: "forever",
@@ -107,25 +108,26 @@ const copy = languageRecord(
       "Up to 10 visible listings",
     ],
     freeCta: "Start for free",
-    proPassesTitle: "Choose your Pro plan",
+    proPassesTitle: "Choose your Pro pass",
     proPassesIntro:
-      "Automatically renews. Cancel anytime from your account.",
+      "One-time payment. No subscription. Your Pro access ends automatically.",
     plan1mTitle: "1 month Pro",
     plan2mTitle: "2 months Pro",
     plan3mTitle: "3 months Pro",
     plan1mPrice: "€14.99",
     plan2mPrice: "€24.99",
     plan3mPrice: "€34.99",
-    plan1mInterval: "/ month",
-    plan2mInterval: "/ 2 months",
-    plan3mInterval: "/ 3 months",
+    plan1mInterval: "one-time",
+    plan2mInterval: "one-time",
+    plan3mInterval: "one-time",
     plan2mSave: "Save €4.99",
     plan3mSave: "Save €9.98",
     plan3mBadge: "Best deal",
     plan1mCta: "Choose 1 month",
     plan2mCta: "Choose 2 months",
     plan3mCta: "Choose 3 months",
-    autoRenewNote: "Automatically renews. Cancel anytime from your account.",
+    oneTimeNote: "One-time payment — no subscription, ends automatically.",
+    idealNote: "Pay securely with iDEAL, credit card, or PayPal.",
     billingNote: "Payments are processed securely through Paddle.",
     loginRequired: "Log in or create an account to activate Pro.",
     loadingCheckout: "Opening checkout...",
@@ -155,8 +157,8 @@ const copy = languageRecord(
         a: "Pro gives full access to listing details, more results, advanced filters, saved search profiles, and workflow or status tracking per listing.",
       },
       {
-        q: "How does the Pro subscription work?",
-        a: "You pick a renewal interval (1, 2, or 3 months). The subscription renews automatically at the same price until you cancel. You can cancel anytime from your account page.",
+        q: "How does a Pro pass work?",
+        a: "A Pro pass is a one-time payment. After a successful payment you get 1, 2, or 3 months of Pro access. After that, Pro access ends automatically — there is nothing to cancel.",
       },
       {
         q: "Who handles the payment?",
@@ -400,7 +402,8 @@ export default function PricingClient() {
                 <p className="mt-4 text-sm text-danger">{error}</p>
               ) : null}
 
-              <p className="mt-4 text-sm font-medium text-[var(--color-text)]">{c.autoRenewNote}</p>
+              <p className="mt-4 text-sm font-medium text-[var(--color-text)]">{c.oneTimeNote}</p>
+              <p className="mt-1 text-xs text-[var(--color-muted)]">{c.idealNote}</p>
               <p className="mt-2 text-xs text-[var(--color-muted)]">{c.billingNote}</p>
             </div>
           ) : null}
