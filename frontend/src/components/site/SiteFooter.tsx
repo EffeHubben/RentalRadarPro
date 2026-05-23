@@ -21,8 +21,10 @@ export function SiteFooter({ language }: { language: Language }) {
               <Link className="hover:text-[var(--color-text)]" href="/contact">{copy.nav.contact}</Link>
             </nav>
             <nav className="flex flex-wrap gap-x-4 gap-y-2">
+              <Link className="hover:text-[var(--color-text)]" href="/pricing">{copy.nav.pricing}</Link>
               <Link className="hover:text-[var(--color-text)]" href="/privacy">{copy.nav.privacy}</Link>
               <Link className="hover:text-[var(--color-text)]" href="/terms">{copy.nav.terms}</Link>
+              <Link className="hover:text-[var(--color-text)]" href="/refund-policy">{copy.nav.refundPolicy}</Link>
               <Link className="hover:text-[var(--color-text)]" href="/about">{copy.nav.about}</Link>
             </nav>
           </div>
