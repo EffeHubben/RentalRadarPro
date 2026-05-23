@@ -7,10 +7,11 @@ from sqlalchemy import and_, case, or_
 from sqlalchemy.orm import Session
 
 from app.core.admin import require_admin
-from app.core.security import get_optional_user
+from app.core.security import get_current_user, get_optional_user
 from app.core.subscription import is_pro
 from app.database.db import get_database_session
 from app.models.listing import Listing
+from app.models.tenant import SavedRentalResponse, TenantProfile
 from app.models.user import User
 from app.services.duplicates import duplicate_sources_for_listings
 from app.services.listing_quality import clean_listing_description, clean_listing_title
@@ -21,6 +22,13 @@ from app.schemas.listing import (
     ListingsPageResponse,
     ListingSitemapItem,
 )
+from app.schemas.tenant import (
+    GenerateResponseRequest,
+    GenerateResponseResponse,
+    SavedRentalResponseResponse,
+    SaveRentalResponseRequest,
+)
+from app.services.tenant_response_generator import generate_tenant_response
 
 
 router = APIRouter(
@@ -659,16 +667,106 @@ def get_listings_sitemap(database: Session = Depends(get_database_session)):
     ]
 
 
+def _get_listing_or_404(database: Session, listing_id: int) -> Listing:
+    listing = database.query(Listing).filter(Listing.id == listing_id).first()
+
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+
+    return listing
+
+
+def _require_response_assistant_pro(current_user: User) -> None:
+    if not is_pro(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="De AI Reactie-assistent is beschikbaar met Pro.",
+        )
+
+
+@router.post("/{listing_id}/generate-response", response_model=GenerateResponseResponse)
+def generate_listing_response(
+    listing_id: int,
+    payload: GenerateResponseRequest,
+    current_user: User = Depends(get_current_user),
+    database: Session = Depends(get_database_session),
+):
+    _require_response_assistant_pro(current_user)
+    listing = _get_listing_or_404(database, listing_id)
+    profile = database.query(TenantProfile).filter(TenantProfile.user_id == current_user.id).first()
+    generated = generate_tenant_response(profile, listing, payload.style)
+    return GenerateResponseResponse(
+        message=generated.message,
+        style=generated.style,
+        missing_fields=generated.missing_fields,
+    )
+
+
+@router.get("/{listing_id}/saved-response", response_model=SavedRentalResponseResponse | None)
+def get_saved_listing_response(
+    listing_id: int,
+    current_user: User = Depends(get_current_user),
+    database: Session = Depends(get_database_session),
+):
+    _require_response_assistant_pro(current_user)
+    _get_listing_or_404(database, listing_id)
+    return (
+        database.query(SavedRentalResponse)
+        .filter(
+            SavedRentalResponse.user_id == current_user.id,
+            SavedRentalResponse.listing_id == listing_id,
+        )
+        .order_by(SavedRentalResponse.updated_at.desc())
+        .first()
+    )
+
+
+@router.post("/{listing_id}/saved-response", response_model=SavedRentalResponseResponse)
+def save_listing_response(
+    listing_id: int,
+    payload: SaveRentalResponseRequest,
+    current_user: User = Depends(get_current_user),
+    database: Session = Depends(get_database_session),
+):
+    _require_response_assistant_pro(current_user)
+    listing = _get_listing_or_404(database, listing_id)
+    generated_message = payload.generated_message.strip()
+    if not generated_message:
+        raise HTTPException(status_code=422, detail="Generated message is required")
+
+    saved_response = (
+        database.query(SavedRentalResponse)
+        .filter(
+            SavedRentalResponse.user_id == current_user.id,
+            SavedRentalResponse.listing_id == listing_id,
+        )
+        .first()
+    )
+
+    if saved_response is None:
+        saved_response = SavedRentalResponse(
+            user_id=current_user.id,
+            listing_id=listing.id,
+            listing_source_id=listing.source_key or listing.source,
+            listing_external_id=listing.url,
+        )
+        database.add(saved_response)
+
+    saved_response.style = payload.style
+    saved_response.generated_message = generated_message
+    saved_response.updated_at = datetime.utcnow()
+    database.commit()
+    database.refresh(saved_response)
+    return saved_response
+
+
 @router.get("/{listing_id}", response_model=ListingResponse | ListingPreviewResponse)
 def get_listing_by_id(
     listing_id: int,
     current_user: User | None = Depends(get_optional_user),
     database: Session = Depends(get_database_session),
 ):
-    listing = database.query(Listing).filter(Listing.id == listing_id).first()
-
-    if not listing:
-        raise HTTPException(status_code=404, detail="Listing not found")
+    listing = _get_listing_or_404(database, listing_id)
 
     if current_user is None or not is_pro(current_user):
         preview_listing = _make_preview_listing(listing)

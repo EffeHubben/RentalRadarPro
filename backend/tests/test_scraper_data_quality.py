@@ -29,7 +29,7 @@ from app.scrapers.base import (
 )
 
 
-FIXTURE_DIR = Path(__file__).resolve().parents[1] / "debug"
+FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 
 
 def read_fixture(name: str) -> str:

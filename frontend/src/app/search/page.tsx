@@ -1650,6 +1650,8 @@ export default function DashboardPage() {
         onStatusChange={handleStatusChange}
         note={selectedListingNote}
         onNoteChange={handleNoteChange}
+        isProUser={isProUser}
+        accessToken={auth.accessToken}
       />
       <AnimatePresence>
         {previewLockedOpen ? (

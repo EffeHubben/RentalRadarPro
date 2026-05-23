@@ -31,7 +31,9 @@ import {
   formatAccountDate,
   hasPro,
 } from "@/lib/subscription";
+import { emptyTenantProfile, fetchTenantProfile } from "@/lib/tenantProfile";
 import { useLanguagePreference } from "@/lib/useLanguagePreference";
+import type { TenantProfile } from "@/types/tenant";
 
 type AuthMode = "login" | "register";
 
@@ -101,6 +103,11 @@ const accountCopy: Record<
     working: string;
     resetEntry: string;
     resetHelp: string;
+    tenantProfileTitle: string;
+    tenantProfileDescription: string;
+    tenantProfileCompletion: string;
+    tenantProfileComplete: string;
+    tenantProfilePreview: string;
     proFeatures: string[];
   }
 > = {
@@ -173,11 +180,18 @@ const accountCopy: Record<
     working: "Even wachten...",
     resetEntry: "Reset via e-mail",
     resetHelp: "Geen toegang meer? Vraag direct een resetlink aan.",
+    tenantProfileTitle: "Huurdersprofiel",
+    tenantProfileDescription:
+      "Maak één keer je profiel aan en genereer daarna sneller nette reacties op woningen.",
+    tenantProfileCompletion: "Profiel compleet",
+    tenantProfileComplete: "Profiel aanvullen",
+    tenantProfilePreview: "Voorbeeldreactie bekijken",
     proFeatures: [
       "Volledige woningdetails, foto's en links",
       "Opgeslagen zoekprofielen",
       "Voortgang per woning",
       "E-mailnotificaties bij nieuwe woningen",
+      "AI Reactie-assistent en huurdersprofiel",
     ],
   },
   en: {
@@ -249,11 +263,18 @@ const accountCopy: Record<
     working: "Working...",
     resetEntry: "Reset by email",
     resetHelp: "Locked out? Request a reset link directly.",
+    tenantProfileTitle: "Tenant profile",
+    tenantProfileDescription:
+      "Create your profile once, then generate polished rental responses faster.",
+    tenantProfileCompletion: "Profile complete",
+    tenantProfileComplete: "Complete profile",
+    tenantProfilePreview: "View example response",
     proFeatures: [
       "Full listing details, photos, and links",
       "Saved search profiles",
       "Listing progress tracking",
       "Email notifications for new listings",
+      "AI Response Assistant and tenant profile",
     ],
   },
 };
@@ -362,6 +383,7 @@ export default function AccountPage() {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState("");
   const [resendError, setResendError] = useState("");
+  const [tenantProfile, setTenantProfile] = useState<TenantProfile>(emptyTenantProfile);
 
   const isPro = hasPro(auth.user);
   const subscriptionSummary = describeSubscriptionState(auth.user, language);
@@ -387,6 +409,17 @@ export default function AccountPage() {
     setPreferredLanguage(auth.user?.preferred_language ?? language);
     setNewEmail(auth.user?.email ?? "");
   }, [auth.user, language]);
+
+  useEffect(() => {
+    if (!auth.accessToken) {
+      setTenantProfile(emptyTenantProfile);
+      return;
+    }
+
+    void fetchTenantProfile(auth.accessToken)
+      .then(setTenantProfile)
+      .catch(() => setTenantProfile(emptyTenantProfile));
+  }, [auth.accessToken]);
 
   function openAuth(mode: AuthMode) {
     setModalMode(mode);
@@ -770,6 +803,48 @@ export default function AccountPage() {
                   {billingError ? (
                     <p className="mt-3 text-sm leading-6 text-danger">{billingError}</p>
                   ) : null}
+                </section>
+              </Reveal>
+
+              <Reveal delay={0.05}>
+                <section className="rs-card rounded-[1.5rem] p-6">
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <h2 className="text-xl font-semibold text-[var(--color-text)]">
+                        {copy.tenantProfileTitle}
+                      </h2>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-muted)]">
+                        {copy.tenantProfileDescription}
+                      </p>
+                    </div>
+                    <StatusPill tone={tenantProfile.completion_percentage >= 70 ? "positive" : "neutral"}>
+                      {tenantProfile.completion_percentage}% {copy.tenantProfileCompletion}
+                    </StatusPill>
+                  </div>
+
+                  <div className="mt-5 h-2 overflow-hidden rounded-full bg-[var(--color-soft)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--color-teal)] transition-all"
+                      style={{ width: `${Math.min(100, tenantProfile.completion_percentage)}%` }}
+                    />
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <Link
+                      href="/account/tenant-profile"
+                      className="rs-primary-button inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold"
+                    >
+                      {copy.tenantProfileComplete}
+                    </Link>
+                    {tenantProfile.id ? (
+                      <Link
+                        href="/account/tenant-profile#voorbeeldreactie"
+                        className="rs-control inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold"
+                      >
+                        {copy.tenantProfilePreview}
+                      </Link>
+                    ) : null}
+                  </div>
                 </section>
               </Reveal>
 

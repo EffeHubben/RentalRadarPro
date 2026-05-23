@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import type { Listing, ListingStatus } from "@/types/listing";
@@ -16,6 +16,12 @@ import {
 } from "./helpers";
 import { ListingImage, PrivacyBadges } from "./ListingCard";
 import { ListingLocationMap } from "./ListingLocationMap";
+import {
+  fetchSavedListingResponse,
+  generateListingResponse,
+  saveListingResponse,
+} from "@/lib/tenantProfile";
+import type { TenantResponseStyle } from "@/types/tenant";
 import {
   ListingStatusControl,
   QuickStatusActions,
@@ -61,6 +67,8 @@ export function ListingModal({
   onStatusChange,
   note,
   onNoteChange,
+  isProUser,
+  accessToken,
 }: {
   listing: Listing | null;
   onClose: () => void;
@@ -70,13 +78,92 @@ export function ListingModal({
   onStatusChange: (listing: Listing, status: ListingStatus) => void;
   note: string;
   onNoteChange: (listing: Listing, note: string) => void;
+  isProUser: boolean;
+  accessToken: string | null;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [responseStyle, setResponseStyle] = useState<TenantResponseStyle>("professional");
+  const [generatedMessage, setGeneratedMessage] = useState("");
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantSaving, setAssistantSaving] = useState(false);
+  const [assistantError, setAssistantError] = useState("");
+  const [missingFields, setMissingFields] = useState<string[]>([]);
   const copy = i18n[language].modal;
   const listingCopy = i18n[language].listing;
   const workflowCopy = i18n[language].workflow;
+  const assistantCopy = i18n[language].tenantAssistant;
   const summary = listing ? createSummary(listing, 260) : "";
   const subtitle = listing ? createListingSubtitle(listing, language) : "";
+
+  useEffect(() => {
+    setGeneratedMessage("");
+    setAssistantError("");
+    setMissingFields([]);
+
+    if (!listing || !isProUser || !accessToken) {
+      return;
+    }
+
+    void fetchSavedListingResponse(listing.id, accessToken)
+      .then((savedResponse) => {
+        if (savedResponse) {
+          setGeneratedMessage(savedResponse.generated_message);
+          if (
+            savedResponse.style === "short" ||
+            savedResponse.style === "professional" ||
+            savedResponse.style === "warm"
+          ) {
+            setResponseStyle(savedResponse.style);
+          }
+        }
+      })
+      .catch(() => undefined);
+  }, [accessToken, isProUser, listing]);
+
+  async function handleGenerateResponse() {
+    if (!listing || !accessToken) return;
+
+    if (!isProUser) {
+      setAssistantError(assistantCopy.lockedBody);
+      return;
+    }
+
+    setAssistantLoading(true);
+    setAssistantError("");
+    try {
+      const generated = await generateListingResponse(listing.id, accessToken, responseStyle);
+      setGeneratedMessage(generated.message);
+      setMissingFields(generated.missing_fields);
+    } catch (caughtError) {
+      setAssistantError(caughtError instanceof Error ? caughtError.message : assistantCopy.error);
+    } finally {
+      setAssistantLoading(false);
+    }
+  }
+
+  async function handleCopyResponse() {
+    if (!generatedMessage) return;
+    await navigator.clipboard.writeText(generatedMessage);
+    onToast(assistantCopy.copied, "success");
+  }
+
+  async function handleSaveResponse() {
+    if (!listing || !accessToken || !generatedMessage.trim()) return;
+
+    setAssistantSaving(true);
+    setAssistantError("");
+    try {
+      await saveListingResponse(listing.id, accessToken, {
+        style: responseStyle,
+        generated_message: generatedMessage,
+      });
+      onToast(assistantCopy.saved, "success");
+    } catch (caughtError) {
+      setAssistantError(caughtError instanceof Error ? caughtError.message : assistantCopy.error);
+    } finally {
+      setAssistantSaving(false);
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -199,6 +286,96 @@ export function ListingModal({
                           className="rs-modal-input min-h-20 w-full resize-none px-3 py-3 text-sm leading-6"
                         />
                       </label>
+                    </div>
+                  </Section>
+
+                  <Section title={assistantCopy.responseAssistant}>
+                    <div className="space-y-4">
+                      {!isProUser ? (
+                        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-soft)] p-4">
+                          <div className="text-sm font-semibold text-[var(--color-text)]">
+                            {assistantCopy.proRequired}
+                          </div>
+                          <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+                            {assistantCopy.lockedBody}
+                          </p>
+                          <Link
+                            href="/pricing"
+                            className="rs-primary-button mt-4 inline-flex h-10 items-center rounded-lg px-4 text-sm font-semibold"
+                          >
+                            {listingCopy.lockedCtaFree}
+                          </Link>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                            <label className="block">
+                              <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">
+                                {assistantCopy.motivationMessage}
+                              </span>
+                              <select
+                                className="rs-modal-input h-11 px-3 text-sm"
+                                value={responseStyle}
+                                onChange={(event) => setResponseStyle(event.target.value as TenantResponseStyle)}
+                              >
+                                <option value="short">{assistantCopy.short}</option>
+                                <option value="professional">{assistantCopy.professional}</option>
+                                <option value="warm">{assistantCopy.warm}</option>
+                              </select>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => void handleGenerateResponse()}
+                              disabled={assistantLoading || !accessToken}
+                              className="rs-primary-button h-11 rounded-lg px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {assistantLoading ? assistantCopy.loading : assistantCopy.createWithAi}
+                            </button>
+                          </div>
+
+                          <label className="block">
+                            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-subtle)]">
+                              {assistantCopy.rentalResponse}
+                            </span>
+                            <textarea
+                              value={generatedMessage}
+                              onChange={(event) => setGeneratedMessage(event.target.value)}
+                              placeholder={assistantCopy.editableHint}
+                              className="rs-modal-input min-h-56 w-full resize-y px-3 py-3 text-sm leading-6"
+                            />
+                          </label>
+
+                          {missingFields.length ? (
+                            <p className="text-xs leading-5 text-[var(--color-subtle)]">
+                              {assistantCopy.missingFields}: {missingFields.join(", ")}
+                            </p>
+                          ) : null}
+                          {assistantError ? (
+                            <div className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+                              {assistantError}
+                            </div>
+                          ) : null}
+
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void handleCopyResponse()}
+                              disabled={!generatedMessage}
+                              className="rs-control h-10 rounded-lg px-4 text-sm font-semibold disabled:opacity-50"
+                            >
+                              {assistantCopy.copy}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleSaveResponse()}
+                              disabled={!generatedMessage.trim() || assistantSaving}
+                              className="rs-control h-10 rounded-lg px-4 text-sm font-semibold disabled:opacity-50"
+                            >
+                              {assistantSaving ? assistantCopy.saving : assistantCopy.save}
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </Section>
 

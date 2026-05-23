@@ -357,7 +357,7 @@ def build_location_metadata(database: Session, scraped_listing, city: str) -> di
     return enrich_location(database, merged_parts)
 
 
-_mp_ctx = mp.get_context("fork")
+_mp_ctx = mp.get_context("fork") if "fork" in mp.get_all_start_methods() else mp.get_context()
 
 
 def _scan_subprocess_worker(source_key: str, city: str, result_queue):
