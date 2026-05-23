@@ -9,6 +9,51 @@ import {
 } from "@/lib/pricing";
 import type { Language } from "@/lib/i18n";
 
+export type PaymentProvider = "stripe" | "paddle";
+
+export function getPaymentProvider(): PaymentProvider {
+  const raw = (process.env.NEXT_PUBLIC_PAYMENT_PROVIDER || "stripe").toLowerCase();
+  return raw === "paddle" ? "paddle" : "stripe";
+}
+
+export function getPaddleClientToken(): string | null {
+  return process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || null;
+}
+
+export function getPaddleEnv(): "sandbox" | "production" {
+  const raw = (process.env.NEXT_PUBLIC_PADDLE_ENV || "sandbox").toLowerCase();
+  return raw === "production" ? "production" : "sandbox";
+}
+
+export type PaddlePlan = "1m" | "2m" | "3m";
+
+export type PaddleCheckoutResponse = {
+  transaction_id: string;
+  checkout_url: string | null;
+  plan: PaddlePlan;
+  duration_months: number;
+};
+
+export async function createPaddleCheckout(
+  plan: PaddlePlan,
+  accessToken: string,
+): Promise<PaddleCheckoutResponse> {
+  const response = await fetch(buildApiUrl("/billing/paddle/create-checkout"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ plan }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getApiErrorMessage(response));
+  }
+
+  return response.json() as Promise<PaddleCheckoutResponse>;
+}
+
 type BillingSessionResponse = {
   url: string;
 };

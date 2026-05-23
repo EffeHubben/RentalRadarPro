@@ -87,6 +87,10 @@ USER_COLUMN_MIGRATIONS = {
     "password_reset_token_hash": "ALTER TABLE users ADD COLUMN password_reset_token_hash VARCHAR(128)",
     "password_reset_sent_at": "ALTER TABLE users ADD COLUMN password_reset_sent_at DATETIME",
     "password_reset_expires_at": "ALTER TABLE users ADD COLUMN password_reset_expires_at DATETIME",
+    "pro_expires_at": "ALTER TABLE users ADD COLUMN pro_expires_at DATETIME",
+    "billing_provider": "ALTER TABLE users ADD COLUMN billing_provider VARCHAR(30)",
+    "paddle_customer_id": "ALTER TABLE users ADD COLUMN paddle_customer_id VARCHAR(255)",
+    "paddle_transaction_id": "ALTER TABLE users ADD COLUMN paddle_transaction_id VARCHAR(255)",
 }
 
 

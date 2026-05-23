@@ -2,10 +2,25 @@ import type { Language } from "@/lib/i18n";
 import type { AuthUser } from "@/types/auth";
 
 export function hasPro(user: AuthUser | null): boolean {
-  return (
-    user?.plan === "pro" &&
+  if (!user) {
+    return false;
+  }
+
+  if (
+    user.plan === "pro" &&
     (user.subscription_status === "active" || user.subscription_status === "trialing")
-  );
+  ) {
+    return true;
+  }
+
+  if (user.pro_expires_at) {
+    const expiresAt = new Date(user.pro_expires_at);
+    if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() > Date.now()) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function formatAccountDate(value: string | null, language: Language) {

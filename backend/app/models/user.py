@@ -26,6 +26,10 @@ class User(Base):
     stripe_subscription_id = Column(String(255), nullable=True)
     subscription_current_period_end = Column(DateTime, nullable=True)
     subscription_cancel_at_period_end = Column(Boolean, nullable=False, default=False, server_default="0")
+    pro_expires_at = Column(DateTime, nullable=True)
+    billing_provider = Column(String(30), nullable=True)
+    paddle_customer_id = Column(String(255), nullable=True)
+    paddle_transaction_id = Column(String(255), nullable=True)
     email_verified = Column(Boolean, nullable=False, default=False, server_default="0")
     email_verification_token_hash = Column(String(128), nullable=True, index=True)
     email_verification_sent_at = Column(DateTime, nullable=True)
@@ -55,3 +59,15 @@ class RefreshToken(Base):
     last_used_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="refresh_tokens")
+
+
+class PaddleEvent(Base):
+    __tablename__ = "paddle_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(String(255), nullable=True, index=True)
+    transaction_id = Column(String(255), nullable=False, unique=True, index=True)
+    event_type = Column(String(80), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    duration_months = Column(Integer, nullable=True)
+    processed_at = Column(DateTime, default=datetime.utcnow, nullable=False)

@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { languageRecord } from "@/components/site/InfoPageLayout";
+import {
+  createPaddleCheckout,
+  getPaymentProvider,
+  type PaddlePlan,
+} from "@/lib/billing";
 import type { Language } from "@/lib/i18n";
+import { openPaddleCheckoutByTransaction } from "@/lib/paddle";
 import { useLanguagePreference } from "@/lib/useLanguagePreference";
 
 const copy = languageRecord(
@@ -12,7 +20,7 @@ const copy = languageRecord(
     eyebrow: "Abonnementen",
     title: "Eenvoudig beginnen, altijd gratis.",
     intro:
-      "Start gratis en upgrade naar Pro wanneer je meer nodig hebt. RentScout Pro is een digitaal SaaS-abonnement voor serieuze woningzoekers.",
+      "Start gratis en upgrade naar Pro wanneer je meer nodig hebt. RentScout Pro is een tijdelijke Pro-pas voor serieuze woningzoekers.",
     freePlanName: "Gratis",
     freePlanPrice: "€0",
     freePlanPriceSuffix: "voor altijd",
@@ -23,6 +31,25 @@ const copy = languageRecord(
       "Maximaal 10 zichtbare advertenties",
     ],
     freeCta: "Gratis zoeken",
+    proPassesTitle: "Kies je Pro-pas",
+    proPassesIntro:
+      "Eenmalige betaling. Geen abonnement. Je Pro-toegang loopt automatisch af.",
+    plan1mTitle: "1 maand Pro",
+    plan2mTitle: "2 maanden Pro",
+    plan3mTitle: "3 maanden Pro",
+    plan1mPrice: "€14,99",
+    plan2mPrice: "€24,99",
+    plan3mPrice: "€34,99",
+    plan2mSave: "Bespaar €4,99",
+    plan3mSave: "Bespaar €9,98",
+    plan3mBadge: "Beste deal",
+    plan1mCta: "Kies 1 maand",
+    plan2mCta: "Kies 2 maanden",
+    plan3mCta: "Kies 3 maanden",
+    billingNote: "Betalingen worden veilig verwerkt via Paddle.",
+    loginRequired: "Log in of maak een account om Pro te activeren.",
+    loadingCheckout: "Checkout openen...",
+    checkoutFailed: "Het is niet gelukt om de Paddle-checkout te openen.",
     proPlanName: "Pro",
     proPlanPrice: "€19,99",
     proPlanPriceSuffix: "/ maand",
@@ -36,7 +63,6 @@ const copy = languageRecord(
       "Workflow en statustracking per woning",
     ],
     proCta: "Upgraden naar Pro",
-    billingNote: "Abonnementen worden verwerkt via Paddle. Op elk moment opzegbaar.",
     faqTitle: "Veelgestelde vragen",
     faq: [
       {
@@ -48,8 +74,8 @@ const copy = languageRecord(
         a: "Pro geeft volledige toegang tot advertentiedetails, meer resultaten, geavanceerde filters, opgeslagen zoekprofielen en workflow- en statustracking per woning.",
       },
       {
-        q: "Hoe kan ik annuleren?",
-        a: "Je kunt je abonnement op elk moment opzeggen via je accountpagina. Na opzegging stopt de verlenging en blijft Pro actief tot het einde van de betaalperiode.",
+        q: "Hoe werkt een Pro-pas?",
+        a: "Een Pro-pas is een eenmalige betaling. Na een succesvolle betaling krijg je 1, 2 of 3 maanden Pro-toegang. Daarna stopt je Pro-toegang automatisch.",
       },
       {
         q: "Wie verwerkt de betaling?",
@@ -61,7 +87,7 @@ const copy = languageRecord(
     eyebrow: "Plans",
     title: "Start for free, always.",
     intro:
-      "Begin for free and upgrade to Pro when you need more. RentScout Pro is a digital SaaS subscription for serious renters.",
+      "Begin for free and upgrade to Pro when you need more. RentScout Pro is a temporary Pro pass for serious renters.",
     freePlanName: "Free",
     freePlanPrice: "€0",
     freePlanPriceSuffix: "forever",
@@ -72,6 +98,25 @@ const copy = languageRecord(
       "Up to 10 visible listings",
     ],
     freeCta: "Start for free",
+    proPassesTitle: "Choose your Pro pass",
+    proPassesIntro:
+      "One-time payment. No subscription. Your Pro access ends automatically.",
+    plan1mTitle: "1 month Pro",
+    plan2mTitle: "2 months Pro",
+    plan3mTitle: "3 months Pro",
+    plan1mPrice: "€14.99",
+    plan2mPrice: "€24.99",
+    plan3mPrice: "€34.99",
+    plan2mSave: "Save €4.99",
+    plan3mSave: "Save €9.98",
+    plan3mBadge: "Best deal",
+    plan1mCta: "Choose 1 month",
+    plan2mCta: "Choose 2 months",
+    plan3mCta: "Choose 3 months",
+    billingNote: "Payments are processed securely through Paddle.",
+    loginRequired: "Log in or create an account to activate Pro.",
+    loadingCheckout: "Opening checkout...",
+    checkoutFailed: "Could not open Paddle checkout.",
     proPlanName: "Pro",
     proPlanPrice: "€19.99",
     proPlanPriceSuffix: "/ month",
@@ -85,7 +130,6 @@ const copy = languageRecord(
       "Rental workflow and status tracking",
     ],
     proCta: "Upgrade to Pro",
-    billingNote: "Subscriptions are processed through Paddle. Cancel at any time.",
     faqTitle: "Frequently asked questions",
     faq: [
       {
@@ -97,8 +141,8 @@ const copy = languageRecord(
         a: "Pro gives full access to listing details, more results, advanced filters, saved search profiles, and workflow or status tracking per listing.",
       },
       {
-        q: "How do I cancel?",
-        a: "You can cancel your subscription at any time from your account page. After cancellation, renewal stops and Pro remains active until the end of the billing period.",
+        q: "How does a Pro pass work?",
+        a: "A Pro pass is a one-time payment. After a successful payment you get 1, 2, or 3 months of Pro access. After that, Pro access ends automatically.",
       },
       {
         q: "Who handles the payment?",
@@ -108,9 +152,101 @@ const copy = languageRecord(
   },
 );
 
+type PaddlePassCardProps = {
+  title: string;
+  price: string;
+  cta: string;
+  saveLabel?: string;
+  topBadge?: string;
+  highlight?: boolean;
+  loading: boolean;
+  disabled: boolean;
+  onClick: () => void;
+};
+
+function PaddlePassCard({
+  title,
+  price,
+  cta,
+  saveLabel,
+  topBadge,
+  highlight,
+  loading,
+  disabled,
+  onClick,
+}: PaddlePassCardProps) {
+  return (
+    <div
+      className={`flex h-full flex-col rounded-2xl border p-6 ${
+        highlight
+          ? "border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] shadow-[var(--shadow-premium)]"
+          : "border-[var(--color-border)] bg-[var(--color-surface)]"
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">{title}</h3>
+        {topBadge ? (
+          <span className="rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--color-accent-strong)]">
+            {topBadge}
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-4 flex items-end gap-2">
+        <span className="text-3xl font-bold">{price}</span>
+      </div>
+      {saveLabel ? (
+        <p className="mt-2 text-sm font-semibold text-[var(--color-accent-strong)]">
+          {saveLabel}
+        </p>
+      ) : null}
+      <div className="mt-auto pt-6">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onClick}
+          className="rs-primary-button inline-flex h-11 w-full items-center justify-center rounded-lg px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? "..." : cta}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function PricingClient() {
+  const auth = useAuth();
   const { language, changeLanguage } = useLanguagePreference();
   const c = copy[language as Language];
+  const provider = getPaymentProvider();
+  const [loadingPlan, setLoadingPlan] = useState<PaddlePlan | null>(null);
+  const [error, setError] = useState("");
+
+  async function handlePaddleCheckout(plan: PaddlePlan) {
+    setError("");
+
+    if (!auth.isAuthenticated || !auth.accessToken) {
+      setError(c.loginRequired);
+      return;
+    }
+
+    setLoadingPlan(plan);
+    try {
+      const session = await createPaddleCheckout(plan, auth.accessToken);
+
+      if (session.checkout_url) {
+        window.location.assign(session.checkout_url);
+        return;
+      }
+
+      await openPaddleCheckoutByTransaction(session.transaction_id);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error ? caughtError.message : c.checkoutFailed,
+      );
+    } finally {
+      setLoadingPlan(null);
+    }
+  }
 
   return (
     <div className="min-h-[100dvh] bg-[var(--color-page)] text-[var(--color-text)]">
@@ -159,36 +295,84 @@ export default function PricingClient() {
               </Link>
             </div>
 
-            <div className="flex h-full flex-col rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] p-6 shadow-[var(--shadow-premium)]">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">{c.proPlanName}</h2>
-                <span className="rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--color-accent-strong)]">
-                  Pro
-                </span>
+            {provider === "stripe" ? (
+              <div className="flex h-full flex-col rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] p-6 shadow-[var(--shadow-premium)]">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">{c.proPlanName}</h2>
+                  <span className="rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--color-accent-strong)]">
+                    Pro
+                  </span>
+                </div>
+                <div className="mt-4 flex items-end gap-2">
+                  <span className="text-3xl font-bold">{c.proPlanPrice}</span>
+                  <span className="text-sm text-[var(--color-muted)]">{c.proPlanPriceSuffix}</span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{c.proPlanDescription}</p>
+                <p className="mt-1 text-xs text-[var(--color-muted)]">{c.proPlanSubtitle}</p>
+                <ul className="mt-5 flex-1 space-y-2">
+                  {c.proPlanFeatures.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-sm text-[var(--color-muted)]">
+                      <span className="mt-0.5 shrink-0 text-[var(--color-accent-strong)]">✓</span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/account"
+                  className="mt-6 inline-flex h-11 items-center justify-center rounded-lg border border-brass/40 bg-brass px-5 text-sm font-semibold text-ink shadow-[0_12px_28px_rgba(215,168,79,0.24)] transition hover:bg-brass/90 hover:shadow-[0_16px_34px_rgba(215,168,79,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-elevated)]"
+                >
+                  {c.proCta}
+                </Link>
+                <p className="mt-4 text-xs leading-5 text-[var(--color-muted)]">{c.billingNote}</p>
               </div>
-              <div className="mt-4 flex items-end gap-2">
-                <span className="text-3xl font-bold">{c.proPlanPrice}</span>
-                <span className="text-sm text-[var(--color-muted)]">{c.proPlanPriceSuffix}</span>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{c.proPlanDescription}</p>
-              <p className="mt-1 text-xs text-[var(--color-muted)]">{c.proPlanSubtitle}</p>
-              <ul className="mt-5 flex-1 space-y-2">
-                {c.proPlanFeatures.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm text-[var(--color-muted)]">
-                    <span className="mt-0.5 shrink-0 text-[var(--color-accent-strong)]">✓</span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/account"
-                className="mt-6 inline-flex h-11 items-center justify-center rounded-lg border border-brass/40 bg-brass px-5 text-sm font-semibold text-ink shadow-[0_12px_28px_rgba(215,168,79,0.24)] transition hover:bg-brass/90 hover:shadow-[0_16px_34px_rgba(215,168,79,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-elevated)]"
-              >
-                {c.proCta}
-              </Link>
-              <p className="mt-4 text-xs leading-5 text-[var(--color-muted)]">{c.billingNote}</p>
-            </div>
+            ) : null}
           </div>
+
+          {provider === "paddle" ? (
+            <div className="mt-14">
+              <h2 className="text-2xl font-semibold">{c.proPassesTitle}</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-muted)]">
+                {c.proPassesIntro}
+              </p>
+
+              <div className="mt-6 grid gap-6 sm:grid-cols-3">
+                <PaddlePassCard
+                  title={c.plan1mTitle}
+                  price={c.plan1mPrice}
+                  cta={c.plan1mCta}
+                  loading={loadingPlan === "1m"}
+                  disabled={loadingPlan !== null}
+                  onClick={() => void handlePaddleCheckout("1m")}
+                />
+                <PaddlePassCard
+                  title={c.plan2mTitle}
+                  price={c.plan2mPrice}
+                  cta={c.plan2mCta}
+                  saveLabel={c.plan2mSave}
+                  loading={loadingPlan === "2m"}
+                  disabled={loadingPlan !== null}
+                  onClick={() => void handlePaddleCheckout("2m")}
+                />
+                <PaddlePassCard
+                  title={c.plan3mTitle}
+                  price={c.plan3mPrice}
+                  cta={c.plan3mCta}
+                  topBadge={c.plan3mBadge}
+                  saveLabel={c.plan3mSave}
+                  highlight
+                  loading={loadingPlan === "3m"}
+                  disabled={loadingPlan !== null}
+                  onClick={() => void handlePaddleCheckout("3m")}
+                />
+              </div>
+
+              {error ? (
+                <p className="mt-4 text-sm text-danger">{error}</p>
+              ) : null}
+
+              <p className="mt-4 text-xs text-[var(--color-muted)]">{c.billingNote}</p>
+            </div>
+          ) : null}
         </section>
 
         <section className="border-t border-[var(--color-border)] bg-[var(--color-band)]">

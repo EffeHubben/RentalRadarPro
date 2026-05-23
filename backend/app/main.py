@@ -9,6 +9,7 @@ from app.api.analytics import router as analytics_router
 from app.api.auth import router as auth_router
 from app.api.admin import router as admin_router
 from app.api.billing import router as billing_router
+from app.api.paddle import router as paddle_router
 from app.api.debug import router as debug_router
 from app.api.listings import router as listings_router
 from app.api.locations import router as locations_router
@@ -50,6 +51,7 @@ app.include_router(analytics_router)
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(billing_router)
+app.include_router(paddle_router)
 app.include_router(debug_router)
 app.include_router(listings_router)
 app.include_router(locations_router)

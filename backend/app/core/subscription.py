@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import HTTPException, status
 
 from app.models.user import User
@@ -7,7 +9,14 @@ PRO_SUBSCRIPTION_STATUSES = {"active", "trialing"}
 
 
 def is_pro(user: User) -> bool:
-    return user.plan == "pro" and user.subscription_status in PRO_SUBSCRIPTION_STATUSES
+    if user.plan == "pro" and user.subscription_status in PRO_SUBSCRIPTION_STATUSES:
+        return True
+
+    expires_at = getattr(user, "pro_expires_at", None)
+    if expires_at is not None and expires_at > datetime.utcnow():
+        return True
+
+    return False
 
 
 def require_pro(user: User) -> None:

@@ -17,6 +17,7 @@ import {
   createBillingSession,
   formatProPlanPrice,
   formatProPlanPriceSuffix,
+  getPaymentProvider,
   useBillingConfig,
 } from "@/lib/billing";
 import { i18n, type Language } from "@/lib/i18n";
@@ -90,6 +91,8 @@ const accountCopy: Record<
     canceledActiveUntil: string;
     paymentFailed: string;
     inactive: string;
+    proActiveUntil: string;
+    billingProvider: string;
     freePlanHelp: string;
     proPlanHelp: string;
     checkoutUnavailable: string;
@@ -158,6 +161,8 @@ const accountCopy: Record<
     canceledActiveUntil: "Abonnement opgezegd — Pro-toegang blijft tot",
     paymentFailed: "Betaling mislukt — werk je betaalmethode bij om Pro te behouden",
     inactive: "Gratis account actief",
+    proActiveUntil: "Pro actief tot",
+    billingProvider: "Betaalprovider",
     freePlanHelp: "Upgrade naar Pro voor volledige woningdetails en e-mailnotificaties.",
     proPlanHelp: "Je Pro-toegang en Stripe-status worden hieronder bijgewerkt.",
     checkoutUnavailable: "Facturering is nog niet geconfigureerd.",
@@ -230,6 +235,8 @@ const accountCopy: Record<
     canceledActiveUntil: "Subscription canceled — Pro access remains until",
     paymentFailed: "Payment failed — update your payment method to keep Pro access",
     inactive: "Free plan active",
+    proActiveUntil: "Pro active until",
+    billingProvider: "Payment provider",
     freePlanHelp: "Upgrade to Pro for full listing details and email notifications.",
     proPlanHelp: "Your Pro access and Stripe status are summarized below.",
     checkoutUnavailable: "Billing is not configured yet.",
@@ -357,6 +364,11 @@ export default function AccountPage() {
     auth.user?.subscription_current_period_end ?? null,
     language,
   );
+  const proExpiresDate = formatAccountDate(
+    auth.user?.pro_expires_at ?? null,
+    language,
+  );
+  const paymentProvider = getPaymentProvider();
   const monthlyPrice = formatProPlanPrice(language, monthlyPriceAmount, monthlyPriceCurrency);
   const monthlyPriceSuffix = formatProPlanPriceSuffix(language, monthlyPriceInterval);
   const passwordChecks = evaluatePasswordRules(newPassword);
@@ -683,6 +695,16 @@ export default function AccountPage() {
                       <div className="mt-2 font-semibold text-[var(--color-text)]">
                         {subscriptionSummary || copy.inactive}
                       </div>
+                      {proExpiresDate && isPro ? (
+                        <p className="mt-2 text-sm text-[var(--color-muted)]">
+                          {`${copy.proActiveUntil}: ${proExpiresDate}`}
+                        </p>
+                      ) : null}
+                      {auth.user?.billing_provider ? (
+                        <p className="mt-1 text-xs text-[var(--color-muted)]">
+                          {`${copy.billingProvider}: ${auth.user.billing_provider}`}
+                        </p>
+                      ) : null}
                       {subscriptionEndDate ? (
                         <p className="mt-2 text-sm text-[var(--color-muted)]">
                           {auth.user?.plan === "pro" && auth.user.subscription_status === "active" && !auth.user.subscription_cancel_at_period_end
@@ -708,18 +730,27 @@ export default function AccountPage() {
                   </ul>
 
                   <div className="mt-6 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      disabled={billingLoading || !billingEnabled}
-                      onClick={() => void redirectToBillingSession(isPro ? "portal" : "checkout")}
-                      className="rs-primary-button h-11 rounded-lg px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {billingLoading
-                        ? copy.working
-                        : isPro
-                          ? copy.manageSubscription
-                          : copy.upgradeToPro}
-                    </button>
+                    {paymentProvider === "paddle" ? (
+                      <Link
+                        href="/pricing"
+                        className="rs-primary-button inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold"
+                      >
+                        {copy.upgradeToPro}
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={billingLoading || !billingEnabled}
+                        onClick={() => void redirectToBillingSession(isPro ? "portal" : "checkout")}
+                        className="rs-primary-button h-11 rounded-lg px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {billingLoading
+                          ? copy.working
+                          : isPro
+                            ? copy.manageSubscription
+                            : copy.upgradeToPro}
+                      </button>
+                    )}
                   </div>
 
                   {billingError ? (

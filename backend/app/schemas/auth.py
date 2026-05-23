@@ -30,6 +30,8 @@ class AuthUserResponse(BaseModel):
     subscription_status: str
     subscription_current_period_end: datetime | None
     subscription_cancel_at_period_end: bool
+    pro_expires_at: datetime | None = None
+    billing_provider: str | None = None
 
     class Config:
         from_attributes = True

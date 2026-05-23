@@ -14,6 +14,8 @@ export type AuthUser = {
   subscription_status: string;
   subscription_current_period_end: string | null;
   subscription_cancel_at_period_end: boolean;
+  pro_expires_at?: string | null;
+  billing_provider?: string | null;
 };
 
 export type AuthResponse = {

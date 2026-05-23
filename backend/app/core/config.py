@@ -51,6 +51,14 @@ class Settings(BaseSettings):
     stripe_price_id_pro: str | None = None
     billing_success_url: str | None = None
     billing_cancel_url: str | None = None
+    payment_provider: str = "stripe"
+    paddle_env: str = "sandbox"
+    paddle_api_key: str | None = None
+    paddle_webhook_secret_key: str | None = None
+    paddle_pro_1m_price_id: str | None = None
+    paddle_pro_2m_price_id: str | None = None
+    paddle_pro_3m_price_id: str | None = None
+    frontend_url: str | None = None
     resend_api_key: str | None = None
     email_from: str | None = None
     app_public_url: str | None = None
