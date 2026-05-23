@@ -12,6 +12,7 @@ import {
   createBillingSession,
   formatProPlanPrice,
   formatProPlanPriceSuffix,
+  getPaymentProvider,
   useBillingConfig,
 } from "@/lib/billing";
 import { hasPro } from "@/lib/subscription";
@@ -160,6 +161,8 @@ export default function HomePage() {
   } = useBillingConfig();
   const copy = i18n[language].home;
   const isPro = hasPro(auth.user);
+  const paymentProvider = getPaymentProvider();
+  const usePaddle = paymentProvider === "paddle";
 
   useEffect(() => {
     setHasPreviousSearch(window.localStorage.getItem(onboardingStorageKey) === "done");
@@ -178,14 +181,19 @@ export default function HomePage() {
   async function startBillingFlow(mode: BillingMode) {
     setBillingError("");
 
-    if (!billingEnabled) {
-      setBillingError(copy.billingUnavailable);
-      return;
-    }
-
     if (!auth.isAuthenticated || !auth.accessToken) {
       setPendingBillingMode(mode);
       openAuth(mode === "checkout" ? "register" : "login");
+      return;
+    }
+
+    if (usePaddle) {
+      window.location.assign("/pricing");
+      return;
+    }
+
+    if (!billingEnabled) {
+      setBillingError(copy.billingUnavailable);
       return;
     }
 
@@ -213,12 +221,13 @@ export default function HomePage() {
     void startBillingFlow(nextMode);
   }
 
-  const proPlanBadge = !billingEnabled
+  const paymentReady = usePaddle || billingEnabled;
+  const proPlanBadge = !paymentReady
     ? copy.proPlanComingSoon
     : isPro
       ? copy.proPlanCurrentPlan
       : copy.proPlanBadge;
-  const proPlanButtonLabel = !billingEnabled
+  const proPlanButtonLabel = !paymentReady
     ? copy.proPlanComingSoon
     : !auth.isAuthenticated || !auth.accessToken
       ? copy.proPlanGuestCta
@@ -226,10 +235,10 @@ export default function HomePage() {
         ? copy.proPlanManageCta
         : copy.proPlanCta;
   const proPlanButtonMode: BillingMode = isPro ? "portal" : "checkout";
-  const proPlanPrice = billingEnabled
+  const proPlanPrice = paymentReady
     ? formatProPlanPrice(language, monthlyPriceAmount, monthlyPriceCurrency)
     : copy.proPlanComingSoon;
-  const proPlanPriceSuffix = billingEnabled
+  const proPlanPriceSuffix = paymentReady
     ? formatProPlanPriceSuffix(language, monthlyPriceInterval)
     : "";
   const freePlanButtonLabel = !auth.isAuthenticated
@@ -541,10 +550,10 @@ export default function HomePage() {
                     <button
                       type="button"
                       onClick={() => void startBillingFlow(proPlanButtonMode)}
-                      disabled={billingLoading || !billingEnabled}
+                      disabled={billingLoading || !paymentReady}
                       className="mt-6 inline-flex h-11 items-center justify-center rounded-lg border border-brass/40 bg-brass px-5 text-sm font-semibold text-ink shadow-[0_12px_28px_rgba(215,168,79,0.24)] transition hover:bg-brass/90 hover:shadow-[0_16px_34px_rgba(215,168,79,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-elevated)] disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {billingEnabled ? (billingLoading ? copy.billingLoading : proPlanButtonLabel) : proPlanButtonLabel}
+                      {paymentReady ? (billingLoading ? copy.billingLoading : proPlanButtonLabel) : proPlanButtonLabel}
                     </button>
                   )}
                   {billingError ? (

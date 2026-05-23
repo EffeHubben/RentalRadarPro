@@ -89,6 +89,24 @@ html {
 :root[data-theme="dark"] .hero-video-light { display: none;  }
 :root[data-theme="dark"] .hero-video-dark  { display: block; }
 
+/* Soft radial mask on the hero video so the letterboxed edges blend into the page
+   instead of showing a hard rectangular outline on wider viewports. */
+.hero-video-light,
+.hero-video-dark {
+  -webkit-mask-image: radial-gradient(ellipse 78% 82% at center, #000 52%, rgba(0, 0, 0, 0.55) 72%, transparent 96%);
+          mask-image: radial-gradient(ellipse 78% 82% at center, #000 52%, rgba(0, 0, 0, 0.55) 72%, transparent 96%);
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+}
+
+@media (max-width: 639px) {
+  .hero-video-light,
+  .hero-video-dark {
+    -webkit-mask-image: radial-gradient(ellipse 110% 78% at 50% 42%, #000 50%, rgba(0, 0, 0, 0.5) 74%, transparent 94%);
+            mask-image: radial-gradient(ellipse 110% 78% at 50% 42%, #000 50%, rgba(0, 0, 0, 0.5) 74%, transparent 94%);
+  }
+}
+
 .hero-center-veil {
   background: radial-gradient(ellipse 60% 65% at center, rgba(251, 250, 247, 0.42) 0%, rgba(251, 250, 247, 0.16) 50%, transparent 75%);
 }
