@@ -13,6 +13,17 @@ export function hasPro(user: AuthUser | null): boolean {
     return true;
   }
 
+  // Canceled subscriptions retain access until the paid-through date.
+  if (
+    user.subscription_status === "canceled" &&
+    user.subscription_current_period_end
+  ) {
+    const periodEnd = new Date(user.subscription_current_period_end);
+    if (!Number.isNaN(periodEnd.getTime()) && periodEnd.getTime() > Date.now()) {
+      return true;
+    }
+  }
+
   if (user.pro_expires_at) {
     const expiresAt = new Date(user.pro_expires_at);
     if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() > Date.now()) {

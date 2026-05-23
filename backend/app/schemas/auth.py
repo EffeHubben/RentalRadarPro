@@ -32,6 +32,7 @@ class AuthUserResponse(BaseModel):
     subscription_cancel_at_period_end: bool
     pro_expires_at: datetime | None = None
     billing_provider: str | None = None
+    paddle_subscription_id: str | None = None
 
     class Config:
         from_attributes = True

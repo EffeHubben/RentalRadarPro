@@ -32,11 +32,11 @@ from app.database.db import SessionLocal, create_database_tables
 from app.models.user import PaddleEvent, User
 
 
+PADDLE_SECRET = "pdl_ntfset_test_secret"
+
+
 app = FastAPI()
 app.include_router(paddle_api.router)
-
-
-PADDLE_SECRET = "pdl_ntfset_test_secret"
 
 
 create_database_tables()
@@ -113,55 +113,77 @@ def post_paddle_webhook(client: TestClient, event: dict[str, Any], *, signature:
     return client.post("/api/billing/paddle/webhook", content=body, headers=headers)
 
 
-def transaction_completed_event(
-    transaction_id: str,
-    user_id: int,
-    duration_months: int,
+def subscription_payload(
     *,
-    customer_id: str | None = "ctm_test_customer",
-    event_id: str = "ntf_test_event",
+    subscription_id: str,
+    user_id: int,
+    status_value: str,
+    period_end: datetime | None,
+    customer_id: str = "ctm_test_customer",
+    scheduled_action: str | None = None,
 ) -> dict[str, Any]:
-    data: dict[str, Any] = {
-        "id": transaction_id,
-        "status": "completed",
-        "custom_data": {
-            "user_id": str(user_id),
-            "duration_months": duration_months,
-            "provider": "paddle",
-            "product": "rentscout_pro_pass",
-        },
+    payload: dict[str, Any] = {
+        "id": subscription_id,
+        "customer_id": customer_id,
+        "status": status_value,
+        "custom_data": {"user_id": str(user_id), "provider": "paddle"},
     }
-    if customer_id:
-        data["customer_id"] = customer_id
+    if period_end is not None:
+        payload["current_billing_period"] = {
+            "starts_at": (period_end - timedelta(days=30)).isoformat() + "Z",
+            "ends_at": period_end.isoformat() + "Z",
+        }
+    if scheduled_action is not None:
+        payload["scheduled_change"] = {
+            "action": scheduled_action,
+            "effective_at": (period_end or datetime.utcnow()).isoformat() + "Z",
+        }
+    return payload
+
+
+def subscription_event(event_type: str, subscription: dict[str, Any], event_id: str) -> dict[str, Any]:
     return {
         "event_id": event_id,
-        "event_type": "transaction.completed",
-        "data": data,
+        "event_type": event_type,
+        "data": subscription,
     }
 
 
-def test_invalid_paddle_signature_is_rejected() -> None:
+def test_invalid_signature_is_rejected() -> None:
     reset_paddle_events()
     client = TestClient(app)
     user = create_test_user()
-    event = transaction_completed_event("txn_invalid", user.id, 1)
+    sub = subscription_payload(
+        subscription_id="sub_invalid",
+        user_id=user.id,
+        status_value="active",
+        period_end=datetime.utcnow() + timedelta(days=30),
+    )
+    event = subscription_event("subscription.activated", sub, "ntf_invalid")
 
     response = post_paddle_webhook(client, event, signature="ts=123;h1=deadbeef")
     assert response.status_code == 400
 
     refreshed = fetch_user(user.id)
-    assert refreshed.pro_expires_at is None
+    assert refreshed.paddle_subscription_id is None
     assert is_pro(refreshed) is False
 
 
-def test_transaction_completed_1m_sets_pro_expires_one_month_ahead() -> None:
+def test_subscription_activated_grants_pro() -> None:
     reset_paddle_events()
     client = TestClient(app)
     user = create_test_user()
+    period_end = datetime.utcnow() + timedelta(days=30)
+    sub = subscription_payload(
+        subscription_id="sub_active",
+        user_id=user.id,
+        status_value="active",
+        period_end=period_end,
+    )
 
     response = post_paddle_webhook(
         client,
-        transaction_completed_event("txn_1m_basic", user.id, 1, event_id="ntf_1m_basic"),
+        subscription_event("subscription.activated", sub, "ntf_active"),
     )
     assert response.status_code == 200
 
@@ -169,69 +191,242 @@ def test_transaction_completed_1m_sets_pro_expires_one_month_ahead() -> None:
     assert refreshed.plan == "pro"
     assert refreshed.subscription_status == "active"
     assert refreshed.billing_provider == "paddle"
-    assert refreshed.paddle_transaction_id == "txn_1m_basic"
+    assert refreshed.paddle_subscription_id == "sub_active"
     assert refreshed.paddle_customer_id == "ctm_test_customer"
-    assert refreshed.pro_expires_at is not None
-
-    delta = refreshed.pro_expires_at - datetime.utcnow()
-    assert timedelta(days=27) < delta < timedelta(days=32)
+    assert refreshed.subscription_current_period_end is not None
     assert is_pro(refreshed) is True
 
 
-def test_transaction_completed_3m_stacks_on_existing_pro_expires() -> None:
+def test_subscription_trialing_grants_pro() -> None:
     reset_paddle_events()
     client = TestClient(app)
     user = create_test_user()
-
-    future = datetime.utcnow() + timedelta(days=20)
-    database = SessionLocal()
-    try:
-        stored = database.query(User).filter(User.id == user.id).one()
-        stored.pro_expires_at = future
-        stored.plan = "pro"
-        stored.subscription_status = "active"
-        stored.billing_provider = "paddle"
-        database.commit()
-        database.refresh(stored)
-        baseline_expires = stored.pro_expires_at
-    finally:
-        database.close()
+    sub = subscription_payload(
+        subscription_id="sub_trial",
+        user_id=user.id,
+        status_value="trialing",
+        period_end=datetime.utcnow() + timedelta(days=14),
+    )
 
     response = post_paddle_webhook(
         client,
-        transaction_completed_event("txn_3m_stack", user.id, 3, event_id="ntf_3m_stack"),
+        subscription_event("subscription.updated", sub, "ntf_trial"),
     )
     assert response.status_code == 200
 
     refreshed = fetch_user(user.id)
-    assert refreshed.pro_expires_at is not None
-    delta = refreshed.pro_expires_at - baseline_expires
-    assert timedelta(days=88) < delta < timedelta(days=93)
+    assert refreshed.subscription_status == "trialing"
+    assert refreshed.plan == "pro"
+    assert is_pro(refreshed) is True
 
 
-def test_duplicate_transaction_completed_does_not_extend_twice() -> None:
+def test_subscription_resumed_grants_pro() -> None:
+    reset_paddle_events()
+    client = TestClient(app)
+    user = create_test_user()
+    sub = subscription_payload(
+        subscription_id="sub_resumed",
+        user_id=user.id,
+        status_value="active",
+        period_end=datetime.utcnow() + timedelta(days=30),
+    )
+
+    response = post_paddle_webhook(
+        client,
+        subscription_event("subscription.resumed", sub, "ntf_resumed"),
+    )
+    assert response.status_code == 200
+
+    refreshed = fetch_user(user.id)
+    assert refreshed.plan == "pro"
+    assert is_pro(refreshed) is True
+
+
+def test_subscription_canceled_with_future_period_end_keeps_access() -> None:
+    reset_paddle_events()
+    client = TestClient(app)
+    user = create_test_user()
+    period_end = datetime.utcnow() + timedelta(days=20)
+    sub = subscription_payload(
+        subscription_id="sub_canceled_future",
+        user_id=user.id,
+        status_value="canceled",
+        period_end=period_end,
+    )
+
+    response = post_paddle_webhook(
+        client,
+        subscription_event("subscription.canceled", sub, "ntf_canceled_future"),
+    )
+    assert response.status_code == 200
+
+    refreshed = fetch_user(user.id)
+    assert refreshed.subscription_status == "canceled"
+    assert refreshed.subscription_current_period_end is not None
+    assert is_pro(refreshed) is True
+
+
+def test_subscription_canceled_past_period_end_removes_access() -> None:
+    reset_paddle_events()
+    client = TestClient(app)
+    user = create_test_user()
+    period_end = datetime.utcnow() - timedelta(days=2)
+    sub = subscription_payload(
+        subscription_id="sub_canceled_past",
+        user_id=user.id,
+        status_value="canceled",
+        period_end=period_end,
+    )
+
+    response = post_paddle_webhook(
+        client,
+        subscription_event("subscription.canceled", sub, "ntf_canceled_past"),
+    )
+    assert response.status_code == 200
+
+    refreshed = fetch_user(user.id)
+    assert refreshed.subscription_status == "canceled"
+    assert refreshed.plan == "free"
+    assert is_pro(refreshed) is False
+
+
+def test_subscription_paused_revokes_access() -> None:
+    reset_paddle_events()
+    client = TestClient(app)
+    user = create_test_user()
+    sub = subscription_payload(
+        subscription_id="sub_paused",
+        user_id=user.id,
+        status_value="paused",
+        period_end=datetime.utcnow() + timedelta(days=10),
+    )
+
+    response = post_paddle_webhook(
+        client,
+        subscription_event("subscription.paused", sub, "ntf_paused"),
+    )
+    assert response.status_code == 200
+
+    refreshed = fetch_user(user.id)
+    assert refreshed.subscription_status == "paused"
+    assert refreshed.plan == "free"
+    assert is_pro(refreshed) is False
+
+
+def test_subscription_past_due_revokes_access() -> None:
+    reset_paddle_events()
+    client = TestClient(app)
+    user = create_test_user()
+    sub = subscription_payload(
+        subscription_id="sub_past_due",
+        user_id=user.id,
+        status_value="past_due",
+        period_end=datetime.utcnow() + timedelta(days=10),
+    )
+
+    response = post_paddle_webhook(
+        client,
+        subscription_event("subscription.past_due", sub, "ntf_past_due"),
+    )
+    assert response.status_code == 200
+
+    refreshed = fetch_user(user.id)
+    assert refreshed.subscription_status == "past_due"
+    assert refreshed.plan == "free"
+    assert is_pro(refreshed) is False
+
+
+def test_transaction_completed_stores_paddle_ids(monkeypatch) -> None:
     reset_paddle_events()
     client = TestClient(app)
     user = create_test_user()
 
-    event = transaction_completed_event("txn_dup", user.id, 2, event_id="ntf_dup")
+    def fake_paddle_request(method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
+        if method == "GET" and path == "/subscriptions/sub_initial":
+            return {
+                "data": {
+                    "id": "sub_initial",
+                    "customer_id": "ctm_initial",
+                    "status": "active",
+                    "current_billing_period": {
+                        "starts_at": datetime.utcnow().isoformat() + "Z",
+                        "ends_at": (datetime.utcnow() + timedelta(days=30)).isoformat() + "Z",
+                    },
+                }
+            }
+        raise AssertionError(f"unexpected paddle call: {method} {path}")
+
+    monkeypatch.setattr(paddle_api, "_paddle_request", fake_paddle_request)
+
+    event = {
+        "event_id": "ntf_txn_completed",
+        "event_type": "transaction.completed",
+        "data": {
+            "id": "txn_initial",
+            "customer_id": "ctm_initial",
+            "subscription_id": "sub_initial",
+            "custom_data": {
+                "user_id": str(user.id),
+                "duration_months": 1,
+                "provider": "paddle",
+                "product": "rentscout_pro_subscription",
+                "plan": "1m",
+            },
+        },
+    }
+
+    response = post_paddle_webhook(client, event)
+    assert response.status_code == 200
+
+    refreshed = fetch_user(user.id)
+    assert refreshed.paddle_transaction_id == "txn_initial"
+    assert refreshed.paddle_subscription_id == "sub_initial"
+    assert refreshed.paddle_customer_id == "ctm_initial"
+    assert refreshed.plan == "pro"
+    assert refreshed.subscription_status == "active"
+    assert is_pro(refreshed) is True
+
+
+def test_duplicate_transaction_completed_is_idempotent(monkeypatch) -> None:
+    reset_paddle_events()
+    client = TestClient(app)
+    user = create_test_user()
+
+    def fake_paddle_request(method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
+        return {
+            "data": {
+                "id": "sub_dup",
+                "customer_id": "ctm_dup",
+                "status": "active",
+                "current_billing_period": {
+                    "starts_at": datetime.utcnow().isoformat() + "Z",
+                    "ends_at": (datetime.utcnow() + timedelta(days=30)).isoformat() + "Z",
+                },
+            }
+        }
+
+    monkeypatch.setattr(paddle_api, "_paddle_request", fake_paddle_request)
+
+    event = {
+        "event_id": "ntf_dup",
+        "event_type": "transaction.completed",
+        "data": {
+            "id": "txn_dup",
+            "customer_id": "ctm_dup",
+            "subscription_id": "sub_dup",
+            "custom_data": {"user_id": str(user.id), "plan": "1m"},
+        },
+    }
 
     first = post_paddle_webhook(client, event)
     assert first.status_code == 200
-
-    after_first = fetch_user(user.id)
-    first_expires = after_first.pro_expires_at
-    assert first_expires is not None
 
     second = post_paddle_webhook(client, event)
     assert second.status_code == 200
     assert second.json().get("duplicate") is True
 
-    after_second = fetch_user(user.id)
-    assert after_second.pro_expires_at == first_expires
 
-
-def test_is_pro_honors_subscription_status_and_pro_expires_at() -> None:
+def test_is_pro_helper_covers_all_paths() -> None:
     user = User(
         email="x@example.com",
         email_normalized="x@example.com",
@@ -240,116 +435,150 @@ def test_is_pro_honors_subscription_status_and_pro_expires_at() -> None:
 
     user.plan = "free"
     user.subscription_status = "inactive"
-    user.pro_expires_at = None
     assert is_pro(user) is False
 
     user.plan = "pro"
     user.subscription_status = "active"
     assert is_pro(user) is True
 
-    user.plan = "free"
-    user.subscription_status = "inactive"
-    user.pro_expires_at = datetime.utcnow() + timedelta(days=5)
+    user.subscription_status = "trialing"
     assert is_pro(user) is True
 
-    user.pro_expires_at = datetime.utcnow() - timedelta(days=1)
+    # Canceled but with active paid-through date
+    user.plan = "free"
+    user.subscription_status = "canceled"
+    user.subscription_current_period_end = datetime.utcnow() + timedelta(days=5)
+    assert is_pro(user) is True
+
+    # Canceled with elapsed period
+    user.subscription_current_period_end = datetime.utcnow() - timedelta(days=1)
     assert is_pro(user) is False
 
+    # Legacy pro_expires_at fallback
+    user.subscription_current_period_end = None
+    user.pro_expires_at = datetime.utcnow() + timedelta(days=2)
+    assert is_pro(user) is True
 
-def test_listing_gating_honors_pro_via_pro_expires_at() -> None:
-    """A user with pro_expires_at in the future should be Pro for gating purposes."""
-    free_user = create_test_user()
+
+def test_listing_gating_honors_subscription_status_and_period_end() -> None:
+    pro_active = create_test_user()
     database = SessionLocal()
     try:
-        pro_via_status = database.query(User).filter(User.id == free_user.id).one()
-        pro_via_status_email = pro_via_status.email_normalized
-    finally:
-        database.close()
-
-    # Make a second user as pro-via-pro_expires_at
-    pro_via_expires = create_test_user()
-    database = SessionLocal()
-    try:
-        stored = database.query(User).filter(User.id == pro_via_expires.id).one()
-        stored.pro_expires_at = datetime.utcnow() + timedelta(days=10)
-        database.commit()
-        database.refresh(stored)
-        database.expunge(stored)
-        pro_user_obj = stored
-    finally:
-        database.close()
-
-    # Make a third user with expired pro
-    expired_user = create_test_user()
-    database = SessionLocal()
-    try:
-        stored = database.query(User).filter(User.id == expired_user.id).one()
-        stored.pro_expires_at = datetime.utcnow() - timedelta(days=1)
-        database.commit()
-        database.refresh(stored)
-        database.expunge(stored)
-        expired_user_obj = stored
-    finally:
-        database.close()
-
-    # Free user (just registered, no pro)
-    free_user_obj = fetch_user(free_user.id)
-    assert is_pro(free_user_obj) is False
-    assert is_pro(pro_user_obj) is True
-    assert is_pro(expired_user_obj) is False
-
-    # Pro via subscription_status
-    database = SessionLocal()
-    try:
-        stored = database.query(User).filter(User.id == free_user.id).one()
+        stored = database.query(User).filter(User.id == pro_active.id).one()
         stored.plan = "pro"
         stored.subscription_status = "active"
         database.commit()
         database.refresh(stored)
         database.expunge(stored)
-        pro_status_user = stored
     finally:
         database.close()
-    assert is_pro(pro_status_user) is True
+    assert is_pro(stored) is True
+
+    pro_canceled = create_test_user()
+    database = SessionLocal()
+    try:
+        stored = database.query(User).filter(User.id == pro_canceled.id).one()
+        stored.subscription_status = "canceled"
+        stored.subscription_current_period_end = datetime.utcnow() + timedelta(days=3)
+        database.commit()
+        database.refresh(stored)
+        database.expunge(stored)
+    finally:
+        database.close()
+    assert is_pro(stored) is True
+
+    expired = create_test_user()
+    database = SessionLocal()
+    try:
+        stored = database.query(User).filter(User.id == expired.id).one()
+        stored.subscription_status = "canceled"
+        stored.subscription_current_period_end = datetime.utcnow() - timedelta(days=3)
+        database.commit()
+        database.refresh(stored)
+        database.expunge(stored)
+    finally:
+        database.close()
+    assert is_pro(stored) is False
 
 
-def test_create_checkout_endpoint_calls_paddle_api(monkeypatch) -> None:
-    user = create_test_user()
-    captured: dict[str, Any] = {}
+def test_create_checkout_maps_plan_to_price(monkeypatch) -> None:
+    captured: list[dict[str, Any]] = []
 
     def fake_paddle_request(method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
-        captured["method"] = method
-        captured["path"] = path
-        captured["body"] = body
+        captured.append({"method": method, "path": path, "body": body})
         return {
             "data": {
-                "id": "txn_test_checkout",
-                "checkout": {"url": "https://checkout.paddle.test/txn_test_checkout"},
-                "customer_id": "ctm_test_new",
+                "id": f"txn_test_{len(captured)}",
+                "checkout": {"url": "https://checkout.paddle.test"},
+                "customer_id": None,
             }
         }
 
     monkeypatch.setattr(paddle_api, "_paddle_request", fake_paddle_request)
 
     client = TestClient(app)
-    response = client.post(
-        "/api/billing/paddle/create-checkout",
-        json={"plan": "2m"},
-        headers=auth_headers(user),
-    )
+    user = create_test_user()
 
+    for plan, expected_price, expected_duration in (
+        ("1m", "pri_test_1m", 1),
+        ("2m", "pri_test_2m", 2),
+        ("3m", "pri_test_3m", 3),
+    ):
+        response = client.post(
+            "/api/billing/paddle/create-checkout",
+            json={"plan": plan},
+            headers=auth_headers(user),
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["plan"] == plan
+        assert payload["duration_months"] == expected_duration
+
+    assert [call["body"]["items"][0]["price_id"] for call in captured] == [
+        "pri_test_1m",
+        "pri_test_2m",
+        "pri_test_3m",
+    ]
+    assert [call["body"]["custom_data"]["plan"] for call in captured] == ["1m", "2m", "3m"]
+
+
+def test_manage_endpoint_returns_paddle_management_urls(monkeypatch) -> None:
+    user = create_test_user()
+    database = SessionLocal()
+    try:
+        stored = database.query(User).filter(User.id == user.id).one()
+        stored.paddle_subscription_id = "sub_manage_test"
+        stored.subscription_status = "active"
+        stored.plan = "pro"
+        database.commit()
+    finally:
+        database.close()
+
+    def fake_paddle_request(method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
+        assert method == "GET"
+        assert path == "/subscriptions/sub_manage_test"
+        return {
+            "data": {
+                "id": "sub_manage_test",
+                "management_urls": {
+                    "cancel": "https://customer-portal.paddle.test/cancel/abc",
+                    "update_payment_method": "https://customer-portal.paddle.test/update/abc",
+                },
+            }
+        }
+
+    monkeypatch.setattr(paddle_api, "_paddle_request", fake_paddle_request)
+
+    client = TestClient(app)
+    response = client.get("/api/billing/paddle/manage", headers=auth_headers(fetch_user(user.id)))
     assert response.status_code == 200
-    payload = response.json()
-    assert payload["transaction_id"] == "txn_test_checkout"
-    assert payload["checkout_url"] == "https://checkout.paddle.test/txn_test_checkout"
-    assert payload["plan"] == "2m"
-    assert payload["duration_months"] == 2
+    body = response.json()
+    assert body["cancel_url"] == "https://customer-portal.paddle.test/cancel/abc"
+    assert body["update_payment_method_url"] == "https://customer-portal.paddle.test/update/abc"
 
-    assert captured["method"] == "POST"
-    assert captured["path"] == "/transactions"
-    assert captured["body"]["items"][0]["price_id"] == "pri_test_2m"
-    assert captured["body"]["custom_data"]["user_id"] == str(user.id)
-    assert captured["body"]["custom_data"]["duration_months"] == 2
 
-    refreshed = fetch_user(user.id)
-    assert refreshed.paddle_customer_id == "ctm_test_new"
+def test_manage_endpoint_rejects_users_without_subscription() -> None:
+    user = create_test_user()
+    client = TestClient(app)
+    response = client.get("/api/billing/paddle/manage", headers=auth_headers(user))
+    assert response.status_code == 400

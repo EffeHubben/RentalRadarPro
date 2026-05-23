@@ -29,6 +29,7 @@ class User(Base):
     pro_expires_at = Column(DateTime, nullable=True)
     billing_provider = Column(String(30), nullable=True)
     paddle_customer_id = Column(String(255), nullable=True)
+    paddle_subscription_id = Column(String(255), nullable=True)
     paddle_transaction_id = Column(String(255), nullable=True)
     email_verified = Column(Boolean, nullable=False, default=False, server_default="0")
     email_verification_token_hash = Column(String(128), nullable=True, index=True)

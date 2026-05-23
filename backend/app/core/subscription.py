@@ -9,9 +9,18 @@ PRO_SUBSCRIPTION_STATUSES = {"active", "trialing"}
 
 
 def is_pro(user: User) -> bool:
-    if user.plan == "pro" and user.subscription_status in PRO_SUBSCRIPTION_STATUSES:
+    status_value = (user.subscription_status or "").lower()
+
+    if user.plan == "pro" and status_value in PRO_SUBSCRIPTION_STATUSES:
         return True
 
+    # Canceled subscriptions retain access until the paid-through date.
+    if status_value == "canceled":
+        period_end = getattr(user, "subscription_current_period_end", None)
+        if period_end is not None and period_end > datetime.utcnow():
+            return True
+
+    # Legacy / Paddle-derived paid-through fallback.
     expires_at = getattr(user, "pro_expires_at", None)
     if expires_at is not None and expires_at > datetime.utcnow():
         return True

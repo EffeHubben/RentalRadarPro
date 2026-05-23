@@ -15,6 +15,7 @@ import {
 } from "@/lib/auth";
 import {
   createBillingSession,
+  fetchPaddleManageUrls,
   formatProPlanPrice,
   formatProPlanPriceSuffix,
   getPaymentProvider,
@@ -93,6 +94,11 @@ const accountCopy: Record<
     inactive: string;
     proActiveUntil: string;
     billingProvider: string;
+    autoRenewActive: string;
+    autoRenewCanceled: string;
+    cancelSubscription: string;
+    cancelSubscriptionUnavailable: string;
+    updatePaymentMethod: string;
     freePlanHelp: string;
     proPlanHelp: string;
     checkoutUnavailable: string;
@@ -163,6 +169,11 @@ const accountCopy: Record<
     inactive: "Gratis account actief",
     proActiveUntil: "Pro actief tot",
     billingProvider: "Betaalprovider",
+    autoRenewActive: "Automatisch verlengend",
+    autoRenewCanceled: "Niet automatisch verlengen — Pro stopt aan het einde van de huidige periode",
+    cancelSubscription: "Abonnement opzeggen",
+    cancelSubscriptionUnavailable: "Opzeggen via Paddle is nu niet beschikbaar. Probeer het later opnieuw.",
+    updatePaymentMethod: "Betaalmethode bijwerken",
     freePlanHelp: "Upgrade naar Pro voor volledige woningdetails en e-mailnotificaties.",
     proPlanHelp: "Je Pro-toegang en Stripe-status worden hieronder bijgewerkt.",
     checkoutUnavailable: "Facturering is nog niet geconfigureerd.",
@@ -237,6 +248,11 @@ const accountCopy: Record<
     inactive: "Free plan active",
     proActiveUntil: "Pro active until",
     billingProvider: "Payment provider",
+    autoRenewActive: "Automatically renews",
+    autoRenewCanceled: "Auto-renewal off — Pro will stop at the end of the current period",
+    cancelSubscription: "Cancel subscription",
+    cancelSubscriptionUnavailable: "Cancellation via Paddle is unavailable right now. Please try again later.",
+    updatePaymentMethod: "Update payment method",
     freePlanHelp: "Upgrade to Pro for full listing details and email notifications.",
     proPlanHelp: "Your Pro access and Stripe status are summarized below.",
     checkoutUnavailable: "Billing is not configured yet.",
@@ -356,6 +372,7 @@ export default function AccountPage() {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState("");
   const [resendError, setResendError] = useState("");
+  const [paddleManageLoading, setPaddleManageLoading] = useState(false);
 
   const isPro = hasPro(auth.user);
   const subscriptionSummary = describeSubscriptionState(auth.user, language);
@@ -428,6 +445,32 @@ export default function AccountPage() {
       );
     } finally {
       setBillingLoading(false);
+    }
+  }
+
+  async function handlePaddleManage() {
+    if (!auth.accessToken) {
+      return;
+    }
+
+    setBillingError("");
+    setPaddleManageLoading(true);
+
+    try {
+      const urls = await fetchPaddleManageUrls(auth.accessToken);
+      if (urls.cancel_url) {
+        window.location.assign(urls.cancel_url);
+      } else {
+        setBillingError(copy.cancelSubscriptionUnavailable);
+      }
+    } catch (caughtError) {
+      console.error(
+        "paddle.manage.failed",
+        caughtError instanceof Error ? caughtError.message : caughtError,
+      );
+      setBillingError(copy.cancelSubscriptionUnavailable);
+    } finally {
+      setPaddleManageLoading(false);
     }
   }
 
@@ -695,7 +738,21 @@ export default function AccountPage() {
                       <div className="mt-2 font-semibold text-[var(--color-text)]">
                         {subscriptionSummary || copy.inactive}
                       </div>
-                      {proExpiresDate && isPro ? (
+                      {isPro && auth.user?.subscription_status === "active" ? (
+                        <p className="mt-2 text-sm text-[var(--color-text)]">
+                          {auth.user.subscription_cancel_at_period_end
+                            ? copy.autoRenewCanceled
+                            : copy.autoRenewActive}
+                        </p>
+                      ) : null}
+                      {isPro
+                        && auth.user?.subscription_status === "canceled"
+                        && subscriptionEndDate ? (
+                        <p className="mt-2 text-sm text-[var(--color-muted)]">
+                          {`${copy.canceledActiveUntil} ${subscriptionEndDate}`}
+                        </p>
+                      ) : null}
+                      {!isPro && proExpiresDate ? (
                         <p className="mt-2 text-sm text-[var(--color-muted)]">
                           {`${copy.proActiveUntil}: ${proExpiresDate}`}
                         </p>
@@ -705,13 +762,17 @@ export default function AccountPage() {
                           {`${copy.billingProvider}: ${auth.user.billing_provider}`}
                         </p>
                       ) : null}
-                      {subscriptionEndDate ? (
+                      {subscriptionEndDate
+                        && auth.user?.subscription_status !== "canceled" ? (
                         <p className="mt-2 text-sm text-[var(--color-muted)]">
-                          {auth.user?.plan === "pro" && auth.user.subscription_status === "active" && !auth.user.subscription_cancel_at_period_end
-                            ? `${copy.renews} ${subscriptionEndDate}`
-                            : auth.user?.plan === "pro" && auth.user.subscription_cancel_at_period_end
-                              ? `${copy.canceledActiveUntil} ${subscriptionEndDate}`
-                              : `${copy.activeUntil} ${subscriptionEndDate}`}
+                          {auth.user?.plan === "pro"
+                            && auth.user.subscription_status === "active"
+                            && !auth.user.subscription_cancel_at_period_end
+                              ? `${copy.renews} ${subscriptionEndDate}`
+                              : auth.user?.plan === "pro"
+                                && auth.user.subscription_cancel_at_period_end
+                                ? `${copy.canceledActiveUntil} ${subscriptionEndDate}`
+                                : `${copy.activeUntil} ${subscriptionEndDate}`}
                         </p>
                       ) : null}
                     </div>
@@ -731,12 +792,23 @@ export default function AccountPage() {
 
                   <div className="mt-6 flex flex-wrap gap-3">
                     {paymentProvider === "paddle" ? (
-                      <Link
-                        href="/pricing"
-                        className="rs-primary-button inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold"
-                      >
-                        {copy.upgradeToPro}
-                      </Link>
+                      isPro && auth.user?.paddle_subscription_id ? (
+                        <button
+                          type="button"
+                          disabled={paddleManageLoading}
+                          onClick={() => void handlePaddleManage()}
+                          className="rs-primary-button h-11 rounded-lg px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {paddleManageLoading ? copy.working : copy.cancelSubscription}
+                        </button>
+                      ) : (
+                        <Link
+                          href="/pricing"
+                          className="rs-primary-button inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold"
+                        >
+                          {copy.upgradeToPro}
+                        </Link>
+                      )
                     ) : (
                       <button
                         type="button"

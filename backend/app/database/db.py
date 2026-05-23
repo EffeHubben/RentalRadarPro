@@ -90,6 +90,7 @@ USER_COLUMN_MIGRATIONS = {
     "pro_expires_at": "ALTER TABLE users ADD COLUMN pro_expires_at DATETIME",
     "billing_provider": "ALTER TABLE users ADD COLUMN billing_provider VARCHAR(30)",
     "paddle_customer_id": "ALTER TABLE users ADD COLUMN paddle_customer_id VARCHAR(255)",
+    "paddle_subscription_id": "ALTER TABLE users ADD COLUMN paddle_subscription_id VARCHAR(255)",
     "paddle_transaction_id": "ALTER TABLE users ADD COLUMN paddle_transaction_id VARCHAR(255)",
 }
 
