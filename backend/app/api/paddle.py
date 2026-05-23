@@ -23,6 +23,19 @@ logger = logging.getLogger("rentscout.billing.paddle")
 
 PLAN_TO_DURATION_MONTHS = {"1m": 1, "2m": 2, "3m": 3}
 
+# Maps plan keys to the env var name (not the value) used for safe logging.
+PLAN_TO_PRICE_ENV_NAME = {
+    "1m": "PADDLE_PRO_1M_PRICE_ID",
+    "2m": "PADDLE_PRO_2M_PRICE_ID",
+    "3m": "PADDLE_PRO_3M_PRICE_ID",
+}
+
+# IMPORTANT: the three Paddle prices referenced by these env vars MUST be
+# configured as one-time (non-recurring) prices in the Paddle dashboard.
+# RentScout Pro passes grant temporary access via `pro_expires_at`; we do not
+# manage Paddle subscriptions. If a price is recurring, the Paddle checkout
+# will render "Subscribe now" / "every X months" copy which is wrong for us.
+
 
 def paddle_api_base_url() -> str:
     env = (settings.paddle_env or "sandbox").strip().lower()
@@ -120,6 +133,15 @@ def create_paddle_checkout(
 
     price_id = price_id_for_plan(payload.plan)
     duration_months = PLAN_TO_DURATION_MONTHS[payload.plan]
+    price_env_name = PLAN_TO_PRICE_ENV_NAME[payload.plan]
+
+    logger.info(
+        "paddle_create_checkout_request user_id=%s plan=%s duration_months=%s price_env=%s",
+        current_user.id,
+        payload.plan,
+        duration_months,
+        price_env_name,
+    )
 
     transaction_body: dict[str, Any] = {
         "items": [{"price_id": price_id, "quantity": 1}],
@@ -139,7 +161,7 @@ def create_paddle_checkout(
     transaction_id = data.get("id")
 
     if not transaction_id:
-        logger.error("paddle_create_transaction_missing_id response=%s", response)
+        logger.error("paddle_create_transaction_missing_id response_keys=%s", list(response.keys()))
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Paddle did not return a transaction id",
@@ -147,6 +169,15 @@ def create_paddle_checkout(
 
     checkout = data.get("checkout") or {}
     checkout_url = checkout.get("url") if isinstance(checkout, dict) else None
+
+    logger.info(
+        "paddle_create_checkout_success user_id=%s plan=%s duration_months=%s price_env=%s transaction_id=%s",
+        current_user.id,
+        payload.plan,
+        duration_months,
+        price_env_name,
+        transaction_id,
+    )
 
     customer_id = data.get("customer_id")
     if customer_id and not current_user.paddle_customer_id:

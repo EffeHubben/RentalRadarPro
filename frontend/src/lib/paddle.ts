@@ -18,7 +18,6 @@ type PaddleInstance = {
     set: (env: "sandbox" | "production") => void;
   };
   Initialize?: (options: { token: string; [key: string]: unknown }) => void;
-  Initialized?: boolean;
 };
 
 declare global {
@@ -124,8 +123,12 @@ export async function initializePaddle(): Promise<PaddleInstance> {
     throw new PaddleLoadError("Paddle.Initialize is not available on the loaded SDK");
   }
 
-  paddle.Initialize({ token });
-  paddle.Initialized = true;
+  try {
+    paddle.Initialize({ token });
+  } catch (error) {
+    // Paddle throws if Initialize is called twice; treat that as success.
+    console.warn("paddle.initialize_threw", error instanceof Error ? error.message : error);
+  }
   initialized = true;
 
   return paddle;
