@@ -68,6 +68,10 @@ class Settings(BaseSettings):
     password_reset_token_expiration_minutes: int = 60
     turnstile_secret_key: str | None = None
     turnstile_required: bool = False
+    ai_response_provider: str = "template"
+    gemini_api_key: str | None = None
+    gemini_response_model: str = "gemini-2.5-flash-lite"
+    ai_response_daily_limit: int = 20
 
     @property
     def token_secret_key(self) -> str:

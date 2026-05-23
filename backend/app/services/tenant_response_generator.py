@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
-from typing import Literal
+from datetime import date
+from typing import TYPE_CHECKING, Literal
 
 from app.models.listing import Listing
-from app.models.tenant import TenantProfile
+from app.models.tenant import GeminiUsageLog, TenantProfile
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 
 ResponseStyle = Literal["short", "professional", "warm"]
@@ -264,3 +271,67 @@ def generate_tenant_response(
         style=style,
         missing_fields=list(dict.fromkeys(missing_fields)),
     )
+
+
+def gemini_is_enabled() -> bool:
+    from app.core.config import settings
+    return settings.ai_response_provider == "gemini" and bool(settings.gemini_api_key)
+
+
+def _daily_usage(user_id: int, db: Session) -> int:
+    today = date.today().isoformat()
+    log = db.query(GeminiUsageLog).filter(
+        GeminiUsageLog.user_id == user_id,
+        GeminiUsageLog.usage_date == today,
+    ).first()
+    return log.count if log else 0
+
+
+def _increment_daily_usage(user_id: int, db: Session) -> None:
+    today = date.today().isoformat()
+    log = db.query(GeminiUsageLog).filter(
+        GeminiUsageLog.user_id == user_id,
+        GeminiUsageLog.usage_date == today,
+    ).first()
+    if log is None:
+        log = GeminiUsageLog(user_id=user_id, usage_date=today, count=1)
+        db.add(log)
+    else:
+        log.count += 1
+    db.commit()
+
+
+def generate_tenant_response_auto(
+    profile: TenantProfile | None,
+    listing: Listing | None,
+    style: ResponseStyle,
+    *,
+    user_id: int | None = None,
+    db: Session | None = None,
+) -> tuple[GeneratedTenantResponse, str]:
+    """Return (result, provider_used). Falls back to template on any failure."""
+    from app.core.config import settings
+
+    if (
+        profile is not None
+        and user_id is not None
+        and db is not None
+        and gemini_is_enabled()
+        and _daily_usage(user_id, db) < settings.ai_response_daily_limit
+    ):
+        from app.services.gemini_response import call_gemini
+        try:
+            text = call_gemini(
+                profile,
+                listing,
+                style,
+                api_key=settings.gemini_api_key,  # type: ignore[arg-type]
+                model=settings.gemini_response_model,
+            )
+            if text:
+                _increment_daily_usage(user_id, db)
+                return GeneratedTenantResponse(message=text, style=style, missing_fields=[]), "gemini"
+        except Exception:
+            logger.warning("ai_response provider=gemini status=fallback")
+
+    return generate_tenant_response(profile, listing, style), "template"

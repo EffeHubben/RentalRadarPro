@@ -88,6 +88,7 @@ export function ListingModal({
   const [assistantSaving, setAssistantSaving] = useState(false);
   const [assistantError, setAssistantError] = useState("");
   const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [providerUsed, setProviderUsed] = useState<string | null>(null);
   const copy = i18n[language].modal;
   const listingCopy = i18n[language].listing;
   const workflowCopy = i18n[language].workflow;
@@ -99,6 +100,7 @@ export function ListingModal({
     setGeneratedMessage("");
     setAssistantError("");
     setMissingFields([]);
+    setProviderUsed(null);
 
     if (!listing || !isProUser || !accessToken) {
       return;
@@ -134,6 +136,7 @@ export function ListingModal({
       const generated = await generateListingResponse(listing.id, accessToken, responseStyle);
       setGeneratedMessage(generated.message);
       setMissingFields(generated.missing_fields);
+      setProviderUsed(generated.provider_used ?? null);
     } catch (caughtError) {
       setAssistantError(caughtError instanceof Error ? caughtError.message : assistantCopy.error);
     } finally {
@@ -348,6 +351,11 @@ export function ListingModal({
                           {missingFields.length ? (
                             <p className="text-xs leading-5 text-[var(--color-subtle)]">
                               {assistantCopy.missingFields}: {missingFields.join(", ")}
+                            </p>
+                          ) : null}
+                          {providerUsed ? (
+                            <p className="text-xs text-[var(--color-subtle)]">
+                              {providerUsed === "gemini" ? "AI gegenereerd" : "Template gebruikt"}
                             </p>
                           ) : null}
                           {assistantError ? (

@@ -31,6 +31,7 @@ export type GeneratedTenantResponse = {
   message: string;
   style: TenantResponseStyle;
   missing_fields: string[];
+  provider_used?: string;
 };
 
 export type SavedRentalResponse = {

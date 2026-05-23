@@ -34,6 +34,18 @@ class TenantProfile(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 
+class GeminiUsageLog(Base):
+    __tablename__ = "gemini_usage_logs"
+    __table_args__ = (
+        UniqueConstraint("user_id", "usage_date", name="uq_gemini_usage_user_date"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    usage_date = Column(String(10), nullable=False)
+    count = Column(Integer, nullable=False, default=0)
+
+
 class SavedRentalResponse(Base):
     __tablename__ = "saved_rental_responses"
     __table_args__ = (

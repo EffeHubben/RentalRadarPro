@@ -55,6 +55,7 @@ class GenerateResponseResponse(BaseModel):
     message: str
     style: ResponseStyle
     missing_fields: list[str] = Field(default_factory=list)
+    provider_used: str = "template"
 
 
 class SaveRentalResponseRequest(BaseModel):

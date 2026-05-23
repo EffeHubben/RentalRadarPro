@@ -83,4 +83,5 @@ def generate_tenant_profile_example(
         message=generated.message,
         style=generated.style,
         missing_fields=generated.missing_fields,
+        provider_used="template",
     )

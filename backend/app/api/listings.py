@@ -28,7 +28,7 @@ from app.schemas.tenant import (
     SavedRentalResponseResponse,
     SaveRentalResponseRequest,
 )
-from app.services.tenant_response_generator import generate_tenant_response
+from app.services.tenant_response_generator import generate_tenant_response_auto
 
 
 router = APIRouter(
@@ -694,11 +694,18 @@ def generate_listing_response(
     _require_response_assistant_pro(current_user)
     listing = _get_listing_or_404(database, listing_id)
     profile = database.query(TenantProfile).filter(TenantProfile.user_id == current_user.id).first()
-    generated = generate_tenant_response(profile, listing, payload.style)
+    generated, provider_used = generate_tenant_response_auto(
+        profile,
+        listing,
+        payload.style,
+        user_id=current_user.id,
+        db=database,
+    )
     return GenerateResponseResponse(
         message=generated.message,
         style=generated.style,
         missing_fields=generated.missing_fields,
+        provider_used=provider_used,
     )
 
 
