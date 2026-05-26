@@ -367,6 +367,13 @@ export default function HomePage() {
                 >
                   {copy.continueSearch}
                 </Link>
+              ) : auth.isAuthenticated ? (
+                <Link
+                  href="/search"
+                  className="inline-flex h-11 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-border-strong)] sm:h-12"
+                >
+                  {copy.startSearch}
+                </Link>
               ) : (
                 <a
                   href="#pricing"
