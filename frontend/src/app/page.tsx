@@ -281,11 +281,11 @@ export default function HomePage() {
       <SiteHeader language={language} onLanguageChange={changeLanguage} />
 
       <main>
-        {/* Hero — video background, centered content */}
-        <section className="relative flex min-h-[100dvh] items-start sm:items-center overflow-hidden sm:min-h-[620px]">
-          {/* Video backgrounds — cover on mobile (no white bars), contain on desktop */}
+        {/* Hero */}
+        <section className="relative flex items-center overflow-hidden border-b border-[var(--color-border)] py-16 sm:min-h-[620px] sm:py-0">
+          {/* Video — hidden on mobile, visible sm+ */}
           <video
-            className="hero-video-light absolute inset-0 h-full w-full object-contain"
+            className="hero-video-light absolute inset-0 hidden h-full w-full object-contain sm:block"
             src="/videos/rotation.house.white.pingpong.mp4"
             autoPlay
             muted
@@ -293,7 +293,7 @@ export default function HomePage() {
             playsInline
           />
           <video
-            className="hero-video-dark absolute inset-0 h-full w-full object-contain"
+            className="hero-video-dark absolute inset-0 hidden h-full w-full object-contain sm:block"
             src="/videos/rotation.house.dark.pingpong.mp4"
             autoPlay
             muted
@@ -301,20 +301,20 @@ export default function HomePage() {
             playsInline
           />
 
-          {/* Inward masking */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[18%] sm:w-[22%]" style={{ background: "linear-gradient(to right, var(--color-page), transparent)" }} />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[18%] sm:w-[22%]" style={{ background: "linear-gradient(to left, var(--color-page), transparent)" }} />
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[8%] sm:h-[18%]" style={{ background: "linear-gradient(to bottom, var(--color-page), transparent)" }} />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[18%] sm:h-[24%]" style={{ background: "linear-gradient(to top, var(--color-page), transparent)" }} />
+          {/* Inward masking — desktop only */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] hidden w-[22%] sm:block" style={{ background: "linear-gradient(to right, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] hidden w-[22%] sm:block" style={{ background: "linear-gradient(to left, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] hidden h-[18%] sm:block" style={{ background: "linear-gradient(to bottom, var(--color-page), transparent)" }} />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] hidden h-[24%] sm:block" style={{ background: "linear-gradient(to top, var(--color-page), transparent)" }} />
 
-          {/* Center veil */}
-          <div className="hero-center-veil pointer-events-none absolute inset-0 z-[2]" />
+          {/* Center veil — desktop only */}
+          <div className="hero-center-veil pointer-events-none absolute inset-0 z-[2] hidden sm:block" />
 
           {/* Warm glow */}
-          <div className="animate-warm-drift pointer-events-none absolute inset-x-0 top-0 z-[3] h-20 sm:h-64 bg-[radial-gradient(circle_at_50%_20%,var(--color-hero-glow),transparent_34rem)]" />
+          <div className="animate-warm-drift pointer-events-none absolute inset-x-0 top-0 z-[3] h-40 sm:h-64 bg-[radial-gradient(circle_at_50%_0%,var(--color-hero-glow),transparent_28rem)] sm:bg-[radial-gradient(circle_at_50%_20%,var(--color-hero-glow),transparent_34rem)]" />
 
-          {/* Centered content */}
-          <div className="relative z-[10] mx-auto w-full max-w-3xl px-5 pt-5 pb-16 text-center sm:px-6 sm:py-24 lg:px-8 lg:py-32">
+          {/* Content — left-aligned on mobile, centered on desktop */}
+          <div className="relative z-[10] mx-auto w-full max-w-3xl px-5 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
             <motion.p
               className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent-strong)]"
               initial={{ opacity: 0, y: 10 }}
@@ -324,7 +324,7 @@ export default function HomePage() {
               {copy.eyebrow}
             </motion.p>
             <motion.h1
-              className="mt-5 text-[2.1rem] font-semibold leading-[1.08] tracking-[-0.01em] text-[var(--color-text)] sm:text-5xl lg:text-6xl"
+              className="mt-5 max-w-2xl text-[2rem] font-semibold leading-[1.08] tracking-[-0.01em] text-[var(--color-text)] sm:mx-auto sm:text-center sm:text-5xl lg:text-6xl"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.05 }}
@@ -332,7 +332,7 @@ export default function HomePage() {
               {copy.title}
             </motion.h1>
             <motion.p
-              className="mx-auto mt-5 max-w-sm text-[0.95rem] leading-7 text-[var(--color-muted)] sm:max-w-xl sm:text-lg"
+              className="mt-5 max-w-sm text-[0.95rem] leading-7 text-[var(--color-muted)] sm:mx-auto sm:max-w-xl sm:text-center sm:text-lg"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.1 }}
@@ -341,7 +341,7 @@ export default function HomePage() {
             </motion.p>
 
             <motion.div
-              className="mt-7 flex flex-wrap justify-center gap-3"
+              className="mt-7 flex flex-wrap gap-3 sm:justify-center"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.15 }}
@@ -378,7 +378,7 @@ export default function HomePage() {
             </motion.div>
 
             <motion.div
-              className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2 sm:gap-x-8"
+              className="mt-8 flex flex-wrap gap-x-5 gap-y-2 sm:justify-center sm:gap-x-8"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.45, delay: 0.22 }}
