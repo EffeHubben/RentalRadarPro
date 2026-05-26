@@ -666,6 +666,7 @@ export const i18n = {
         "Gebruik minimaal 8 tekens met een hoofdletter, kleine letter, cijfer en speciaal teken.",
       passwordsDoNotMatch: "De wachtwoorden komen niet overeen.",
       forgotPassword: "Wachtwoord vergeten?",
+      rememberMe: "Onthoud mij",
       genericError: "Er ging iets mis. Probeer het opnieuw.",
     },
     modal: {
@@ -1511,6 +1512,7 @@ export const i18n = {
         "Use at least 8 characters with an uppercase letter, lowercase letter, number, and special character.",
       passwordsDoNotMatch: "The passwords do not match.",
       forgotPassword: "Forgot password?",
+      rememberMe: "Remember me",
       genericError: "Something went wrong. Try again.",
     },
     modal: {

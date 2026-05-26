@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     auth_secret_key: str = "change-me-in-production-rental-radar-pro"
     jwt_secret_key: str | None = None
     auth_access_token_minutes: int = 15
-    auth_refresh_token_days: int = 30
+    auth_refresh_token_days: int = 7
     auth_refresh_cookie_name: str = "rental_radar_refresh_token"
     auth_refresh_cookie_path: str = "/api/auth"
     auth_cookie_secure: bool = False

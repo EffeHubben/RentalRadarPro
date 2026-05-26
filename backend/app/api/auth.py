@@ -107,12 +107,12 @@ def enforce_registration_bot_check(payload: RegisterRequest, request: Request) -
         )
 
 
-def set_refresh_cookie(response: Response, token: str) -> None:
+def set_refresh_cookie(response: Response, token: str, *, persistent: bool = True) -> None:
     clear_legacy_refresh_cookie(response)
     response.set_cookie(
         key=settings.auth_refresh_cookie_name,
         value=token,
-        max_age=settings.auth_refresh_token_days * 24 * 60 * 60,
+        max_age=settings.auth_refresh_token_days * 24 * 60 * 60 if persistent else None,
         httponly=True,
         secure=settings.refresh_cookie_secure_enabled,
         samesite=settings.refresh_cookie_samesite,
@@ -148,14 +148,17 @@ def create_refresh_token_record(
     request: Request,
     database: Session,
     user: User,
+    *,
+    days: int | None = None,
 ) -> str:
+    token_days = days if days is not None else settings.auth_refresh_token_days
     refresh_token = create_refresh_token()
     token_record = RefreshToken(
         user_id=user.id,
         token_hash=hash_refresh_token(refresh_token),
         user_agent=request.headers.get("user-agent"),
         ip_address=request.client.host if request.client else None,
-        expires_at=datetime.utcnow() + timedelta(days=settings.auth_refresh_token_days),
+        expires_at=datetime.utcnow() + timedelta(days=token_days),
     )
     database.add(token_record)
     return refresh_token
@@ -291,11 +294,12 @@ def login(
         )
 
     user.last_login_at = datetime.utcnow()
-    refresh_token = create_refresh_token_record(request, database, user)
+    token_days = settings.auth_refresh_token_days if payload.remember_me else 1
+    refresh_token = create_refresh_token_record(request, database, user, days=token_days)
     database.commit()
     database.refresh(user)
 
-    set_refresh_cookie(response, refresh_token)
+    set_refresh_cookie(response, refresh_token, persistent=payload.remember_me)
 
     return AuthResponse(
         user=user,

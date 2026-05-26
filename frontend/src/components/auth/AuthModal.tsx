@@ -73,6 +73,7 @@ export function AuthModal({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -128,7 +129,7 @@ export function AuthModal({
 
     try {
       if (mode === "login") {
-        await auth.login({ email, password });
+        await auth.login({ email, password, remember_me: rememberMe });
       } else {
         await auth.register({
           email,
@@ -281,7 +282,18 @@ export function AuthModal({
                   </label>
 
                   {mode === "login" ? (
-                    <div className="flex justify-end">
+                    <div className="flex items-center justify-between">
+                      <label className="flex cursor-pointer items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={rememberMe}
+                          onChange={(event) => setRememberMe(event.target.checked)}
+                          className="h-4 w-4 rounded border-[var(--color-border)] accent-brass"
+                        />
+                        <span className="text-xs font-semibold text-[var(--color-subtle)]">
+                          {copy.rememberMe}
+                        </span>
+                      </label>
                       <Link
                         href="/reset-password"
                         onClick={onClose}
