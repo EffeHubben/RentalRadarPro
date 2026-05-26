@@ -12,7 +12,7 @@ from app.core.subscription import is_pro
 from app.database.db import get_database_session
 from app.models.listing import Listing
 from app.models.tenant import SavedRentalResponse, TenantProfile
-from app.models.user import User
+from app.models.user import User, UserListingPreview
 from app.services.duplicates import duplicate_sources_for_listings
 from app.services.listing_quality import clean_listing_description, clean_listing_title
 from app.schemas.listing import (
@@ -37,6 +37,7 @@ router = APIRouter(
 )
 
 FREE_LISTING_LIMIT = 10
+FREE_PREVIEW_CREDITS = 2
 BEST_MATCH_DIVERSITY_WINDOW = 36
 BEST_MATCH_MAX_RANK_JUMP = 8
 BEST_MATCH_COMPARABLE_SCORE_GAP = 0.16
@@ -775,18 +776,37 @@ def get_listing_by_id(
 ):
     listing = _get_listing_or_404(database, listing_id)
 
-    if current_user is None or not is_pro(current_user):
-        preview_listing = _make_preview_listing(listing)
-        return ListingPreviewResponse(
-            id=preview_listing.id,
-            city=preview_listing.city,
-            price=preview_listing.price,
-            property_type=preview_listing.property_type,
-            availability_status=preview_listing.availability_status,
-            image_url=preview_listing.image_url,
-        )
+    if current_user is not None and is_pro(current_user):
+        return listing
 
-    return listing
+    if current_user is not None:
+        existing = (
+            database.query(UserListingPreview)
+            .filter_by(user_id=current_user.id, listing_id=listing_id)
+            .first()
+        )
+        if existing:
+            return listing
+
+        used_count = (
+            database.query(UserListingPreview)
+            .filter_by(user_id=current_user.id)
+            .count()
+        )
+        if used_count < FREE_PREVIEW_CREDITS:
+            database.add(UserListingPreview(user_id=current_user.id, listing_id=listing_id))
+            database.commit()
+            return listing
+
+    preview_listing = _make_preview_listing(listing)
+    return ListingPreviewResponse(
+        id=preview_listing.id,
+        city=preview_listing.city,
+        price=preview_listing.price,
+        property_type=preview_listing.property_type,
+        availability_status=preview_listing.availability_status,
+        image_url=preview_listing.image_url,
+    )
 
 
 @router.post("/", response_model=ListingResponse, dependencies=[Depends(require_admin)])

@@ -97,7 +97,8 @@ export function ListingDetailClient({ slug }: { slug: string }) {
   const listingId = extractListingId(slug);
 
   const isPro = Boolean(auth.user && auth.user.plan === "pro" && auth.user.subscription_status === "active");
-  const isPreview = !isPro;
+  // Also treat as full-access when the backend returned full data via a preview credit
+  const isPreview = !isPro && (!listing || !listing.url || listing.url === "#");
 
   useEffect(() => {
     if (!listingId) {

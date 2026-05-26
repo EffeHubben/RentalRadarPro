@@ -44,6 +44,11 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    listing_previews = relationship(
+        "UserListingPreview",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
 
 class RefreshToken(Base):
@@ -60,6 +65,17 @@ class RefreshToken(Base):
     last_used_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="refresh_tokens")
+
+
+class UserListingPreview(Base):
+    __tablename__ = "user_listing_previews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    listing_id = Column(Integer, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user = relationship("User", back_populates="listing_previews")
 
 
 class PaddleEvent(Base):
