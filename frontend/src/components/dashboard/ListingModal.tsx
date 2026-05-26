@@ -476,11 +476,11 @@ export function ListingModal({
               </div>
             </div>
 
-            <div className="sticky bottom-0 z-30 flex items-center justify-end gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 shadow-[0_-18px_60px_rgba(50,42,31,0.10)] backdrop-blur-xl">
+            <div className="sticky bottom-0 z-30 flex items-center justify-end gap-2 border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 shadow-[0_-18px_60px_rgba(50,42,31,0.10)] backdrop-blur-xl sm:gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="rs-control h-11 rounded-xl px-4 text-sm font-semibold"
+                className="rs-control h-11 shrink-0 rounded-xl px-3 text-sm font-semibold whitespace-nowrap sm:px-4"
               >
                 {copy.close}
               </button>
@@ -490,7 +490,7 @@ export function ListingModal({
                   listing.city?.toLowerCase().replace(/\s+/g, "-"),
                   listing.property_type !== "unknown" ? listing.property_type : null,
                 ].filter(Boolean).join("-")}`}
-                className="rs-control h-11 inline-flex items-center rounded-xl px-4 text-sm font-semibold"
+                className="rs-control h-11 inline-flex shrink-0 items-center rounded-xl px-3 text-sm font-semibold whitespace-nowrap sm:px-4"
               >
                 {listingCopy.viewPage}
               </Link>
@@ -499,7 +499,7 @@ export function ListingModal({
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => onToast(listingCopy.openingAd, "info")}
-                className="rs-primary-button flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold"
+                className="rs-primary-button flex h-11 shrink-0 items-center justify-center rounded-xl px-4 text-sm font-semibold whitespace-nowrap sm:px-5"
               >
                 {listingCopy.openAd}
               </a>
