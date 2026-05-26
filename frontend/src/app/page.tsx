@@ -285,7 +285,7 @@ export default function HomePage() {
         <section className="relative flex items-center overflow-hidden border-b border-[var(--color-border)] py-16 sm:min-h-[620px] sm:py-0">
           {/* Video — hidden on mobile, visible sm+ */}
           <video
-            className="hero-video-light absolute inset-0 hidden h-full w-full object-contain sm:block"
+            className="hero-video-light absolute inset-0 h-full w-full object-contain"
             src="/videos/rotation.house.white.pingpong.mp4"
             autoPlay
             muted
@@ -293,7 +293,7 @@ export default function HomePage() {
             playsInline
           />
           <video
-            className="hero-video-dark absolute inset-0 hidden h-full w-full object-contain sm:block"
+            className="hero-video-dark absolute inset-0 h-full w-full object-contain"
             src="/videos/rotation.house.dark.pingpong.mp4"
             autoPlay
             muted

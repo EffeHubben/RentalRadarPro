@@ -83,11 +83,17 @@ html {
   background: var(--color-page);
 }
 
-.hero-video-light { display: block; }
-.hero-video-dark  { display: none;  }
+/* Videos hidden on mobile, theme-controlled on sm+ */
+.hero-video-light { display: none; }
+.hero-video-dark  { display: none; }
 
-:root[data-theme="dark"] .hero-video-light { display: none;  }
-:root[data-theme="dark"] .hero-video-dark  { display: block; }
+@media (min-width: 640px) {
+  .hero-video-light { display: block; }
+  .hero-video-dark  { display: none;  }
+
+  :root[data-theme="dark"] .hero-video-light { display: none;  }
+  :root[data-theme="dark"] .hero-video-dark  { display: block; }
+}
 
 /* Soft radial mask on the hero video so the letterboxed edges blend into the page
    instead of showing a hard rectangular outline on wider viewports. */
