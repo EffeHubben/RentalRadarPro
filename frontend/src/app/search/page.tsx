@@ -648,6 +648,7 @@ export default function DashboardPage() {
   const freeLimitApplied = listingsPage?.free_limit_applied ?? false;
   const requiresPro = listingsPage?.requires_pro ?? false;
   const totalListings = listingsPage?.total ?? 0;
+  const hasLocationFilter = Boolean(filters.city.trim() || filters.locationLat);
 
   useEffect(() => {
     const storedLanguage = window.localStorage.getItem("rental-radar-language");
@@ -1466,7 +1467,28 @@ export default function DashboardPage() {
               />
             ) : null}
 
-            {loading ? (
+            {!hasLocationFilter ? (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="dashboard-shell rounded-2xl p-8 text-center"
+              >
+                <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--color-accent)]" />
+                <p className="text-base font-semibold text-[var(--color-text)]">
+                  {copy.dashboard.noCityTitle}
+                </p>
+                <p className="rs-muted mx-auto mt-2 max-w-sm text-sm leading-6">
+                  {copy.dashboard.noCityBody}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setQuickEditOpen(true)}
+                  className="rs-primary-button mt-5 inline-flex h-10 items-center rounded-xl px-5 text-sm font-semibold"
+                >
+                  {copy.dashboard.noCityAction}
+                </button>
+              </motion.div>
+            ) : loading ? (
               <SkeletonGrid />
             ) : visibleListings.length ? (
               <motion.div
