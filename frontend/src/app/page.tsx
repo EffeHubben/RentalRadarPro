@@ -276,18 +276,6 @@ export default function HomePage() {
     : isPro
       ? () => window.location.assign("/search")
       : () => void startBillingFlow("checkout");
-  const finalCtaLabel = !auth.isAuthenticated
-    ? copy.startSearch
-    : isPro
-      ? copy.startSearchPro
-      : copy.proPlanCta;
-  const finalCtaHref = !auth.isAuthenticated || isPro ? "/search" : undefined;
-  const finalCtaAction = !auth.isAuthenticated
-    ? () => openAuth("register")
-    : isPro
-      ? () => window.location.assign("/search")
-      : () => void startBillingFlow("checkout");
-
   return (
     <div className="min-h-screen bg-[var(--color-page)] text-[var(--color-text)]">
       <SiteHeader language={language} onLanguageChange={changeLanguage} />
@@ -580,38 +568,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
-          <Reveal>
-            <div className="rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6 shadow-[var(--shadow-premium)] sm:p-8">
-              <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                <div className="max-w-2xl">
-                  <h2 className="text-2xl font-semibold text-[var(--color-text)]">
-                    {copy.finalCtaTitle}
-                  </h2>
-                  <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-                    {copy.finalCtaBody}
-                  </p>
-                </div>
-                {finalCtaHref ? (
-                  <Link
-                    href={finalCtaHref}
-                    className="rs-primary-button inline-flex h-12 shrink-0 items-center justify-center rounded-lg px-5 text-sm font-semibold"
-                  >
-                    {finalCtaLabel}
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={finalCtaAction}
-                    className="rs-primary-button inline-flex h-12 shrink-0 items-center justify-center rounded-lg px-5 text-sm font-semibold"
-                  >
-                    {finalCtaLabel}
-                  </button>
-                )}
-              </div>
-            </div>
-          </Reveal>
-        </section>
       </main>
 
       <SiteFooter language={language} />
