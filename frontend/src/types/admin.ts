@@ -61,6 +61,50 @@ export type AdminEmailDeliveryStatus = "all" | "sent" | "failed";
 
 export type AdminSourcesResponse = SourceInfo[];
 
+export type ManagedSourceType =
+  | "scraper_active"
+  | "manual_external"
+  | "feed"
+  | "api"
+  | "partner_import"
+  | "unsupported";
+
+export type ManagedSourceStatus =
+  | "active"
+  | "paused"
+  | "blocked"
+  | "needs_review"
+  | "manual_only"
+  | "unsupported";
+
+export type AdminManagedSource = {
+  id: number;
+  name: string;
+  slug: string;
+  base_url: string;
+  country: string;
+  city: string | null;
+  region: string | null;
+  source_type: ManagedSourceType;
+  status: ManagedSourceStatus;
+  is_enabled: boolean;
+  scrape_priority: number;
+  requires_login: boolean;
+  has_anti_bot: boolean;
+  robots_policy: string | null;
+  scan_interval_minutes: number;
+  last_checked_at: string | null;
+  last_success_at: string | null;
+  last_error: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  is_scannable: boolean;
+  scan_skip_reason: string | null;
+};
+
+export type AdminManagedSourcesResponse = AdminManagedSource[];
+
 export type AnalyticsTodayStats = {
   page_views: number;
   searches: number;

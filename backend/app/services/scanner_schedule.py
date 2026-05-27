@@ -9,6 +9,11 @@ from sqlalchemy import func
 from app.models.listing import Listing
 from app.models.scan_history import ScanHistory
 from app.sources.registry import RENTAL_SOURCES, RentalSource, source_supports_city
+from app.services.source_catalog import (
+    get_source_record,
+    source_records_by_slug,
+    source_skip_reason,
+)
 
 
 FAILURE_BACKOFF_STATUSES = {
@@ -36,6 +41,20 @@ class SourceScanDecision:
 def stagger_seconds(source: RentalSource, city: str) -> int:
     digest = hashlib.sha1(f"{source.source_key}|{city.lower()}".encode("utf-8")).hexdigest()
     return int(digest[:4], 16) % max(60, source.interval_minutes * 60)
+
+
+def effective_interval_minutes(database, source: RentalSource, record=None) -> int:
+    record = record if record is not None else get_source_record(database, source.source_key)
+    if record is None:
+        return source.interval_minutes
+    return max(1, int(record.scan_interval_minutes or source.interval_minutes))
+
+
+def effective_priority(database, source: RentalSource, record=None) -> int:
+    record = record if record is not None else get_source_record(database, source.source_key)
+    if record is None:
+        return source.priority
+    return int(record.scrape_priority or source.priority)
 
 
 def recent_scans(database, source_key: str, city: str, limit: int = 5) -> list[ScanHistory]:
@@ -80,27 +99,38 @@ def scan_decision_for_source(
     source: RentalSource,
     *,
     now: datetime | None = None,
+    source_record=None,
 ) -> SourceScanDecision:
     now = now or datetime.utcnow()
+    record = source_record if source_record is not None else get_source_record(database, source.source_key)
 
-    if not source.enabled:
+    if record is not None:
+        skip_reason = source_skip_reason(record)
+        if skip_reason == "status_needs_review" and not source.auto_scan_enabled:
+            skip_reason = f"{source.source_type}_not_auto_scanned"
+        if skip_reason:
+            return SourceScanDecision(source.source_key, False, skip_reason)
+    elif not source.enabled:
         return SourceScanDecision(source.source_key, False, "disabled")
-    if not source.auto_scan_enabled:
+    elif not source.auto_scan_enabled:
         return SourceScanDecision(source.source_key, False, f"{source.source_type}_not_auto_scanned")
+
     if not source_supports_city(source, city):
         return SourceScanDecision(source.source_key, False, "unsupported_city")
 
     scans = recent_scans(database, source.source_key, city)
+    interval_minutes = effective_interval_minutes(database, source, record)
+    priority = effective_priority(database, source, record)
     if not scans:
         return SourceScanDecision(
             source.source_key,
             True,
             "never_scanned",
-            score=source.priority + source.reliability_weight * 25,
+            score=priority + source.reliability_weight * 25,
         )
 
     latest = scans[0]
-    base_interval = max(source.interval_minutes, 0)
+    base_interval = max(interval_minutes, 0)
     failure_streak = leading_status_count(scans, FAILURE_BACKOFF_STATUSES)
     zero_streak = leading_status_count(scans, ZERO_RESULT_STATUSES)
     backoff_multiplier = 1
@@ -124,7 +154,7 @@ def scan_decision_for_source(
     created_recently = sum(scan.created_count for scan in scans[:3])
     score = (
         overdue_minutes
-        + source.priority
+        + priority
         + source.reliability_weight * 25
         + min(created_recently, 20)
         - failure_streak * 30
@@ -134,8 +164,9 @@ def scan_decision_for_source(
 
 
 def source_scan_decisions_for_city(database, city: str) -> list[SourceScanDecision]:
+    records = source_records_by_slug(database)
     return [
-        scan_decision_for_source(database, city, source)
+        scan_decision_for_source(database, city, source, source_record=records.get(source.source_key))
         for source in RENTAL_SOURCES
     ]
 

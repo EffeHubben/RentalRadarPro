@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, field_validator
 from typing import Literal
 
+from app.models.source import SourceStatus, SourceType
+
 
 class AdminOverviewResponse(BaseModel):
     total_users: int
@@ -132,3 +134,94 @@ class AdminScanHealthResponse(BaseModel):
     items: list[AdminSourceHealthEntry]
     window_hours: int
     generated_at: datetime
+
+
+class AdminSourceResponse(BaseModel):
+    id: int
+    name: str
+    slug: str
+    base_url: str
+    country: str
+    city: str | None
+    region: str | None
+    source_type: Literal[
+        "scraper_active",
+        "manual_external",
+        "feed",
+        "api",
+        "partner_import",
+        "unsupported",
+    ]
+    status: Literal[
+        "active",
+        "paused",
+        "blocked",
+        "needs_review",
+        "manual_only",
+        "unsupported",
+    ]
+    is_enabled: bool
+    scrape_priority: int
+    requires_login: bool
+    has_anti_bot: bool
+    robots_policy: str | None
+    scan_interval_minutes: int
+    last_checked_at: datetime | None
+    last_success_at: datetime | None
+    last_error: str | None
+    notes: str | None
+    created_at: datetime
+    updated_at: datetime
+    is_scannable: bool
+    scan_skip_reason: str | None
+
+    class Config:
+        from_attributes = True
+
+
+class AdminSourceCreateRequest(BaseModel):
+    name: str
+    slug: str | None = None
+    base_url: str
+    country: str = "NL"
+    city: str | None = None
+    region: str | None = None
+    source_type: SourceType = SourceType.MANUAL_EXTERNAL
+    status: SourceStatus = SourceStatus.NEEDS_REVIEW
+    is_enabled: bool = True
+    scrape_priority: int = 50
+    requires_login: bool = False
+    has_anti_bot: bool = False
+    robots_policy: str | None = None
+    scan_interval_minutes: int = 60
+    notes: str | None = None
+
+
+class AdminSourceUpdateRequest(BaseModel):
+    name: str | None = None
+    base_url: str | None = None
+    country: str | None = None
+    city: str | None = None
+    region: str | None = None
+    source_type: SourceType | None = None
+    status: SourceStatus | None = None
+    is_enabled: bool | None = None
+    scrape_priority: int | None = None
+    requires_login: bool | None = None
+    has_anti_bot: bool | None = None
+    robots_policy: str | None = None
+    scan_interval_minutes: int | None = None
+    notes: str | None = None
+
+
+class AdminSourceEnabledRequest(BaseModel):
+    is_enabled: bool
+
+
+class AdminSourceClassificationRequest(BaseModel):
+    source_type: SourceType | None = None
+    status: SourceStatus | None = None
+
+
+class AdminSourceTestScanRequest(BaseModel):
+    city: str | None = None

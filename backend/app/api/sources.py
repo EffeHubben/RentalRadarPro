@@ -10,6 +10,8 @@ from app.models.listing import Listing
 from app.sources.registry import RENTAL_SOURCES, source_payload
 from app.services.scanner_schedule import scan_decision_for_source
 from app.services.scanner_reliability import truncate_error_message
+from app.models.source import SourceStatus, SourceType
+from app.services.source_catalog import is_scannable_source_record, source_records_by_slug, source_skip_reason
 
 
 router = APIRouter(
@@ -94,6 +96,20 @@ def public_status_for_scan(source_status: str, scan_status: str | None) -> str:
     return source_status
 
 
+def public_status_for_source_record(record, fallback_status: str) -> str:
+    if record is None:
+        return fallback_status
+    if record.status == SourceStatus.ACTIVE.value:
+        return "online"
+    if record.status == SourceStatus.MANUAL_ONLY.value:
+        return "manual"
+    if record.status in {SourceStatus.BLOCKED.value, SourceStatus.NEEDS_REVIEW.value}:
+        return "limited"
+    if record.status in {SourceStatus.PAUSED.value, SourceStatus.UNSUPPORTED.value}:
+        return "offline"
+    return fallback_status
+
+
 def next_due_from_scan(source, latest_scan: ScanHistory | None) -> str | None:
     if not source.auto_scan_enabled or not latest_scan or not latest_scan.finished_at:
         return None
@@ -112,11 +128,38 @@ def next_due_from_scan(source, latest_scan: ScanHistory | None) -> str | None:
 
 def build_sources_payloads(database: Session, city: str | None = None) -> list[dict]:
     payloads = []
+    records = source_records_by_slug(database)
     for source in RENTAL_SOURCES:
-        manual_external = not source.supports_automatic_scraping or source.source_type == "manual"
+        record = records.get(source.source_key)
+        configured_auto_scan = is_scannable_source_record(record) if record is not None else source.auto_scan_enabled
+        configured_skip_reason = source_skip_reason(record) if record is not None else None
+        manual_external = (
+            configured_skip_reason == "manual_external"
+            or not source.supports_automatic_scraping
+            or source.source_type == "manual"
+            or (record is not None and record.source_type in {SourceType.MANUAL_EXTERNAL.value, SourceType.PARTNER_IMPORT.value})
+        )
         payload = source_payload(source, city=city)
+        if record is not None:
+            payload.update(
+                {
+                    "enabled": bool(record.is_enabled),
+                    "is_enabled": bool(record.is_enabled),
+                    "auto_scan_enabled": configured_auto_scan,
+                    "default_enabled_for_auto_scan": configured_auto_scan,
+                    "scan_interval_minutes": record.scan_interval_minutes,
+                    "source_type": record.source_type,
+                    "source_status": record.status,
+                    "status": public_status_for_source_record(record, payload["status"]),
+                    "requires_login": bool(record.requires_login),
+                    "likely_blocks_bots": bool(record.has_anti_bot),
+                    "priority": record.scrape_priority,
+                    "notes": record.notes or payload["notes"],
+                    "last_checked_at": record.last_checked_at.isoformat() if record.last_checked_at else None,
+                }
+            )
         if city:
-            decision = scan_decision_for_source(database, city, source)
+            decision = scan_decision_for_source(database, city, source, source_record=record)
             payload.update(
                 {
                     "scan_state": "due" if decision.due else "skipped",
@@ -128,11 +171,11 @@ def build_sources_payloads(database: Session, city: str | None = None) -> list[d
         else:
             payload.update(
                 {
-                    "scan_state": "manual" if not source.auto_scan_enabled else "auto",
+                    "scan_state": "manual" if not configured_auto_scan else "auto",
                     "scan_skip_reason": (
                         None
-                        if source.auto_scan_enabled
-                        else "manual_external" if manual_external else f"{source.source_type}_not_auto_scanned"
+                        if configured_auto_scan
+                        else "manual_external" if manual_external else configured_skip_reason or f"{source.source_type}_not_auto_scanned"
                     ),
                     "is_cooling_down": False,
                 }
@@ -153,7 +196,7 @@ def build_sources_payloads(database: Session, city: str | None = None) -> list[d
         if latest_scan and not manual_external:
             payload.update(
                 {
-                    "status": public_status_for_scan(source.status, latest_scan.status),
+                    "status": public_status_for_scan(payload["status"], latest_scan.status),
                     "last_scan_started_at": latest_scan.started_at.isoformat() if latest_scan.started_at else None,
                     "last_scan_finished_at": latest_scan.finished_at.isoformat() if latest_scan.finished_at else None,
                     "last_error": truncate_error_message(latest_scan.error),

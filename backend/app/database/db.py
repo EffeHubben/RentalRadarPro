@@ -266,13 +266,19 @@ def migrate_geocode_cache_table() -> None:
 
 
 def create_database_tables(*, run_backfills: bool = True) -> None:
-    from app.models import analytics, email_delivery, geocode, listing, monitoring, scan_history, tenant, user  # noqa: F401
+    from app.models import analytics, email_delivery, geocode, listing, monitoring, scan_history, source, tenant, user  # noqa: F401
+    from app.services.source_catalog import sync_registry_sources
 
     Base.metadata.create_all(bind=engine)
     migrate_listing_table()
     migrate_scan_history_table()
     migrate_geocode_cache_table()
     migrate_users_table()
+    database = SessionLocal()
+    try:
+        sync_registry_sources(database)
+    finally:
+        database.close()
     if run_backfills:
         backfill_existing_listing_locations()
         backfill_existing_listing_availability()

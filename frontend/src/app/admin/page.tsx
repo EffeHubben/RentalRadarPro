@@ -106,6 +106,7 @@ type PageCopy = {
   sourcesTitle: string;
   sourcesEmpty: string;
   sourcesSummary: string;
+  manageSources: string;
   table: {
     userId: string;
     email: string;
@@ -255,6 +256,7 @@ const copy: Record<Language, PageCopy> = {
     sourcesTitle: "Bronnen en scannerstatus",
     sourcesEmpty: "Geen bronstatus beschikbaar.",
     sourcesSummary: "Alleen-lezen overzicht van scanstatus, versheid en recente listing-aantallen.",
+    manageSources: "Bronnen beheren",
     table: {
       userId: "User ID",
       email: "E-mail",
@@ -414,6 +416,7 @@ const copy: Record<Language, PageCopy> = {
     sourcesTitle: "Sources and scanner status",
     sourcesEmpty: "No source status is available.",
     sourcesSummary: "Read-only view of scan state, freshness, and recent listing volume.",
+    manageSources: "Manage sources",
     table: {
       userId: "User ID",
       email: "Email",
@@ -1606,9 +1609,17 @@ export default function AdminPage() {
                             <h2 className="text-lg font-semibold text-[var(--color-text)]">{pageCopy.sourcesTitle}</h2>
                             <p className="mt-1 text-sm text-[var(--color-muted)]">{pageCopy.sourcesSummary}</p>
                           </div>
-                          <span className="rounded-full bg-[var(--color-soft)] px-3 py-1 text-xs font-semibold text-[var(--color-muted)]">
-                            {sources.length}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              href="/admin/sources"
+                              className="rs-control rounded-lg px-3 py-2 text-xs font-semibold"
+                            >
+                              {pageCopy.manageSources}
+                            </Link>
+                            <span className="rounded-full bg-[var(--color-soft)] px-3 py-1 text-xs font-semibold text-[var(--color-muted)]">
+                              {sources.length}
+                            </span>
+                          </div>
                         </div>
 
                         {coverage ? (

@@ -37,7 +37,13 @@ from app.services.location import (
     reset_geocode_run_budget,
     slug_to_text,
 )
-from app.sources.registry import LAST_SOURCE_RUNS, enabled_sources, source_supports_city
+from app.sources.registry import LAST_SOURCE_RUNS, source_supports_city
+from app.services.source_catalog import (
+    get_source_record,
+    select_runtime_sources,
+    source_skip_reason,
+    update_source_scan_metadata,
+)
 
 
 router = APIRouter(
@@ -115,6 +121,7 @@ def create_source_summary(source_id: str, source_name: str, manual_search_url: s
         "availability_known": 0,
         "unavailable_detected": 0,
         "malformed_skipped": 0,
+        "scan_skip_reason": None,
     }
 
 
@@ -240,6 +247,14 @@ def record_scan_history(
             started_at=started_at,
             finished_at=finished_at,
         )
+    )
+    database.commit()
+    update_source_scan_metadata(
+        database,
+        source_id=source_id,
+        status=status,
+        error=error,
+        checked_at=finished_at,
     )
     database.commit()
 
@@ -564,7 +579,7 @@ def run_scrapers(
     selected_source_ids = request.sources if request and request.sources is not None else None
     reset_geocode_run_budget()
 
-    for source in enabled_sources(selected_source_ids, auto_only=selected_source_ids is None):
+    for source in select_runtime_sources(database, selected_source_ids, auto_only=selected_source_ids is None):
         perf_started_at = perf_counter()
         scan_started_at = datetime.utcnow()
         source.last_scan_started_at = scan_started_at
@@ -574,18 +589,22 @@ def run_scrapers(
             manual_search_url=source.manual_search_url(city),
         )
         source_summaries.append(source_summary)
-        if not getattr(source, "supports_automatic_scraping", True) or getattr(source, "source_type", None) == "manual":
-            source_summary["status"] = "manual_external"
+        record = get_source_record(database, source.source_key)
+        configured_skip_reason = source_skip_reason(record) if record is not None else None
+        if configured_skip_reason:
+            source_summary["status"] = "manual_external" if configured_skip_reason == "manual_external" else "skipped"
+            source_summary["scan_skip_reason"] = configured_skip_reason
             source_summary["error"] = (
-                f"{source.display_name} is configured as a manual/external source and is not scraped."
+                f"{source.display_name} is not scanned automatically: {configured_skip_reason.replace('_', ' ')}."
             )
             source_summary["duration_ms"] = 0
             LAST_SOURCE_RUNS[source.source_key] = source_summary.copy()
             logger.info(
-                "scan_skipped source=%s source_name=%s city=%s reason=manual_external",
+                "scan_skipped source=%s source_name=%s city=%s reason=%s",
                 source.source_key,
                 source.display_name,
                 city,
+                configured_skip_reason,
             )
             continue
 
@@ -1000,7 +1019,7 @@ def get_scraper_freshness(
     cutoff = datetime.utcnow() - timedelta(minutes=FRESHNESS_WINDOW_MINUTES)
     source_freshness = []
 
-    for source in enabled_sources(selected_source_ids, auto_only=selected_source_ids is None):
+    for source in select_runtime_sources(database, selected_source_ids, auto_only=selected_source_ids is None):
         latest_scan = latest_scan_for_source(database, normalized_city, source.source_id)
         finished_at = latest_scan.finished_at if latest_scan else None
         has_scan = latest_scan is not None

@@ -5,6 +5,8 @@ import type {
   AdminEmailDeliveryStatus,
   AdminEmailDeliveriesResponse,
   AdminHealth,
+  AdminManagedSource,
+  AdminManagedSourcesResponse,
   AdminOverview,
   AdminScanHealthResponse,
   AdminScansResponse,
@@ -120,6 +122,48 @@ export function fetchAdminEmailDeliveries(
 
 export function fetchAdminSources(accessToken: string) {
   return adminRequest<AdminSourcesResponse>("/admin/sources", accessToken);
+}
+
+export function fetchAdminManagedSources(accessToken: string) {
+  return adminRequest<AdminManagedSourcesResponse>("/admin/source-catalog", accessToken);
+}
+
+export function updateAdminManagedSource(
+  accessToken: string,
+  slug: string,
+  payload: Partial<Pick<
+    AdminManagedSource,
+    | "name"
+    | "base_url"
+    | "country"
+    | "city"
+    | "region"
+    | "source_type"
+    | "status"
+    | "is_enabled"
+    | "scrape_priority"
+    | "requires_login"
+    | "has_anti_bot"
+    | "robots_policy"
+    | "scan_interval_minutes"
+    | "notes"
+  >>,
+) {
+  return adminRequest<AdminManagedSource>(`/admin/source-catalog/${slug}`, accessToken, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAdminManagedSourceEnabled(
+  accessToken: string,
+  slug: string,
+  isEnabled: boolean,
+) {
+  return adminRequest<AdminManagedSource>(`/admin/source-catalog/${slug}/enabled`, accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({ is_enabled: isEnabled }),
+  });
 }
 
 export type AdminCoverageEntry = { city?: string; source?: string; count: number };

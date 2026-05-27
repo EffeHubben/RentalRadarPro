@@ -20,7 +20,7 @@ from app.api.scrapers import ScraperRunRequest, run_scrapers
 from app.core.config import settings
 from app.database.db import SessionLocal, create_database_tables
 from app.models.scan_history import ScanHistory
-from app.sources.registry import RENTAL_SOURCES
+from app.services.source_catalog import select_runtime_sources
 from app.services.scanner_schedule import (
     city_scan_score,
     due_sources_for_city,
@@ -38,14 +38,17 @@ logger = logging.getLogger("rentscout.scanner.cli")
 
 
 def automatic_source_keys() -> list[str]:
-    return [
-        source.source_key
-        for source in RENTAL_SOURCES
-        if source.enabled and source.auto_scan_enabled
-    ]
+    database = SessionLocal()
+    try:
+        return [
+            source.source_key
+            for source in select_runtime_sources(database, None, auto_only=True)
+        ]
+    finally:
+        database.close()
 
 def run_once(city: str, sources: list[str] | None, dry_run: bool = False) -> dict:
-    selected_sources = sources or automatic_source_keys()
+    selected_sources = automatic_source_keys() if sources is None else sources
 
     if dry_run:
         return {
@@ -57,6 +60,9 @@ def run_once(city: str, sources: list[str] | None, dry_run: bool = False) -> dic
 
     database = SessionLocal()
     try:
+        if not selected_sources:
+            logger.info("scanner_no_sources_selected city=%s reason=no_due_sources", city)
+            return run_scrapers(ScraperRunRequest(city=city, sources=[]), database)
         return run_scrapers(ScraperRunRequest(city=city, sources=selected_sources), database)
     finally:
         database.close()

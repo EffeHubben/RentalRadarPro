@@ -279,7 +279,20 @@ export type SourceType =
   | "sitemap"
   | "manual"
   | "partner"
-  | "api";
+  | "api"
+  | "scraper_active"
+  | "manual_external"
+  | "feed"
+  | "partner_import"
+  | "unsupported";
+
+export type SourceCatalogStatus =
+  | "active"
+  | "paused"
+  | "blocked"
+  | "needs_review"
+  | "manual_only"
+  | "unsupported";
 
 export type SourceInfo = {
   source_id: string;
@@ -293,6 +306,7 @@ export type SourceInfo = {
   scan_interval_minutes: number;
   max_timeout_seconds: number;
   status: "online" | "degraded" | "offline" | "limited" | "manual";
+  source_status?: SourceCatalogStatus;
   last_scan_started_at: string | null;
   last_scan_finished_at: string | null;
   last_success_at: string | null;

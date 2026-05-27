@@ -155,7 +155,7 @@ export function ExternalSourcesPanel({
           const externalUrl = buildExternalUrl(source, city);
           const badges: string[] = [];
 
-          if (source.source_type === "manual" || source.status === "manual") {
+          if (source.source_type === "manual" || source.source_type === "manual_external" || source.status === "manual") {
             badges.push(copy.externalSourceManual);
           } else if (source.status === "limited") {
             badges.push(copy.externalSourceLimited);

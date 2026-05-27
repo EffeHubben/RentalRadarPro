@@ -7,13 +7,23 @@ from sqlalchemy.orm import Session
 
 from app.api.sources import build_sources_payloads
 from app.core.admin import require_admin
+from app.core.config import settings
 from app.database.db import engine, get_database_session
 from app.models.email_delivery import EmailDelivery
 from app.models.listing import Listing
 from app.models.scan_history import ScanHistory
+from app.models.source import Source
 from app.models.user import User
+from app.api.scrapers import ScraperRunRequest, run_scrapers
 from app.services.listing_verifier import verify_stale_listings
 from app.sources.registry import RENTAL_SOURCES
+from app.services.source_catalog import (
+    get_source_record,
+    is_scannable_source_record,
+    list_admin_sources,
+    source_to_admin_payload,
+    upsert_source,
+)
 from app.schemas.admin import (
     AdminEmailDeliveriesListResponse,
     AdminEmailDeliveryResponse,
@@ -23,7 +33,13 @@ from app.schemas.admin import (
     AdminScansListResponse,
     AdminSetUserAdminRequest,
     AdminSetUserPlanRequest,
+    AdminSourceClassificationRequest,
+    AdminSourceCreateRequest,
+    AdminSourceEnabledRequest,
     AdminSourceHealthEntry,
+    AdminSourceResponse,
+    AdminSourceTestScanRequest,
+    AdminSourceUpdateRequest,
     AdminUserResponse,
     AdminUsersListResponse,
 )
@@ -107,8 +123,8 @@ def get_admin_overview(
             or 0
         )
 
-    total_sources = len(RENTAL_SOURCES)
-    online_sources = sum(1 for s in RENTAL_SOURCES if s.status == "online")
+    total_sources = database.query(func.count(Source.id)).scalar() or len(RENTAL_SOURCES)
+    online_sources = database.query(func.count(Source.id)).filter(Source.status == "active").scalar() or 0
 
     return AdminOverviewResponse(
         total_users=int(total_users),
@@ -313,6 +329,116 @@ def get_admin_sources(
 ):
     del admin_user
     return build_sources_payloads(database, city=city)
+
+
+@router.get("/source-catalog", response_model=list[AdminSourceResponse])
+def get_admin_source_catalog(
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    del admin_user
+    return list_admin_sources(database)
+
+
+@router.get("/source-catalog/{slug}", response_model=AdminSourceResponse)
+def get_admin_source_catalog_item(
+    slug: str = Path(..., min_length=1, max_length=100),
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    del admin_user
+    source = get_source_record(database, slug)
+    if source is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
+    return source_to_admin_payload(source)
+
+
+@router.post("/source-catalog", response_model=AdminSourceResponse, status_code=status.HTTP_201_CREATED)
+def create_admin_source_catalog_item(
+    payload: AdminSourceCreateRequest,
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    del admin_user
+    source, created = upsert_source(database, payload.model_dump(exclude_none=True))
+    if not created:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Source already exists")
+    return source_to_admin_payload(source)
+
+
+@router.patch("/source-catalog/{slug}", response_model=AdminSourceResponse)
+def update_admin_source_catalog_item(
+    payload: AdminSourceUpdateRequest,
+    slug: str = Path(..., min_length=1, max_length=100),
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    del admin_user
+    source = get_source_record(database, slug)
+    if source is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
+    update_payload = payload.model_dump(exclude_unset=True)
+    update_payload["slug"] = slug
+    source, _ = upsert_source(database, update_payload)
+    return source_to_admin_payload(source)
+
+
+@router.patch("/source-catalog/{slug}/enabled", response_model=AdminSourceResponse)
+def update_admin_source_catalog_enabled(
+    payload: AdminSourceEnabledRequest,
+    slug: str = Path(..., min_length=1, max_length=100),
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    del admin_user
+    source = get_source_record(database, slug)
+    if source is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
+    source.is_enabled = payload.is_enabled
+    source.updated_at = datetime.utcnow()
+    database.commit()
+    database.refresh(source)
+    return source_to_admin_payload(source)
+
+
+@router.patch("/source-catalog/{slug}/classification", response_model=AdminSourceResponse)
+def update_admin_source_catalog_classification(
+    payload: AdminSourceClassificationRequest,
+    slug: str = Path(..., min_length=1, max_length=100),
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    del admin_user
+    source = get_source_record(database, slug)
+    if source is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
+    if payload.source_type is not None:
+        source.source_type = payload.source_type.value
+    if payload.status is not None:
+        source.status = payload.status.value
+    source.updated_at = datetime.utcnow()
+    database.commit()
+    database.refresh(source)
+    return source_to_admin_payload(source)
+
+
+@router.post("/source-catalog/{slug}/test-scan")
+def trigger_admin_source_catalog_test_scan(
+    payload: AdminSourceTestScanRequest | None = None,
+    slug: str = Path(..., min_length=1, max_length=100),
+    admin_user: User = Depends(require_admin),
+    database: Session = Depends(get_database_session),
+):
+    del admin_user
+    source = get_source_record(database, slug)
+    if source is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
+    if not is_scannable_source_record(source):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Source is not configured as scannable")
+    city = payload.city if payload and payload.city else source.city or settings.default_city
+    if "," in city:
+        city = city.split(",", 1)[0].strip()
+    return run_scrapers(ScraperRunRequest(city=city, sources=[slug]), database)
 
 
 @router.get("/coverage")

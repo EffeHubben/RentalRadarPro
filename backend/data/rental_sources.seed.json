@@ -1,0 +1,51 @@
+{
+  "include_registry_sources": true,
+  "notes": "The importer first mirrors the current in-code registry, then upserts these extra manual/external examples. Keep source slugs stable.",
+  "sources": [
+    {
+      "name": "Aedes",
+      "slug": "aedes",
+      "base_url": "https://www.aedes.nl",
+      "country": "NL",
+      "source_type": "manual_external",
+      "status": "manual_only",
+      "is_enabled": true,
+      "scrape_priority": 20,
+      "requires_login": false,
+      "has_anti_bot": false,
+      "robots_policy": "not_checked",
+      "scan_interval_minutes": 1440,
+      "notes": "Sector organization; useful for source discovery context, not a listing scraper."
+    },
+    {
+      "name": "CBRE Investment Management",
+      "slug": "cbre-investment-management",
+      "base_url": "https://www.cbreim.com",
+      "country": "NL",
+      "source_type": "manual_external",
+      "status": "manual_only",
+      "is_enabled": true,
+      "scrape_priority": 25,
+      "requires_login": false,
+      "has_anti_bot": false,
+      "robots_policy": "not_checked",
+      "scan_interval_minutes": 1440,
+      "notes": "Institutional owner/manager; monitor manually for portfolio routing before considering automation."
+    },
+    {
+      "name": "Hines Netherlands",
+      "slug": "hines-netherlands",
+      "base_url": "https://www.hines.com/nl",
+      "country": "NL",
+      "source_type": "manual_external",
+      "status": "needs_review",
+      "is_enabled": true,
+      "scrape_priority": 30,
+      "requires_login": false,
+      "has_anti_bot": false,
+      "robots_policy": "not_checked",
+      "scan_interval_minutes": 1440,
+      "notes": "Institutional landlord; not an active scraper until a validated public listing endpoint exists."
+    }
+  ]
+}
