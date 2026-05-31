@@ -283,7 +283,7 @@ export default function HomePage() {
       <main>
         {/* Hero */}
         <section className="relative flex items-center overflow-hidden border-b border-[var(--color-border)] py-16 sm:min-h-[620px] sm:py-0">
-          {/* Video — hidden on mobile, visible sm+ */}
+          {/* Theme-specific hero video */}
           <video
             className="hero-video-light absolute inset-0 h-full w-full object-contain"
             src="/videos/rotation.house.white.pingpong.mp4"
