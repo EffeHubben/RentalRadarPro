@@ -654,6 +654,10 @@ export default function DashboardPage() {
     const storedLanguage = window.localStorage.getItem("rental-radar-language");
     const searchParams = new URLSearchParams(window.location.search);
     const forceSetup = searchParams.get("setup") === "1";
+    const cityParam = searchParams.get("city")?.trim() ?? "";
+    const propertyTypeParam = searchParams.get("property_type")?.trim() ?? "";
+    const minPriceParam = searchParams.get("min_price")?.trim() ?? "";
+    const maxPriceParam = searchParams.get("max_price")?.trim() ?? "";
 
     if (storedLanguage === "nl" || storedLanguage === "en") {
       setLanguage(storedLanguage);
@@ -664,7 +668,27 @@ export default function DashboardPage() {
       window.history.replaceState(null, "", "/search");
     }
 
-    setSearchStarted(!forceSetup && window.localStorage.getItem(onboardingStorageKey) === "done");
+    const propertyTypeFromQuery = ["studio", "apartment", "room", "house"].includes(propertyTypeParam)
+      ? (propertyTypeParam as PropertyType)
+      : null;
+    const hasPrefill = Boolean(cityParam || propertyTypeFromQuery || minPriceParam || maxPriceParam);
+
+    if (!forceSetup && hasPrefill) {
+      setFilters((current) => ({
+        ...current,
+        city: cityParam || current.city,
+        propertyType: "",
+        propertyTypes: propertyTypeFromQuery ? [propertyTypeFromQuery] : current.propertyTypes,
+        minPrice: minPriceParam || current.minPrice,
+        maxPrice: maxPriceParam || current.maxPrice,
+        offset: 0,
+      }));
+      window.localStorage.setItem(onboardingStorageKey, "done");
+      setSearchStarted(true);
+    } else {
+      setSearchStarted(!forceSetup && window.localStorage.getItem(onboardingStorageKey) === "done");
+    }
+
     setWorkflowState(loadListingWorkflowState());
     setSearchProfiles(loadSearchProfiles());
     void fetchSources()

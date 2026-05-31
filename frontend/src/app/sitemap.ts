@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { getSeoSitemapPaths } from "@/lib/seo/landings";
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://rentscout.nl").replace(/\/+$/, "");
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
@@ -31,10 +32,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${APP_URL}/terms`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
     { url: `${APP_URL}/refund-policy`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
   ];
+  const seoRoutes: MetadataRoute.Sitemap = getSeoSitemapPaths().map((path) => ({
+    url: `${APP_URL}${path}`,
+    lastModified: new Date(),
+    changeFrequency: "daily",
+    priority: 0.8,
+  }));
 
   try {
     const res = await fetch(`${API_URL}/listings/sitemap`, { next: { revalidate: 3600 } });
-    if (!res.ok) return staticRoutes;
+    if (!res.ok) return [...staticRoutes, ...seoRoutes];
 
     const items = (await res.json()) as SitemapItem[];
 
@@ -45,8 +52,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-    return [...staticRoutes, ...listingRoutes];
+    return [...staticRoutes, ...seoRoutes, ...listingRoutes];
   } catch {
-    return staticRoutes;
+    return [...staticRoutes, ...seoRoutes];
   }
 }
