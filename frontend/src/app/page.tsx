@@ -93,10 +93,17 @@ function ProductPreview({ language }: { language: Language }) {
                 </div>
               </div>
               <div className="mt-3 flex items-center justify-between">
-                <span className="text-xs text-[var(--color-subtle)]">{copy.previewSources}</span>
+                <span className="text-xs text-[var(--color-subtle)]">{listing.source}</span>
                 <span className="rounded-full bg-[var(--color-accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--color-accent-strong)]">
                   {listing.label}
                 </span>
+              </div>
+              <div className="mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-3 py-2">
+                <div className="flex items-center justify-between gap-3 text-[11px] text-[var(--color-subtle)]">
+                  <span>{copy.previewSources}</span>
+                  <span className="font-medium text-[var(--color-muted)]">{listing.freshness}</span>
+                </div>
+                <div className="mt-1 text-xs text-[var(--color-muted)]">{listing.duplicateNote}</div>
               </div>
             </motion.article>
           ))}
@@ -138,6 +145,15 @@ function ProductPreview({ language }: { language: Language }) {
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-page)] px-4 py-3">
+          <div className="text-sm font-semibold text-[var(--color-text)]">
+            {copy.previewTransparencyTitle}
+          </div>
+          <p className="mt-1 text-xs leading-5 text-[var(--color-muted)]">
+            {copy.previewTransparencyBody}
+          </p>
         </div>
       </div>
     </motion.div>
@@ -242,8 +258,8 @@ export default function HomePage() {
   const paddleStartingSuffix = language === "nl" ? "eenmalig" : "one-time";
   const paddleProDescription =
     language === "nl"
-      ? "Kies een Pro-pas van 1, 2 of 3 maanden. Eenmalige betaling, stopt automatisch."
-      : "Choose a 1, 2, or 3 month Pro pass. One-time payment, ends automatically.";
+      ? "Kies een RentScout Pro Pass van 1, 2 of 3 maanden. Eenmalige betaling, stopt automatisch."
+      : "Choose a 1, 2, or 3 month RentScout Pro Pass. One-time payment, ends automatically.";
 
   const proPlanPrice = usePaddle
     ? paddleStartingPrice
@@ -468,6 +484,71 @@ export default function HomePage() {
                 </article>
               </Reveal>
             ))}
+          </div>
+        </section>
+
+        <section className="border-y border-[var(--color-border)] bg-[var(--color-band)]">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+            <Reveal>
+              <div className="max-w-3xl">
+                <p className="text-sm font-semibold text-[var(--color-accent-strong)]">
+                  {copy.trustEyebrow}
+                </p>
+                <h2 className="mt-3 text-3xl font-semibold text-[var(--color-text)]">
+                  {copy.trustTitle}
+                </h2>
+                <p className="mt-3 text-base leading-7 text-[var(--color-muted)]">
+                  {copy.trustSubtitle}
+                </p>
+              </div>
+            </Reveal>
+
+            <div className="mt-8 grid gap-4 lg:grid-cols-3">
+              {copy.trustHighlights.map((item, index) => (
+                <Reveal key={item.title} delay={index * 0.05}>
+                  <article className="h-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+                    <h3 className="text-base font-semibold text-[var(--color-text)]">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">{item.body}</p>
+                  </article>
+                </Reveal>
+              ))}
+            </div>
+
+            <Reveal delay={0.12}>
+              <div className="mt-8 grid gap-6 rounded-[1.75rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 lg:grid-cols-[1.1fr_0.9fr]">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--color-accent-strong)]">
+                    {copy.sourceNotesTitle}
+                  </p>
+                  <ul className="mt-4 space-y-3">
+                    {copy.sourceNotes.map((note) => (
+                      <li key={note} className="flex items-start gap-3 text-sm leading-6 text-[var(--color-muted)]">
+                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-teal)]" />
+                        <span>{note}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-page)] p-5">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)]">
+                    {copy.stepsTitle}
+                  </div>
+                  <div className="mt-4 space-y-4">
+                    {copy.steps.map((step, index) => (
+                      <div key={step.title} className="grid gap-1 sm:grid-cols-[1.8rem_1fr]">
+                        <div className="text-sm font-semibold text-[var(--color-accent-strong)]">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-[var(--color-text)]">{step.title}</div>
+                          <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">{step.body}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Reveal>
           </div>
         </section>
 

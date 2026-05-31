@@ -7,36 +7,36 @@ import type { Language } from "@/lib/i18n";
 const sections = {
   nl: [
     {
-      eyebrow: "Alles op één plek",
-      title: "Honderden bronnen.\nEén helder overzicht.",
-      body: "RentScout doorzoekt tientallen platforms tegelijk — geen tabs meer wisselen.",
+      eyebrow: "Meerdere bronnen",
+      title: "Vind huurwoningen uit\nmeer bronnen.",
+      body: "RentScout brengt externe listings samen in een werkruimte, zodat je sneller ziet wat nieuw en relevant is.",
     },
     {
-      eyebrow: "Opslaan & vergelijken",
-      title: "Sla op wat telt.\nVergelijk op jouw tempo.",
-      body: "Bewaar woningen, voeg notities toe en volg de status op één plek.",
+      eyebrow: "Vergelijken zonder ruis",
+      title: "Minder dubbele ads.\nMeer overzicht.",
+      body: "Zie sneller wanneer dezelfde woning op meerdere plekken staat en houd favorieten, status en notities bij.",
     },
     {
-      eyebrow: "Altijd als eerste",
-      title: "Geen woning\nmeer gemist.",
-      body: "Stel je criteria in en ontvang een melding zodra een nieuwe match verschijnt.",
+      eyebrow: "Actief reageren",
+      title: "Werk vanuit één\nhuurdersprofiel.",
+      body: "Bewaar zoekprofielen en genereer met Pro Pass sneller een nette reactie per woning.",
     },
   ],
   en: [
     {
-      eyebrow: "Everything in one place",
-      title: "Hundreds of sources.\nOne clear overview.",
-      body: "RentScout scans dozens of platforms at once — no more tab-switching.",
+      eyebrow: "Multiple sources",
+      title: "Find rental homes from\nmore sources.",
+      body: "RentScout brings external listings into one workspace so you can see faster what is new and relevant.",
     },
     {
-      eyebrow: "Save & compare",
-      title: "Save what matters.\nCompare at your pace.",
-      body: "Bookmark listings, add notes, and track status all in one place.",
+      eyebrow: "Compare without noise",
+      title: "Fewer duplicate ads.\nMore clarity.",
+      body: "Spot repeated listings faster and keep favourites, statuses and notes in one place.",
     },
     {
-      eyebrow: "Always first",
-      title: "Never miss\na listing again.",
-      body: "Set your criteria and get notified the moment a new match appears.",
+      eyebrow: "Active responses",
+      title: "Work from one\ntenant profile.",
+      body: "Save search profiles and use Pro Pass to generate a cleaner response for each listing.",
     },
   ],
 };
