@@ -331,6 +331,8 @@ export default function HomePage() {
 
           {/* Content — left-aligned on mobile, centered on desktop */}
           <div className="relative z-[10] mx-auto w-full max-w-3xl px-5 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
+            <div className="hero-copy-scrim absolute inset-x-2 inset-y-4 rounded-[2rem] sm:inset-x-0 sm:inset-y-12 sm:rounded-[2.5rem]" />
+            <div className="relative px-3 py-4 sm:px-10 sm:py-10">
             <motion.p
               className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent-strong)]"
               initial={{ opacity: 0, y: 10 }}
@@ -348,7 +350,7 @@ export default function HomePage() {
               {copy.title}
             </motion.h1>
             <motion.p
-              className="mt-5 max-w-sm text-[0.95rem] leading-7 text-[var(--color-muted)] sm:mx-auto sm:max-w-xl sm:text-center sm:text-lg"
+              className="mt-5 max-w-md text-[1rem] font-medium leading-7 text-[var(--color-text)]/82 sm:mx-auto sm:max-w-2xl sm:text-center sm:text-[1.08rem] sm:leading-8"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.1 }}
@@ -401,18 +403,19 @@ export default function HomePage() {
             </motion.div>
 
             <motion.div
-              className="mt-8 flex flex-wrap gap-x-5 gap-y-2 sm:justify-center sm:gap-x-8"
+              className="hero-highlights-panel mt-9 flex flex-wrap gap-x-4 gap-y-3 rounded-2xl px-4 py-3.5 sm:mx-auto sm:max-w-2xl sm:justify-center sm:gap-x-6 sm:px-6"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.45, delay: 0.22 }}
             >
               {copy.productHighlights.map((highlight) => (
-                <span key={highlight} className="text-sm leading-6 text-[var(--color-muted)]">
-                  <span className="mr-2 text-[var(--color-accent-strong)]">•</span>
+                <span key={highlight} className="flex items-start text-[0.95rem] font-medium leading-6 text-[var(--color-text)]/84 sm:text-[1rem]">
+                  <span className="mr-2.5 mt-[0.38rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-accent-strong)]" />
                   {highlight}
                 </span>
               ))}
             </motion.div>
+            </div>
           </div>
         </section>
 
