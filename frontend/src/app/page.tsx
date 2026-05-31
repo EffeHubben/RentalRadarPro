@@ -331,8 +331,8 @@ export default function HomePage() {
 
           {/* Content — left-aligned on mobile, centered on desktop */}
           <div className="relative z-[10] mx-auto w-full max-w-3xl px-5 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
-            <div className="hero-copy-scrim absolute inset-x-2 inset-y-4 rounded-[2rem] sm:inset-x-0 sm:inset-y-12 sm:rounded-[2.5rem]" />
-            <div className="relative px-3 py-4 sm:px-10 sm:py-10">
+            <div className="hero-copy-scrim pointer-events-none absolute inset-x-0 top-4 h-[16rem] rounded-[2rem] sm:top-10 sm:h-[22rem]" />
+            <div className="relative">
             <motion.p
               className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent-strong)]"
               initial={{ opacity: 0, y: 10 }}
@@ -342,7 +342,7 @@ export default function HomePage() {
               {copy.eyebrow}
             </motion.p>
             <motion.h1
-              className="mt-5 max-w-2xl text-[2rem] font-semibold leading-[1.08] tracking-[-0.01em] text-[var(--color-text)] sm:mx-auto sm:text-center sm:text-5xl lg:text-6xl"
+              className="hero-heading-shadow mt-5 max-w-2xl text-[1.9rem] font-semibold leading-[1.08] tracking-[-0.01em] text-[var(--color-text)] sm:mx-auto sm:text-center sm:text-[3.2rem] lg:text-[4rem]"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.05 }}
@@ -350,7 +350,7 @@ export default function HomePage() {
               {copy.title}
             </motion.h1>
             <motion.p
-              className="mt-5 max-w-md text-[1rem] font-medium leading-7 text-[var(--color-text)]/82 sm:mx-auto sm:max-w-2xl sm:text-center sm:text-[1.08rem] sm:leading-8"
+              className="hero-copy-shadow mt-5 max-w-md text-[0.98rem] font-medium leading-7 text-[var(--color-text)]/86 sm:mx-auto sm:max-w-xl sm:text-center sm:text-[1.02rem] sm:leading-7"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.1 }}
@@ -403,14 +403,14 @@ export default function HomePage() {
             </motion.div>
 
             <motion.div
-              className="hero-highlights-panel mt-9 flex flex-wrap gap-x-4 gap-y-3 rounded-2xl px-4 py-3.5 sm:mx-auto sm:max-w-2xl sm:justify-center sm:gap-x-6 sm:px-6"
+              className="hero-highlights-panel mt-8 inline-flex max-w-[42rem] flex-wrap gap-x-4 gap-y-2.5 rounded-2xl px-4 py-3 sm:mx-auto sm:flex sm:justify-center sm:gap-x-5 sm:px-5"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.45, delay: 0.22 }}
             >
               {copy.productHighlights.map((highlight) => (
-                <span key={highlight} className="flex items-start text-[0.95rem] font-medium leading-6 text-[var(--color-text)]/84 sm:text-[1rem]">
-                  <span className="mr-2.5 mt-[0.38rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-accent-strong)]" />
+                <span key={highlight} className="hero-copy-shadow flex items-start text-[0.88rem] font-semibold leading-5 text-[var(--color-text)]/84 sm:text-[0.93rem] sm:leading-6">
+                  <span className="mr-2.5 mt-[0.34rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-accent-strong)]" />
                   {highlight}
                 </span>
               ))}
